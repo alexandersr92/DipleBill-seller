@@ -173,7 +173,7 @@ const Invoice = () => {
                 </label>
                 <Textarea
                   readOnly
-                  value="Falta"
+                  value={invoice?.invoice_note || ''}
                   disabled
                   tabIndex={4}
                   className="h-10 border-gray-500"

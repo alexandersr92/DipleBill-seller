@@ -220,6 +220,7 @@ export interface ISingleInvoice extends IInvoiceBase {
   tax: number;
   method: null | string;
   invoice_type?: string;
+  invoice_note?: string;
   invoice_details: {
     id: string;
     product_id: string;
