@@ -21,7 +21,10 @@ export default function CustomSearchInputSuggetions({
   inputRef,
   onProductAdded
 }: ISearchInputProps) {
-  const storeId = useAppSelector((state) => state.storeSlice.store?.id);
+  const storeId =
+    useAppSelector((state) => state.storeSlice.store?.id) ||
+    localStorage.getItem('currentStoreId') ||
+    undefined;
 
   const dispatch = useAppDispatch();
   const resultsListRef = useRef<HTMLUListElement | null>(null);
@@ -78,9 +81,7 @@ export default function CustomSearchInputSuggetions({
       );
 
       const product =
-        exactMatch ??
-        (activeIndex >= 0 ? results[activeIndex] : undefined) ??
-        results[0];
+        exactMatch ?? (activeIndex >= 0 ? results[activeIndex] : undefined) ?? results[0];
 
       if (product) {
         addProductToInvoice(product);
@@ -205,7 +206,8 @@ export default function CustomSearchInputSuggetions({
           } absolute p-2 z-10 w-full mt-1 bg-background border border-secondary rounded-md shadow-lg max-h-60 overflow-auto top-full
             overflow-y-auto [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300
             dark:[&::-webkit-scrollbar-track]:bg-neutral-700 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-500
-          `}>
+          `}
+        >
           {isLoading && (
             <div className="py-4">
               <Loader2Icon className="animate-spin mx-auto text-theme_blue" />
@@ -233,7 +235,8 @@ export default function CustomSearchInputSuggetions({
                       ? 'text-accent-foreground'
                       : 'text-foreground'
                 } ${index === activeIndex ? 'bg-accent' : 'hover:bg-secondary'}`}
-                onClick={() => handleResultClick(product)}>
+                onClick={() => handleResultClick(product)}
+              >
                 <div className="flex justify-between w-full">
                   <span className="font-medium text-sm">{product.name}</span>
                   <span className="text-xs">({product.quantity})</span>

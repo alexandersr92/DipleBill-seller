@@ -58,7 +58,8 @@ const InvoicesExport: React.FC<IInvoiceExportProps> = ({ data }) => {
       onClick={handleExportCsv}
       variant="ghost"
       size="icon"
-      className="h-9 w-auto px-2 gap-2 flex items-center">
+      className="h-9 w-auto px-2 gap-2 flex items-center"
+    >
       <Icons.ExcelIcon />
       Exportar facturas
       <span className="sr-only">Exportar Facturas</span>

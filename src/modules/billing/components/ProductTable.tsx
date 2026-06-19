@@ -291,7 +291,8 @@ const ProductTable = ({ sellType, productSearchRef }: IProductTableProps) => {
             tabIndex={-1}
             onClick={handleDeleteSelectedProducts}
             className="bg-secondary text-foreground hover:bg-primary focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue hover:text-secondary transition-colors duration-300 ease-in-out"
-            variant={'ghost'}>
+            variant={'ghost'}
+          >
             Eliminar seleccionados
           </Button>
         </div>
@@ -407,7 +408,8 @@ const ProductTable = ({ sellType, productSearchRef }: IProductTableProps) => {
                     type="button"
                     onClick={() => handleDeleteAddedProduct(product.temp_id ?? '')}
                     variant={'ghost'}
-                    className="hover:bg-red-500 hover:text-white text-red-500 w-8 h-8 p-0 rounded-full">
+                    className="hover:bg-red-500 hover:text-white text-red-500 w-8 h-8 p-0 rounded-full"
+                  >
                     <Trash strokeWidth="1.5" className="w-5 h-5" />
                   </Button>
 
@@ -416,7 +418,8 @@ const ProductTable = ({ sellType, productSearchRef }: IProductTableProps) => {
                       type="button"
                       onClick={() => dispatch(duplicateProduct(product.temp_id ?? ''))}
                       variant={'ghost'}
-                      className="hover:bg-blue-500 hover:text-white text-bluebg-blue-500 w-8 h-8 p-0 rounded-full">
+                      className="hover:bg-blue-500 hover:text-white text-bluebg-blue-500 w-8 h-8 p-0 rounded-full"
+                    >
                       <Copy strokeWidth="1.5" className="w-5 h-5" />
                     </Button>
                   )}

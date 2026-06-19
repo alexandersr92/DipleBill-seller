@@ -42,12 +42,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import SearchSelect from '../../../components/ui/SearchSelect';
 import { ActionButtons } from '../components/ActionButtons';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger
-} from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 type FormValues = InferType<typeof billingSchema>;
 
@@ -91,7 +86,10 @@ const Billing = () => {
   const { toast } = useToast();
 
   const currentUser = useAppSelector((state) => state.userSlice);
-  const storeId = useAppSelector((state) => state.storeSlice.store?.id);
+  const storeId =
+    useAppSelector((state) => state.storeSlice.store?.id) ||
+    localStorage.getItem('currentStoreId') ||
+    '';
   const invoiceCreated = useAppSelector((state) => state.billingSlice.invoice);
   const clients = useAppSelector((state) => state.clientSlice.clients);
   const productsSelected = useAppSelector((state) => state.billingSlice.productsSelected);
@@ -164,14 +162,7 @@ const Billing = () => {
     };
   }, [storeId, dispatch]);
 
-  const {
-    register,
-    handleSubmit,
-    control,
-    setValue,
-    getValues,
-    watch
-  } = useForm<FormValues>({
+  const { register, handleSubmit, control, setValue, getValues, watch } = useForm<FormValues>({
     resolver: yupResolver(billingSchema)
   });
   const invoiceNoteField = register('invoice_note');
@@ -207,6 +198,14 @@ const Billing = () => {
   const onSubmit: SubmitHandler<FormValues> = (values) => {
     if (!currentUser.sellerId) return;
     if (isSubmittingSale) return;
+    if (!storeId) {
+      toast({
+        title:
+          'Error: No se ha seleccionado una tienda o sucursal activa. Intente recargar la página.',
+        variant: 'error'
+      });
+      return;
+    }
     if (invoiceCreated.products.length === 0) {
       toast({
         title: 'Debes seleccionar almenos un producto para realizar la venta!',
@@ -336,7 +335,8 @@ const Billing = () => {
         ref={formRef}
         data-sell-type={sellType}
         onKeyDown={(e) => handleKeyDown({ event: e, formRef, buttonRef })}
-        onSubmit={handleSubmit(onSubmit)}>
+        onSubmit={handleSubmit(onSubmit)}
+      >
         <section className="relative rounded-md shadow-md p-4 border mb-4 before:absolute before:inset-x-0 before:top-0 before:h-[3px] before:bg-sale-accent-strong before:rounded-t-md">
           <div className="w-2/5 text-sm">
             <h1 className="text-2xl font-bold">Nueva factura</h1>
@@ -398,7 +398,8 @@ const Billing = () => {
                 <Label htmlFor="sell_type">Tipo de venta</Label>
                 <div
                   key={sellType === SELL_TYPES.CREDITO ? 'credito-pulse' : 'contado-pulse'}
-                  className={sellType === SELL_TYPES.CREDITO ? 'pulse-once-accent rounded-md' : ''}>
+                  className={sellType === SELL_TYPES.CREDITO ? 'pulse-once-accent rounded-md' : ''}
+                >
                   <SaleTypeToggle
                     id="sell_type"
                     tabIndex={1}
@@ -464,13 +465,15 @@ const Billing = () => {
                       onValueChange={(value) => {
                         field.onChange(value);
                         focusElement(invoiceNoteRef.current);
-                      }}>
+                      }}
+                    >
                       <SelectTrigger
                         ref={paymentMethodTriggerRef}
                         id="payment_method"
                         tabIndex={1}
                         data-enter-behavior="native"
-                        className="w-full h-10 focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue">
+                        className="w-full h-10 focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue"
+                      >
                         <SelectValue placeholder="Seleccionar método de pago" />
                       </SelectTrigger>
                       <SelectContent>
@@ -517,7 +520,8 @@ const Billing = () => {
                     tabIndex={-1}
                     ref={buttonRef}
                     disabled={isSubmittingSale}
-                    className="bg-sale-accent text-sale-accent-foreground hover:bg-sale-accent/90 gap-2">
+                    className="bg-sale-accent text-sale-accent-foreground hover:bg-sale-accent/90 gap-2"
+                  >
                     Realizar venta
                     <kbd className="hidden sm:inline-flex items-center rounded border border-sale-accent-foreground/30 bg-sale-accent-foreground/10 px-1.5 py-0.5 text-[10px] font-medium leading-none">
                       ⇧ Enter
@@ -533,7 +537,8 @@ const Billing = () => {
               type="button"
               tabIndex={-1}
               variant={'outline'}
-              className="hover:bg-secondary hover:text-primary hover:border">
+              className="hover:bg-secondary hover:text-primary hover:border"
+            >
               Cancelar
             </Button>
           </div>
@@ -569,12 +574,14 @@ const Billing = () => {
           if (!open) {
             focusElement(clientTriggerRef.current);
           }
-        }}>
+        }}
+      >
         <AlertDialogContent
           onOpenAutoFocus={(event) => {
             event.preventDefault();
             focusElement(printDialogButtonRef.current);
-          }}>
+          }}
+        >
           <AlertDialogHeader>
             <AlertDialogTitle className="text-center">¿Que deseas hacer?</AlertDialogTitle>
           </AlertDialogHeader>

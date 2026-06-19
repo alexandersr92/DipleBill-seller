@@ -12,7 +12,8 @@ export const columns: ColumnDef<ISingleClient>[] = [
       return (
         <Button
           variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
           Nombre
           <Icons.CaretSort />
         </Button>
@@ -30,7 +31,8 @@ export const columns: ColumnDef<ISingleClient>[] = [
         <Button
           className="pl-0"
           variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
           Ciudad
           <Icons.CaretSort />
         </Button>
@@ -44,7 +46,8 @@ export const columns: ColumnDef<ISingleClient>[] = [
         <Button
           className="pl-0"
           variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
           Municipio
           <Icons.CaretSort />
         </Button>

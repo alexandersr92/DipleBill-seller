@@ -29,7 +29,8 @@ export const SaleTypeToggle = forwardRef<HTMLDivElement, SaleTypeToggleProps>(
         className={cn(
           'flex w-full p-1 rounded-md border border-sale-accent/40 bg-sale-accent/5',
           disabled && 'opacity-60 cursor-not-allowed'
-        )}>
+        )}
+      >
         <button
           ref={triggerRef}
           id={id}
@@ -40,7 +41,8 @@ export const SaleTypeToggle = forwardRef<HTMLDivElement, SaleTypeToggleProps>(
           tabIndex={tabIndex}
           data-enter-behavior="native"
           onClick={() => onChange(SELL_TYPES.CONTADO)}
-          className={cn(baseBtn, !isCredito ? active : inactive)}>
+          className={cn(baseBtn, !isCredito ? active : inactive)}
+        >
           Contado
         </button>
         <button
@@ -51,7 +53,8 @@ export const SaleTypeToggle = forwardRef<HTMLDivElement, SaleTypeToggleProps>(
           tabIndex={tabIndex}
           data-enter-behavior="native"
           onClick={() => onChange(SELL_TYPES.CREDITO)}
-          className={cn(baseBtn, isCredito ? active : inactive)}>
+          className={cn(baseBtn, isCredito ? active : inactive)}
+        >
           Crédito
         </button>
       </div>

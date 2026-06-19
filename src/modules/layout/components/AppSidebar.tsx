@@ -44,7 +44,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </div>
           <div className="grid flex-1 text-left text-sm leading-tight">
             <span className="font-semibold truncate">{store?.name || 'Cargando...'}</span>
-            <span className="text-xs text-muted-foreground truncate">{store?.address || 'Punto de Venta'}</span>
+            <span className="text-xs text-muted-foreground truncate">
+              {store?.address || 'Punto de Venta'}
+            </span>
           </div>
         </div>
       </SidebarHeader>

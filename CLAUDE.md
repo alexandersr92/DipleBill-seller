@@ -8,18 +8,18 @@ DipleBill is a **point-of-sale billing and inventory management** web/desktop ap
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | React 18, TypeScript, Vite (SWC) |
-| Styling | Tailwind CSS, shadcn/ui, Radix UI, lucide-react |
-| State | Redux Toolkit (slices + thunks) |
-| Forms | react-hook-form, yup, zod |
-| Routing | react-router-dom v6 |
-| HTTP | Axios (intercepted with Bearer token) |
-| PDF | html2pdf.js (wraps jsPDF + html2canvas) |
-| Printing | ESC/POS via node-thermal-printer (Electron), silent HTML print fallback |
-| Desktop | Electron, electron-builder |
-| Dev tooling | ESLint, Prettier, Husky, lint-staged |
+| Layer       | Technology                                                              |
+| ----------- | ----------------------------------------------------------------------- |
+| Frontend    | React 18, TypeScript, Vite (SWC)                                        |
+| Styling     | Tailwind CSS, shadcn/ui, Radix UI, lucide-react                         |
+| State       | Redux Toolkit (slices + thunks)                                         |
+| Forms       | react-hook-form, yup, zod                                               |
+| Routing     | react-router-dom v6                                                     |
+| HTTP        | Axios (intercepted with Bearer token)                                   |
+| PDF         | html2pdf.js (wraps jsPDF + html2canvas)                                 |
+| Printing    | ESC/POS via node-thermal-printer (Electron), silent HTML print fallback |
+| Desktop     | Electron, electron-builder                                              |
+| Dev tooling | ESLint, Prettier, Husky, lint-staged                                    |
 
 ---
 
@@ -70,28 +70,33 @@ DipleBill/
 ## Architecture Patterns
 
 ### State Management
+
 - **Redux Toolkit** with feature slices per module
 - `combineReducers` → root reducer with global reset on `userLogout` or `resetAppState`
 - Typed hooks: `useAppDispatch`, `useAppSelector`
 - Async thunks in `*Thunks.ts` files per module
 
 ### API Layer
+
 - Central `axiosInstance` in `src/helpers/axiosInstance.ts`
 - `baseURL` from `VITE_API_BASE_URL` env var
 - Request interceptor attaches `Authorization: Bearer <token>` from localStorage
 - Feature modules expose `*Api.ts` files calling REST endpoints (`/v1/...`)
 
 ### Auth Flow
+
 1. Login → `POST /v1/login` → `dispatch(setUser())` → stores token in localStorage
 2. `PrivateRoute` uses `useValidateToken()` hook → `GET /v1/validateToken`
 3. Logout → `performLogout()` thunk → API call → clear localStorage → `dispatch(userLogout())` → root reducer resets all slices
 
 ### Routing
+
 - `HashRouter` in Electron (file:// protocol), `BrowserRouter` in web
 - `PrivateRoute` wraps authenticated pages
 - Login and Register are public routes
 
 ### Printing Architecture
+
 ```
 Print button clicked
   │
@@ -114,23 +119,23 @@ Print button clicked
 
 ## Environment Variables
 
-| Variable | Description |
-|----------|-------------|
-| `VITE_API_BASE_URL` | Backend API base URL |
-| `PRINTER_INTERFACE` | Thermal printer connection (`usb`, `tcp://ip:9100`, `printer:Name`) |
-| `PRINTER_LINE_WIDTH` | Characters per line (default: 48 for 80mm) |
+| Variable             | Description                                                         |
+| -------------------- | ------------------------------------------------------------------- |
+| `VITE_API_BASE_URL`  | Backend API base URL                                                |
+| `PRINTER_INTERFACE`  | Thermal printer connection (`usb`, `tcp://ip:9100`, `printer:Name`) |
+| `PRINTER_LINE_WIDTH` | Characters per line (default: 48 for 80mm)                          |
 
 ---
 
 ## Key Commands
 
-| Command | Description |
-|---------|-------------|
-| `bun run dev` | Vite dev server (browser only) |
-| `bun run dev:electron` | Vite + Electron dev mode |
-| `bun run build` | TypeScript check + Vite production build |
-| `bun run dist` | Package Electron app (output in `release/`) |
-| `bun run lint` | ESLint check |
+| Command                | Description                                 |
+| ---------------------- | ------------------------------------------- |
+| `bun run dev`          | Vite dev server (browser only)              |
+| `bun run dev:electron` | Vite + Electron dev mode                    |
+| `bun run build`        | TypeScript check + Vite production build    |
+| `bun run dist`         | Package Electron app (output in `release/`) |
+| `bun run lint`         | ESLint check                                |
 
 ---
 

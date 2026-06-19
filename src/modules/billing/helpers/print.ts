@@ -24,14 +24,13 @@ export const invoiceActions = async ({ settings, invoice, action }: IInvoiceActi
     .trim()
     .toLowerCase();
   const isCreditSale = normalizedInvoiceType === 'credit' || normalizedInvoiceType === 'credito';
-  const paymentMethod =
-    isCreditSale
-      ? undefined
-      : invoice.method === PAYMENT_METHODS.EFECTIVO
-        ? 'Efectivo'
-        : invoice.method === PAYMENT_METHODS.TRANSFERENCIA
-          ? 'Transferencia'
-          : (invoice.method ?? '');
+  const paymentMethod = isCreditSale
+    ? undefined
+    : invoice.method === PAYMENT_METHODS.EFECTIVO
+      ? 'Efectivo'
+      : invoice.method === PAYMENT_METHODS.TRANSFERENCIA
+        ? 'Transferencia'
+        : (invoice.method ?? '');
 
   const products = invoice.invoice_details.map((product) => {
     return {

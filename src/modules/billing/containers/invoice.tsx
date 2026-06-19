@@ -260,7 +260,8 @@ const Invoice = () => {
               disabled={invoice?.invoice_status === 'canceled'}
               onClick={() => setIsConfirmOpen(true)}
               tabIndex={-1}
-              className="bg-theme_blue hover:bg-[#f4f4f5] hover:text-black border border-transparent hover:border-gray-500">
+              className="bg-theme_blue hover:bg-[#f4f4f5] hover:text-black border border-transparent hover:border-gray-500"
+            >
               Anular factura
             </Button>
             <OwnerPasswordConfirmDialog

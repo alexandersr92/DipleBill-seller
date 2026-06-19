@@ -1,12 +1,4 @@
-import {
-  ChevronsUpDown,
-  Laptop2,
-  LogOut,
-  Moon,
-  PaintRoller,
-  Sun,
-  User
-} from 'lucide-react';
+import { ChevronsUpDown, Laptop2, LogOut, Moon, PaintRoller, Sun, User } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -59,7 +51,8 @@ export function NavUser() {
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+            >
               <div className="flex size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
                 <User className="size-4" />
               </div>
@@ -76,7 +69,8 @@ export function NavUser() {
             className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
             side={isMobile ? 'bottom' : 'right'}
             align="end"
-            sideOffset={4}>
+            sideOffset={4}
+          >
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <div className="grid flex-1 text-left text-sm leading-tight">
@@ -96,19 +90,22 @@ export function NavUser() {
                   <DropdownMenuSubContent>
                     <DropdownMenuItem
                       className="cursor-pointer bg-transparent dark:bg-secondary"
-                      onClick={() => setTheme('dark')}>
+                      onClick={() => setTheme('dark')}
+                    >
                       <span>Oscuro</span>
                       <Moon className="ml-auto h-4 w-4" />
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="cursor-pointer bg-secondary dark:bg-transparent"
-                      onClick={() => setTheme('light')}>
+                      onClick={() => setTheme('light')}
+                    >
                       <span>Claro</span>
                       <Sun className="ml-auto h-4 w-4" />
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="cursor-pointer bg-transparent"
-                      onClick={() => setTheme('system')}>
+                      onClick={() => setTheme('system')}
+                    >
                       <span>Sistema</span>
                       <Laptop2 className="ml-auto h-4 w-4" />
                     </DropdownMenuItem>

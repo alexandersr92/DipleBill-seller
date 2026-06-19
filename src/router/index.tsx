@@ -23,10 +23,10 @@ export const Router = () => {
           </PrivateRoute>
         }
       />
-      
+
       <Route path={routes.Login.path} element={<Login />} />
       <Route path={routes.SellerLogin.path} element={<SellerLogin />} />
-      
+
       <Route
         path={routes.Venta.path}
         element={
@@ -48,7 +48,7 @@ export const Router = () => {
           </PrivateRoute>
         }
       />
-      
+
       <Route
         path={routes.Invoice.path}
         element={

@@ -1,10 +1,6 @@
 import { useRef } from 'react';
 import { Loader2 } from 'lucide-react';
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogFooter
-} from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogContent, AlertDialogFooter } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { SELL_TYPES } from '../types';
@@ -42,7 +38,8 @@ export const ConfirmSaleModal = ({
         if (next) return;
         if (isSubmitting) return;
         onCancel();
-      }}>
+      }}
+    >
       <AlertDialogContent
         data-sell-type={sellType}
         onOpenAutoFocus={(event) => {
@@ -52,11 +49,10 @@ export const ConfirmSaleModal = ({
         onEscapeKeyDown={(event) => {
           if (isSubmitting) event.preventDefault();
         }}
-        className={cn('border border-sale-accent/40 sm:max-w-md')}>
+        className={cn('border border-sale-accent/40 sm:max-w-md')}
+      >
         <div>
-          <p className="text-xs uppercase tracking-wider text-muted-foreground">
-            Confirmar venta
-          </p>
+          <p className="text-xs uppercase tracking-wider text-muted-foreground">Confirmar venta</p>
           <h2 className="mt-1 text-xl font-semibold text-sale-accent-text">
             Vas a registrar una venta de
           </h2>
@@ -91,7 +87,8 @@ export const ConfirmSaleModal = ({
             type="button"
             disabled={isSubmitting}
             onClick={onConfirm}
-            className="bg-sale-accent text-sale-accent-foreground hover:bg-sale-accent/90">
+            className="bg-sale-accent text-sale-accent-foreground hover:bg-sale-accent/90"
+          >
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

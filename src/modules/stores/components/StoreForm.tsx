@@ -116,7 +116,8 @@ export default function StoreForm({ closeDialog, storeId, isNewStore }: StoreFor
     }
 
     const compactValue = value.replace(/\s+/g, '');
-    const looksLikeBase64 = /^[A-Za-z0-9+/]+={0,2}$/.test(compactValue) && compactValue.length > 100;
+    const looksLikeBase64 =
+      /^[A-Za-z0-9+/]+={0,2}$/.test(compactValue) && compactValue.length > 100;
 
     if (looksLikeBase64) {
       return `data:${inferImageMimeType(fallbackName)};base64,${compactValue}`;
@@ -406,7 +407,8 @@ export default function StoreForm({ closeDialog, storeId, isNewStore }: StoreFor
                             'w-full justify-between',
                             !field.value && 'text-muted-foreground',
                             errors.country && 'border-red-500/50'
-                          )}>
+                          )}
+                        >
                           {countries.find((country) => country.value === field.value)?.label ||
                             'Seleccionar país'}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -425,7 +427,8 @@ export default function StoreForm({ closeDialog, storeId, isNewStore }: StoreFor
                                   onSelect={(value) => {
                                     field.onChange(value);
                                     setOpen(false);
-                                  }}>
+                                  }}
+                                >
                                   <Check
                                     className={cn(
                                       'mr-2 h-4 w-4',
@@ -633,9 +636,7 @@ export default function StoreForm({ closeDialog, storeId, isNewStore }: StoreFor
                 </div>
               </div>
               <div className="w-1/2">
-                <Label htmlFor="print_notes">
-                  {'Ingrese las notas de factura'}
-                </Label>
+                <Label htmlFor="print_notes">{'Ingrese las notas de factura'}</Label>
                 <Textarea
                   id="print_notes"
                   placeholder="Notas de factura"

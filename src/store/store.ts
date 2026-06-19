@@ -2,29 +2,13 @@ import { configureStore, combineReducers, createAction, PayloadAction } from '@r
 import { userSlice, userLogout } from '../modules/auth/slices/userSlice';
 import { clientSlice } from '@/modules/clients/slices/clientSlice';
 import { storeSlice } from '../modules/stores/slices/storeSlice';
-import { supplierSlice } from '@/modules/supplier/slices/supplierSlice';
-import { contactSlice } from '@/modules/supplier/slices/contactSlice';
-import { inventorySlice } from '@/modules/inventory/slices/inventorySlice';
 import { billingSlice } from '@/modules/billing/slices/billingSlice';
-import { productSlice } from '../modules/product/slices/ProductSlice';
-import { purchaseSlice } from '../modules/compras/slices/purchaseSlice';
-import { settingSlice } from '../modules/settings/slices/settingSlice';
-import { creditsSlice } from '@/modules/credits/slices/creditsSlice';
-import { reportsSlice } from '@/modules/reports/slices/reportsSlice';
 
 const appReducer = combineReducers({
   userSlice: userSlice.reducer,
   clientSlice: clientSlice.reducer,
   storeSlice: storeSlice.reducer,
-  supplierSlice: supplierSlice.reducer,
-  contactSlice: contactSlice.reducer,
-  inventorySlice: inventorySlice.reducer,
-  billingSlice: billingSlice.reducer,
-  productSlice: productSlice.reducer,
-  puchaseSlice: purchaseSlice.reducer,
-  settingSlice: settingSlice.reducer,
-  creditsSlice: creditsSlice.reducer,
-  reportsSlice: reportsSlice.reducer
+  billingSlice: billingSlice.reducer
 });
 
 export const resetAppState = createAction('app/resetAll');

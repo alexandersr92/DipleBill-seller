@@ -1,4 +1,4 @@
- # Sale Type Clarity in Billing — Design
+# Sale Type Clarity in Billing — Design
 
 **Date:** 2026-05-18
 **Status:** Approved (UI signed off via `prototypes/sale-type-prototype.html`)
@@ -25,7 +25,7 @@ Non-goals:
 Two complementary changes:
 
 1. **Always-visible, color-coded sale-type state.** Replace the dropdown with a 2-button segmented toggle. Both options are visible at all times; the active one is filled with the badge color (green for `Contado`, purple for `Crédito`). A 3-pixel accent line at the top of the New Invoice card and the Summary card tracks the same color, so the state reads even from peripheral vision.
-2. **Confirmation modal on `Realizar venta`.** Submitting opens a modal that restates the sale type prominently (with the matching color chip), the client name, and the total. When the seller is about to submit a `Contado` sale the modal includes the nudge: *"¿El cliente está pagando en este momento? Si pagará después, cambia a **Crédito**."* On `Crédito`, the modal restates the expiration date instead.
+2. **Confirmation modal on `Realizar venta`.** Submitting opens a modal that restates the sale type prominently (with the matching color chip), the client name, and the total. When the seller is about to submit a `Contado` sale the modal includes the nudge: _"¿El cliente está pagando en este momento? Si pagará después, cambia a **Crédito**."_ On `Crédito`, the modal restates the expiration date instead.
 
 Together they address the same failure mode at two different points: the toggle prevents most mistakes during form fill, and the modal catches the rest at the last moment.
 
@@ -41,12 +41,12 @@ The form will theme itself via CSS variables, not via conditional className logi
 
 ```css
 :root {
-  --sale-accent:            var(--primary);            /* tracks system primary */
+  --sale-accent: var(--primary); /* tracks system primary */
   --sale-accent-foreground: var(--primary-foreground);
-  --sale-accent-strong:     217 91% 60%; /* blue-500 — accent line */
-  --sale-accent-soft:       214 100% 97%; /* blue-50  — pill bg */
-  --sale-accent-text:       var(--primary);
-  --sale-accent-border:     var(--primary);
+  --sale-accent-strong: 217 91% 60%; /* blue-500 — accent line */
+  --sale-accent-soft: 214 100% 97%; /* blue-50  — pill bg */
+  --sale-accent-text: var(--primary);
+  --sale-accent-border: var(--primary);
 }
 ```
 
@@ -56,11 +56,11 @@ The form will theme itself via CSS variables, not via conditional className logi
 
 ```css
 [data-sell-type='credito'] {
-  --sale-accent:            262 83% 58%; /* purple-600 */
-  --sale-accent-strong:     271 91% 65%; /* purple-500 */
-  --sale-accent-soft:       270 100% 98%;/* purple-50 */
-  --sale-accent-text:       262 83% 58%;
-  --sale-accent-border:     262 83% 58%;
+  --sale-accent: 262 83% 58%; /* purple-600 */
+  --sale-accent-strong: 271 91% 65%; /* purple-500 */
+  --sale-accent-soft: 270 100% 98%; /* purple-50 */
+  --sale-accent-text: 262 83% 58%;
+  --sale-accent-border: 262 83% 58%;
 }
 ```
 
@@ -81,14 +81,14 @@ The form will theme itself via CSS variables, not via conditional className logi
 
 **Class usage** (semantic, state-blind):
 
-| Element | Tailwind class |
-| --- | --- |
-| Active toggle button | `bg-sale-accent text-sale-accent-foreground border-sale-accent` |
-| Top accent line on cards (3 px) | `bg-sale-accent-strong` |
-| Summary pill | `bg-sale-accent-soft text-sale-accent-text border border-sale-accent-border` |
-| `Realizar venta` submit button | `bg-sale-accent text-sale-accent-foreground hover:bg-sale-accent/90` |
-| `Fecha de vencimiento` border (when Crédito) | `border-sale-accent/60` |
-| Modal accent (border, chip, confirm button) | `border-sale-accent/40`, pill = `bg-sale-accent-soft text-sale-accent-text border-sale-accent-border`, button = `bg-sale-accent text-sale-accent-foreground` |
+| Element                                      | Tailwind class                                                                                                                                               |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Active toggle button                         | `bg-sale-accent text-sale-accent-foreground border-sale-accent`                                                                                              |
+| Top accent line on cards (3 px)              | `bg-sale-accent-strong`                                                                                                                                      |
+| Summary pill                                 | `bg-sale-accent-soft text-sale-accent-text border border-sale-accent-border`                                                                                 |
+| `Realizar venta` submit button               | `bg-sale-accent text-sale-accent-foreground hover:bg-sale-accent/90`                                                                                         |
+| `Fecha de vencimiento` border (when Crédito) | `border-sale-accent/60`                                                                                                                                      |
+| Modal accent (border, chip, confirm button)  | `border-sale-accent/40`, pill = `bg-sale-accent-soft text-sale-accent-text border-sale-accent-border`, button = `bg-sale-accent text-sale-accent-foreground` |
 
 **Out of scope here.** Migrating `src/components/ui/AppBadge.tsx` itself to consume tokens (e.g. `--badge-success-*`, `--badge-processing-*`) is a wider refactor that touches every status pill in the app and is left for a future spec. The values above intentionally match the current `AppBadge` `success`/`processing` colors so the form looks like a continuation of that palette and the future migration won't introduce a visual jump.
 
@@ -110,7 +110,7 @@ Both the "Nueva factura" card and the "Resumen" card receive a 3-px top stripe t
 before:absolute before:inset-x-0 before:top-0 before:h-[3px] before:bg-sale-accent-strong before:rounded-t-lg
 ```
 
-The line is *always present* — green by default, purple under `data-sell-type='credito'` — so the form never looks "uncolored". This is the always-on cue that competes with the seller forgetting to look at the toggle.
+The line is _always present_ — green by default, purple under `data-sell-type='credito'` — so the form never looks "uncolored". This is the always-on cue that competes with the seller forgetting to look at the toggle.
 
 ### Summary badge
 
@@ -149,7 +149,7 @@ Content:
   - On `Crédito`: "Se generará un crédito a nombre del cliente con vencimiento {invoice_expiration formatted}."
 - Buttons: `Revisar` (cancel, secondary) and `Confirmar venta` (`bg-sale-accent text-sale-accent-foreground hover:bg-sale-accent/90` — token-driven, no conditional).
 
-The modal opens *after* react-hook-form validation passes and *after* the existing `invoiceCreated.products.length > 0` guard. It does not bypass any existing checks; it only delays the call to `createBilling`. See "Submit flow" below.
+The modal opens _after_ react-hook-form validation passes and _after_ the existing `invoiceCreated.products.length > 0` guard. It does not bypass any existing checks; it only delays the call to `createBilling`. See "Submit flow" below.
 
 ## Behavior
 
@@ -189,14 +189,14 @@ The "Realizar venta" button stays `type="submit"` so react-hook-form continues t
 
 ## Files Touched
 
-| File | Nature of change |
-| --- | --- |
-| `src/index.css` | Add `--sale-accent*` HSL variables to `:root` (Contado defaults). Add `[data-sell-type='credito']` override block. Add `@keyframes` for the toggle pulse using `hsl(var(--sale-accent) / α)`. |
-| `tailwind.config.js` | Extend `theme.extend.colors` with the `sale-accent` alias group consuming the new variables. |
-| `src/modules/billing/containers/index.tsx` | Set `data-sell-type={sellType}` on the form root. Replace `<Select>` block (~lines 376–405) with `<SaleTypeToggle>`. Add accent line to the two cards. Restyle `Realizar venta` button using `bg-sale-accent`. Split submit flow into validate-then-confirm. Render `<ConfirmSaleModal>`. |
-| `src/modules/billing/components/SaleTypeToggle.tsx` | **New.** Segmented control component (props: `value`, `onChange`, `disabled`, `triggerRef`). Uses semantic `bg-sale-accent` classes only — no conditional color logic. |
-| `src/modules/billing/components/ConfirmSaleModal.tsx` | **New.** Wraps `AlertDialog`. Sets `data-sell-type={sellType}` on its own portal root (modals render outside the form). Uses `bg-sale-accent*` classes throughout. Props: `open`, `sellType`, `clientName`, `total`, `expirationDate`, `onCancel`, `onConfirm`. |
-| `src/modules/billing/components/ProductTable.tsx` | Replace the current `<Badge>` at line 447 with a token-styled pill (`bg-sale-accent-soft text-sale-accent-text border-sale-accent-border`). |
+| File                                                  | Nature of change                                                                                                                                                                                                                                                                          |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/index.css`                                       | Add `--sale-accent*` HSL variables to `:root` (Contado defaults). Add `[data-sell-type='credito']` override block. Add `@keyframes` for the toggle pulse using `hsl(var(--sale-accent) / α)`.                                                                                             |
+| `tailwind.config.js`                                  | Extend `theme.extend.colors` with the `sale-accent` alias group consuming the new variables.                                                                                                                                                                                              |
+| `src/modules/billing/containers/index.tsx`            | Set `data-sell-type={sellType}` on the form root. Replace `<Select>` block (~lines 376–405) with `<SaleTypeToggle>`. Add accent line to the two cards. Restyle `Realizar venta` button using `bg-sale-accent`. Split submit flow into validate-then-confirm. Render `<ConfirmSaleModal>`. |
+| `src/modules/billing/components/SaleTypeToggle.tsx`   | **New.** Segmented control component (props: `value`, `onChange`, `disabled`, `triggerRef`). Uses semantic `bg-sale-accent` classes only — no conditional color logic.                                                                                                                    |
+| `src/modules/billing/components/ConfirmSaleModal.tsx` | **New.** Wraps `AlertDialog`. Sets `data-sell-type={sellType}` on its own portal root (modals render outside the form). Uses `bg-sale-accent*` classes throughout. Props: `open`, `sellType`, `clientName`, `total`, `expirationDate`, `onCancel`, `onConfirm`.                           |
+| `src/modules/billing/components/ProductTable.tsx`     | Replace the current `<Badge>` at line 447 with a token-styled pill (`bg-sale-accent-soft text-sale-accent-text border-sale-accent-border`).                                                                                                                                               |
 
 No changes to: `billingSchema.ts`, `billingThunks.ts`, `billingSlice.tsx`, types in `src/modules/billing/types/index.ts`, `AppBadge.tsx`, Electron/print code paths.
 
@@ -252,13 +252,13 @@ Estimate: ~30 minutes, mechanical find-replace + lint.
 
 22 instances across 5 files. The dominant pattern is `text-[#71717A]` on `TableHead` and secondary text — that hex is exactly `--muted-foreground`.
 
-| File | Occurrences | Likely token replacement |
-| --- | --- | --- |
-| `src/modules/billing/components/ProductTable.tsx` | 8 | `text-muted-foreground` |
-| `src/modules/compras/components/PurchaseTable.tsx` | 7 | `text-muted-foreground` (audit per line) |
-| `src/modules/billing/containers/invoice.tsx` | 5 | audit per line |
-| `src/modules/compras/containers/index.tsx` | 1 | audit per line |
-| `src/modules/supplier/components/edit-dialog/index.tsx` | 1 | audit per line |
+| File                                                    | Occurrences | Likely token replacement                 |
+| ------------------------------------------------------- | ----------- | ---------------------------------------- |
+| `src/modules/billing/components/ProductTable.tsx`       | 8           | `text-muted-foreground`                  |
+| `src/modules/compras/components/PurchaseTable.tsx`      | 7           | `text-muted-foreground` (audit per line) |
+| `src/modules/billing/containers/invoice.tsx`            | 5           | audit per line                           |
+| `src/modules/compras/containers/index.tsx`              | 1           | audit per line                           |
+| `src/modules/supplier/components/edit-dialog/index.tsx` | 1           | audit per line                           |
 
 Estimate: 1–2 hours, requires per-line decision but most are `text-muted-foreground` or `border-border`.
 
@@ -270,11 +270,11 @@ Migration shape:
 
 ```css
 :root {
-  --badge-success-soft:   138 76% 97%;
-  --badge-success-text:   142 76% 36%;
+  --badge-success-soft: 138 76% 97%;
+  --badge-success-text: 142 76% 36%;
   --badge-success-border: 142 76% 36%;
-  --badge-processing-soft:   270 100% 98%;
-  --badge-processing-text:   262 83% 58%;
+  --badge-processing-soft: 270 100% 98%;
+  --badge-processing-text: 262 83% 58%;
   --badge-processing-border: 262 83% 58%;
   /* ...one trio per variant... */
 }
@@ -283,7 +283,7 @@ Migration shape:
 Then `AppBadge.tsx` becomes:
 
 ```ts
-success: 'bg-badge-success-soft text-badge-success-text border-badge-success-border border'
+success: 'bg-badge-success-soft text-badge-success-text border-badge-success-border border';
 ```
 
 Call sites (`<AppBadge variant="success" />`) don't change. Adds dark-mode theming for free. The `--sale-accent*` set introduced by this spec uses the same numeric values as `success`/`processing`, so no visual jump when this migration lands.
@@ -310,13 +310,13 @@ Recommended next step (out of scope for this spec): extract the receipt palette 
 
 ### A.7 — Phasing
 
-| Phase | Scope | Lands with |
-| --- | --- | --- |
-| 0 | `--sale-accent*` introduced + used in billing form | This spec |
-| 1 | `theme_blue` → `ring-ring` (A.1) | Standalone PR, unblocks Tailwind config cleanup |
-| 2 | Arbitrary hex audit (A.2) | Standalone PR per module |
-| 3 | `AppBadge` + `toast` migrate to `--badge-*` (A.3, A.4) + `form-error` (A.5) | Standalone PR |
-| 4 | Receipt palette extraction (A.6) | Optional, low priority |
+| Phase | Scope                                                                       | Lands with                                      |
+| ----- | --------------------------------------------------------------------------- | ----------------------------------------------- |
+| 0     | `--sale-accent*` introduced + used in billing form                          | This spec                                       |
+| 1     | `theme_blue` → `ring-ring` (A.1)                                            | Standalone PR, unblocks Tailwind config cleanup |
+| 2     | Arbitrary hex audit (A.2)                                                   | Standalone PR per module                        |
+| 3     | `AppBadge` + `toast` migrate to `--badge-*` (A.3, A.4) + `form-error` (A.5) | Standalone PR                                   |
+| 4     | Receipt palette extraction (A.6)                                            | Optional, low priority                          |
 
 These follow-up phases are signposts, not commitments. They should be tackled when the relevant files are next touched, not as a single big-bang refactor.
 

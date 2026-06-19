@@ -138,7 +138,9 @@ export default function RegisterForm() {
               {...register('password_confirm')}
             />
             <div className="form-error-slot">
-              {errors.password_confirm && <p className="form-error">{errors.password_confirm.message}</p>}
+              {errors.password_confirm && (
+                <p className="form-error">{errors.password_confirm.message}</p>
+              )}
             </div>
           </div>
 

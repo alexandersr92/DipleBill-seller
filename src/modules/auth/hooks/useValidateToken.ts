@@ -4,6 +4,7 @@ import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { setUser } from '../slices/userSlice';
 import { IUserState } from '../slices/user.types';
 import { getStoredToken } from '@/helpers/authSession';
+import { fetchCurrentStore } from '@/modules/stores/slices/storeThunks';
 
 export function useValidateToken() {
   const dispatch = useAppDispatch();
@@ -41,6 +42,11 @@ export function useValidateToken() {
           };
 
           dispatch(setUser(user));
+
+          const currentStoreId = localStorage.getItem('currentStoreId');
+          if (currentStoreId) {
+            dispatch(fetchCurrentStore(currentStoreId));
+          }
         }
       } else {
         setIsValidated(false);

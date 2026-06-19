@@ -61,7 +61,8 @@ export const columns: ColumnDef<ISingleInvoice>[] = [
         <Button
           className="pl-0"
           variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
           Cliente
           <Icons.CaretSort />
         </Button>
@@ -82,7 +83,8 @@ export const columns: ColumnDef<ISingleInvoice>[] = [
         <Button
           className="pl-0"
           variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
           Monto Total
           <Icons.CaretSort />
         </Button>
@@ -97,7 +99,8 @@ export const columns: ColumnDef<ISingleInvoice>[] = [
         <Button
           className="pl-0"
           variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
           Metódo
           <Icons.CaretSort />
         </Button>
@@ -120,7 +123,8 @@ export const columns: ColumnDef<ISingleInvoice>[] = [
         <Button
           className="mx-auto flex justify-center"
           variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
           Estado
           <Icons.CaretSort />
         </Button>
@@ -159,7 +163,8 @@ export const columns: ColumnDef<ISingleInvoice>[] = [
         <Button
           className="pl-0"
           variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
           Fecha
           <Icons.CaretSort />
         </Button>

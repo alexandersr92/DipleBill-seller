@@ -141,7 +141,8 @@ export default function Clients() {
               <Button variant="outline" className="flex items-center gap-1">
                 <Icons.plus /> Nuevo
               </Button>
-            }>
+            }
+          >
             <ClientForm onSuccess={handleSuccess} />
           </AppDialog>
         </div>

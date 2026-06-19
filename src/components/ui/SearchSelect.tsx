@@ -156,7 +156,8 @@ export default function SearchSelect({
           aria-expanded={open}
           data-enter-behavior="native"
           onKeyDown={handleTriggerKeyDown}
-          className="w-full justify-between font-normal">
+          className="w-full justify-between font-normal"
+        >
           {selectedItem || placeholder}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
@@ -177,7 +178,8 @@ export default function SearchSelect({
                 type="button"
                 onClick={() => handleAddRecord(searchTerm)}
                 size="sm"
-                className="w-fit flex mb-6 mx-auto items-center justify-center">
+                className="w-fit flex mb-6 mx-auto items-center justify-center"
+              >
                 <Plus className="mr-2 h-4 w-4" />
                 Agregar "{searchTerm}"
               </Button>
@@ -191,7 +193,8 @@ export default function SearchSelect({
                   className={cn(
                     'flex items-center justify-between px-4 py-2',
                     item.id === field.value && 'bg-theme_blue text-white'
-                  )}>
+                  )}
+                >
                   <span>{item.name}</span>
                   {item.id === field.value && <Check className="h-4 w-4" />}
                 </CommandItem>

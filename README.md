@@ -70,22 +70,22 @@ Set `VITE_API_BASE_URL` in `.env` to point at the backend. Optional Electron pri
 
 Feature modules live under `src/modules/`:
 
-| Module | Purpose |
-|---|---|
-| `auth` | Login, register, token validation |
-| `billing` | POS billing, invoice list/detail, browser + thermal printing |
-| `clients` | Customer management |
-| `compras` | Purchases from suppliers |
-| `credits` | Credit sales tracking and payments |
-| `inventory` | Inventory locations + per-location products |
-| `layout` | Sidebar, dashboard, 404 |
-| `Organization` | Organization setup |
-| `product` | Product catalog CRUD |
-| `reports` | Generate, list, download (PDF), and delete server-side reports per active store |
-| `settings` | Store settings |
-| `stores` | Active store context (`storeSlice`) |
-| `supplier` | Supplier + contacts management |
-| `category`, `tag` | Categories / tags APIs |
+| Module            | Purpose                                                                         |
+| ----------------- | ------------------------------------------------------------------------------- |
+| `auth`            | Login, register, token validation                                               |
+| `billing`         | POS billing, invoice list/detail, browser + thermal printing                    |
+| `clients`         | Customer management                                                             |
+| `compras`         | Purchases from suppliers                                                        |
+| `credits`         | Credit sales tracking and payments                                              |
+| `inventory`       | Inventory locations + per-location products                                     |
+| `layout`          | Sidebar, dashboard, 404                                                         |
+| `Organization`    | Organization setup                                                              |
+| `product`         | Product catalog CRUD                                                            |
+| `reports`         | Generate, list, download (PDF), and delete server-side reports per active store |
+| `settings`        | Store settings                                                                  |
+| `stores`          | Active store context (`storeSlice`)                                             |
+| `supplier`        | Supplier + contacts management                                                  |
+| `category`, `tag` | Categories / tags APIs                                                          |
 
 ## Conventions
 

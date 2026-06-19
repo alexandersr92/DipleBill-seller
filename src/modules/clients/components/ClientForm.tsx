@@ -253,7 +253,8 @@ const ClientForm = ({ id, onSuccess }: ClientIdProps) => {
           <Button
             disabled={isLoading}
             type="submit"
-            className="bg-secondary text-foreground hover:bg-primary hover:text-foreground">
+            className="bg-secondary text-foreground hover:bg-primary hover:text-foreground"
+          >
             {isLoading && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
             {client ? 'Actualizar' : 'Agregar'}
           </Button>

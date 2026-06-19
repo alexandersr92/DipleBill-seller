@@ -82,7 +82,17 @@ export const useGenericFilters = <T extends Record<string, any>>({
 
       fetchFunction(params as T);
     },
-    [fetchFunction, defaultSort, defaultOrder, dateFromField, dateToField, customParamMappings]
+    [
+      fetchFunction,
+      defaultSort,
+      defaultOrder,
+      dateFromField,
+      dateToField,
+      customParamMappings,
+      storeId,
+      store,
+      customParams
+    ]
   );
 
   return { getFilteredData };

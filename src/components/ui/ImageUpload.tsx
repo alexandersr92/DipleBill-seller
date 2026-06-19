@@ -71,7 +71,8 @@ export default function ImageUpload<T extends FieldValues>({
             className={cn(
               'relative flex flex-col items-center justify-center border-2 border-dashed border-secondary rounded-lg p-6 text-center cursor-pointer transition-all',
               'hover:border-secondary hover:bg-secondary hover:bg-opacity-50'
-            )}>
+            )}
+          >
             <Input
               id={name as string}
               type="file"
@@ -105,7 +106,8 @@ export default function ImageUpload<T extends FieldValues>({
                   field.onChange(null);
                   setLogoState?.(null);
                 }}
-                className="absolute top-2 right-2 bg-secondary hover:bg-secondary/80 rounded-full p-1 z-20">
+                className="absolute top-2 right-2 bg-secondary hover:bg-secondary/80 rounded-full p-1 z-20"
+              >
                 <X className="h-4 w-4 text-foreground" />
               </button>
             )}

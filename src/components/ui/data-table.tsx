@@ -127,7 +127,8 @@ export function DataTable<TData, TValue>({
                         style={{
                           width: `${header.getSize() === 150 ? 'auto' : header.getSize() + 'px'}`
                         }}
-                        className="py-4 px-2 text-left whitespace-nowrap text-sm leading-6 font-semibold text-foreground capitalize">
+                        className="py-4 px-2 text-left whitespace-nowrap text-sm leading-6 font-semibold text-foreground capitalize"
+                      >
                         {header.isPlaceholder
                           ? null
                           : flexRender(header.column.columnDef.header, header.getContext())}
@@ -155,11 +156,13 @@ export function DataTable<TData, TValue>({
                   <TableRow
                     key={row.id}
                     className="bg-background transition-all duration-500 hover:bg-secondary "
-                    data-state={row.getIsSelected() && 'selected'}>
+                    data-state={row.getIsSelected() && 'selected'}
+                  >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell
                         key={cell.id}
-                        className="p-2 whitespace-nowrap text-xs md:text-sm leading-6 font-medium text-foreground">
+                        className="p-2 whitespace-nowrap text-xs md:text-sm leading-6 font-medium text-foreground"
+                      >
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
                     ))}
@@ -195,7 +198,8 @@ export function DataTable<TData, TValue>({
                       key={column.id}
                       className="capitalize"
                       checked={column.getIsVisible()}
-                      onCheckedChange={(value) => column.toggleVisibility(!!value)}>
+                      onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                    >
                       {column.id}
                     </DropdownMenuCheckboxItem>
                   );

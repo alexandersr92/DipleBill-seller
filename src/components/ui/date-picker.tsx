@@ -52,7 +52,8 @@ export function DatePicker({
             'w-full justify-start text-left font-normal capitalize',
             !value && 'text-muted-foreground',
             className
-          )}>
+          )}
+        >
           <CalendarIcon className="mr-2 h-4 w-4" />
           {value ? format(value, 'MMMM d, yyyy', { locale: es }) : <span>Seleccionar</span>}
         </Button>

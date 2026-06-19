@@ -139,7 +139,8 @@ export default function SellerLogin() {
         <div className="relative z-20 mt-auto">
           <blockquote className="space-y-2">
             <p className="text-lg">
-              &ldquo;Estás ingresando al Punto de Facturación de DipleBill. Autenticación restringida para vendedores autorizados.&rdquo;
+              &ldquo;Estás ingresando al Punto de Facturación de DipleBill. Autenticación
+              restringida para vendedores autorizados.&rdquo;
             </p>
           </blockquote>
         </div>
@@ -149,7 +150,8 @@ export default function SellerLogin() {
           <div className="flex flex-col space-y-2 text-center">
             <h1 className="text-2xl font-semibold tracking-tight">Acceso de Vendedor</h1>
             <p className="text-sm text-muted-foreground">
-              Cuenta de administración activa: <span className="font-semibold text-foreground">{email}</span>
+              Cuenta de administración activa:{' '}
+              <span className="font-semibold text-foreground">{email}</span>
             </p>
           </div>
 
@@ -196,9 +198,7 @@ export default function SellerLogin() {
                     {...register('code', { required: 'El código de vendedor es requerido' })}
                   />
                 </div>
-                {errors.code && (
-                  <p className="text-xs text-destructive">{errors.code.message}</p>
-                )}
+                {errors.code && <p className="text-xs text-destructive">{errors.code.message}</p>}
               </div>
 
               <div className="grid gap-2">
@@ -215,9 +215,7 @@ export default function SellerLogin() {
                     {...register('pin', { required: 'El PIN de seguridad es requerido' })}
                   />
                 </div>
-                {errors.pin && (
-                  <p className="text-xs text-destructive">{errors.pin.message}</p>
-                )}
+                {errors.pin && <p className="text-xs text-destructive">{errors.pin.message}</p>}
               </div>
 
               {errorMessage && (
@@ -243,7 +241,11 @@ export default function SellerLogin() {
             <span className="bg-background px-2 text-muted-foreground">Opciones</span>
           </div>
 
-          <Button variant="ghost" onClick={handleAdminLogout} className="w-full text-muted-foreground">
+          <Button
+            variant="ghost"
+            onClick={handleAdminLogout}
+            className="w-full text-muted-foreground"
+          >
             Cerrar Sesión de Administrador
           </Button>
         </div>
