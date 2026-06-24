@@ -1,7 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
 import routes from './routeList';
 import Login from '../modules/auth/containers/Login';
-import SellerLogin from '../modules/auth/containers/SellerLogin';
 import Layout from '@/modules/layout';
 import PrivateRoute from '../modules/auth/components/PrivateRoute';
 import NotFound from '../modules/layout/404';
@@ -25,7 +24,6 @@ export const Router = () => {
       />
 
       <Route path={routes.Login.path} element={<Login />} />
-      <Route path={routes.SellerLogin.path} element={<SellerLogin />} />
 
       <Route
         path={routes.Venta.path}

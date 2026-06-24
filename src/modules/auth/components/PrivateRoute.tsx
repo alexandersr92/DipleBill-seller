@@ -2,6 +2,7 @@ import { Navigate } from 'react-router';
 import { useValidateToken } from '../hooks/useValidateToken';
 import LayoutSkeleton from './LayoutSkeleton';
 import { useAppSelector } from '@/store/hooks';
+import { PinLockOverlay } from '@/modules/billing/components/PinLockOverlay';
 
 interface IPrivateRouteProps {
   children: JSX.Element;
@@ -20,7 +21,7 @@ export default function PrivateRoute({ children }: IPrivateRouteProps) {
   }
 
   if (!isSellerAuthenticated) {
-    return <Navigate to="/seller-login" />;
+    return <PinLockOverlay />;
   }
 
   return children;

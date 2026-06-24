@@ -4,7 +4,7 @@ import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { setUser } from '../slices/userSlice';
 import { IUserState } from '../slices/user.types';
 import { getStoredToken } from '@/helpers/authSession';
-import { fetchCurrentStore } from '@/modules/stores/slices/storeThunks';
+import { fetchCurrentStore, fetchStores } from '@/modules/stores/slices/storeThunks';
 
 export function useValidateToken() {
   const dispatch = useAppDispatch();
@@ -43,9 +43,20 @@ export function useValidateToken() {
 
           dispatch(setUser(user));
 
-          const currentStoreId = localStorage.getItem('currentStoreId');
-          if (currentStoreId) {
-            dispatch(fetchCurrentStore(currentStoreId));
+          // Fetch all stores first
+          const storesResult = await dispatch(fetchStores()).unwrap();
+
+          const savedStoreId = localStorage.getItem('currentStoreId');
+          let currentStoreId = savedStoreId;
+          if (!currentStoreId && storesResult && storesResult.length > 0) {
+            const firstStoreId = storesResult[0].id;
+            localStorage.setItem('currentStoreId', firstStoreId);
+            currentStoreId = firstStoreId;
+          }
+
+          const storeIdToFetch = currentStoreId || '';
+          if (storeIdToFetch) {
+            dispatch(fetchCurrentStore(storeIdToFetch));
           }
         }
       } else {

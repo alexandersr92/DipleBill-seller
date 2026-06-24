@@ -14,7 +14,6 @@ import { Textarea } from '@/components/ui/textarea';
 import ProductTable from '../components/ProductTable';
 import { SaleTypeToggle } from '../components/SaleTypeToggle';
 import { ConfirmSaleModal } from '../components/ConfirmSaleModal';
-import { PinLockOverlay } from '../components/PinLockOverlay';
 import { useEffect, useRef, useState } from 'react';
 import { Input } from '@/components/ui/input';
 
@@ -31,6 +30,7 @@ import { createBilling } from '../services/billingThunks';
 import { IInvoice, IInvoiceProduct, ISingleInvoice, SELL_TYPES, PAYMENT_METHODS } from '../types';
 import { useToast } from '@/components/hooks/use-toast';
 import { clearInvoice, resetProductsInvoice, updateInvoice } from '../slices/billingSlice';
+import { sellerLogout } from '@/modules/auth/slices/userSlice';
 import { addClientFromInvoice, getClients } from '@/modules/clients/services/clientsThunks';
 import { handleKeyDown } from '../helpers';
 import {
@@ -102,7 +102,6 @@ const Billing = () => {
   const [confirmSaleOpen, setConfirmSaleOpen] = useState<boolean>(false);
   const [pendingFormValues, setPendingFormValues] = useState<FormValues | null>(null);
   const [isSubmittingSale, setIsSubmittingSale] = useState<boolean>(false);
-  const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
   const dispatch = useAppDispatch();
 
   useEffect(() => {
@@ -143,7 +142,7 @@ const Billing = () => {
 
   const handleCancelInvoice = () => {
     clearForm();
-    focusElement(clientTriggerRef.current);
+    handlePostSaleLogout();
   };
 
   useEffect(() => {
@@ -163,6 +162,10 @@ const Billing = () => {
       promise.abort();
     };
   }, [storeId, dispatch]);
+
+  useEffect(() => {
+    focusElement(clientTriggerRef.current);
+  }, []);
 
   const { register, handleSubmit, control, setValue, getValues, watch } = useForm<FormValues>({
     resolver: yupResolver(billingSchema)
@@ -195,7 +198,13 @@ const Billing = () => {
     setValue('payment_method', PAYMENT_METHODS.EFECTIVO, { shouldValidate: true });
     dispatch(resetProductsInvoice());
     dispatch(clearInvoice());
-    setIsUnlocked(false);
+  };
+
+  const handlePostSaleLogout = () => {
+    localStorage.removeItem('seller_id');
+    localStorage.removeItem('seller_name');
+    localStorage.removeItem('seller_code');
+    dispatch(sellerLogout());
   };
 
   const onSubmit: SubmitHandler<FormValues> = (values) => {
@@ -334,15 +343,6 @@ const Billing = () => {
 
   return (
     <div className="relative">
-      {!isUnlocked && (
-        <PinLockOverlay
-          onUnlock={() => {
-            setIsUnlocked(true);
-            focusElement(clientTriggerRef.current);
-          }}
-        />
-      )}
-
       <form
         ref={formRef}
         data-sell-type={sellType}
@@ -584,7 +584,7 @@ const Billing = () => {
           setIsOpenDialogAfterInvoice(open);
 
           if (!open) {
-            focusElement(clientTriggerRef.current);
+            handlePostSaleLogout();
           }
         }}
       >

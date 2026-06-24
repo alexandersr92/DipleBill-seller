@@ -14,10 +14,6 @@ const routes: route = {
     path: '/login',
     name: 'Login'
   },
-  SellerLogin: {
-    path: '/seller-login',
-    name: 'Acceso Vendedor'
-  },
   Register: {
     path: '/register',
     name: 'Registro'
