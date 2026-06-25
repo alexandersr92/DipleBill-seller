@@ -85,10 +85,14 @@ export default function SearchSelect({
 
   const handleAddRecord = async (term: string): Promise<void> => {
     if (addRecord) {
-      await addRecord(term);
-      setSearchTerm('');
-      setOpen(false);
-      onAfterSelect?.();
+      try {
+        await addRecord(term);
+        setSearchTerm('');
+        setOpen(false);
+        onAfterSelect?.();
+      } catch (err) {
+        // Silently catch client validation cancellation/rejection to keep the popover open for edits
+      }
     }
   };
 

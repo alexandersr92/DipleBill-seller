@@ -14,6 +14,8 @@ import { Textarea } from '@/components/ui/textarea';
 import ProductTable from '../components/ProductTable';
 import { SaleTypeToggle } from '../components/SaleTypeToggle';
 import { ConfirmSaleModal } from '../components/ConfirmSaleModal';
+import { CheckClientModal } from '../components/CheckClientModal';
+import { checkSimilarity, isGenericClientName } from '@/helpers/stringSimilarity';
 import { useEffect, useRef, useState } from 'react';
 import { Input } from '@/components/ui/input';
 
@@ -103,6 +105,16 @@ const Billing = () => {
   const [pendingFormValues, setPendingFormValues] = useState<FormValues | null>(null);
   const [isSubmittingSale, setIsSubmittingSale] = useState<boolean>(false);
   const dispatch = useAppDispatch();
+
+  // Validación de similitud de clientes
+  const [checkClientModalOpen, setCheckClientModalOpen] = useState<boolean>(false);
+  const [similarClients, setSimilarClients] = useState<Array<{ id: string; name: string }>>([]);
+  const [isGenericName, setIsGenericName] = useState<boolean>(false);
+  const [pendingClientName, setPendingClientName] = useState<string>('');
+  const [resolvePendingClient, setResolvePendingClient] = useState<{
+    resolve: (value: any) => void;
+    reject: (reason?: any) => void;
+  } | null>(null);
 
   useEffect(() => {
     if (!isClientSelected) {
@@ -291,9 +303,7 @@ const Billing = () => {
     }
   };
 
-  const addNewClient: (name: string) => Promise<any> = async (name: string) => {
-    if (!name) return;
-
+  const proceedWithCreateClient = async (name: string) => {
     const client = {
       name,
       wholesaler: false,
@@ -302,11 +312,9 @@ const Billing = () => {
 
     try {
       const response = await dispatch(addClientFromInvoice(client)).unwrap();
-
       setValue('client_id', response.id, { shouldValidate: true });
       setValue('client_name', response.name, { shouldValidate: true });
       setIsClientSelected(true);
-
       return response;
     } catch (error) {
       if (import.meta.env.DEV) console.error(error);
@@ -317,6 +325,78 @@ const Billing = () => {
       });
       throw error;
     }
+  };
+
+  const addNewClient: (name: string) => Promise<any> = async (name: string) => {
+    if (!name) return;
+
+    // 1. Validar nombre genérico
+    const generic = isGenericClientName(name);
+
+    // 2. Buscar clientes similares
+    const matches: Array<{ id: string; name: string }> = [];
+    if (!generic) {
+      clients.forEach((c) => {
+        const sim = checkSimilarity(name, c.name);
+        if (sim >= 0.80) {
+          matches.push({ id: c.id ?? '', name: c.name ?? '' });
+        }
+      });
+    }
+
+    // Interceptar con el modal si es genérico o hay similitudes
+    if (generic || matches.length > 0) {
+      setPendingClientName(name);
+      setIsGenericName(generic);
+      setSimilarClients(matches);
+      setCheckClientModalOpen(true);
+
+      return new Promise((resolve, reject) => {
+        setResolvePendingClient({ resolve, reject });
+      });
+    }
+
+    return proceedWithCreateClient(name);
+  };
+
+  const handleSelectExisting = (client: { id: string; name: string }) => {
+    setValue('client_id', client.id, { shouldValidate: true });
+    setValue('client_name', client.name, { shouldValidate: true });
+    setIsClientSelected(true);
+
+    if (resolvePendingClient) {
+      resolvePendingClient.resolve(client);
+    }
+    
+    setCheckClientModalOpen(false);
+    setResolvePendingClient(null);
+    focusElement(sellTypeTriggerRef.current);
+  };
+
+  const handleConfirmNew = async () => {
+    if (!pendingClientName) return;
+    
+    try {
+      const res = await proceedWithCreateClient(pendingClientName);
+      if (resolvePendingClient) {
+        resolvePendingClient.resolve(res);
+      }
+    } catch (err) {
+      if (resolvePendingClient) {
+        resolvePendingClient.reject(err);
+      }
+    } finally {
+      setCheckClientModalOpen(false);
+      setResolvePendingClient(null);
+    }
+  };
+
+  const handleCancelCheck = () => {
+    if (resolvePendingClient) {
+      resolvePendingClient.reject(new Error('Cancelado por el usuario'));
+    }
+    setCheckClientModalOpen(false);
+    setResolvePendingClient(null);
   };
 
   useEffect(() => {
@@ -576,6 +656,16 @@ const Billing = () => {
           setPendingFormValues(null);
         }}
         onConfirm={handleConfirmedSubmit}
+      />
+
+      <CheckClientModal
+        open={checkClientModalOpen}
+        newClientName={pendingClientName}
+        similarClients={similarClients}
+        isGeneric={isGenericName}
+        onCancel={handleCancelCheck}
+        onSelectExisting={handleSelectExisting}
+        onConfirmNew={handleConfirmNew}
       />
 
       <AlertDialog
