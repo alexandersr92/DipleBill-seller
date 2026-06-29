@@ -151,7 +151,7 @@ export interface IBillingProductsProductsState {
 // }
 
 export interface IInvoice {
-  client_id: string;
+  client_id: string | null;
   store_id: string;
   invoice_number: string;
   invoice_date: string;
@@ -216,7 +216,7 @@ export interface IInvoiceClient {
 }
 
 export interface ISingleInvoice extends IInvoiceBase {
-  client_id: string;
+  client_id: string | null;
   discount: number;
   tax: number;
   method: null | string;

@@ -4,7 +4,7 @@ export const initialState: IBillingProductsProductsState = {
   products: [],
   productsSelected: [],
   invoice: {
-    client_id: '--',
+    client_id: null,
     store_id: '',
     invoice_number: '',
     invoice_date: '',

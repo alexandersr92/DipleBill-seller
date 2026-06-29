@@ -1,18 +1,7 @@
 import axios from 'axios';
-import { DatePicker } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
-
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
-
 import { Textarea } from '@/components/ui/textarea';
 import ProductTable from '../components/ProductTable';
-import { SaleTypeToggle } from '../components/SaleTypeToggle';
 import { ConfirmSaleModal } from '../components/ConfirmSaleModal';
 import { CheckClientModal } from '../components/CheckClientModal';
 import { checkSimilarity, isGenericClientName } from '@/helpers/stringSimilarity';
@@ -21,7 +10,7 @@ import { Input } from '@/components/ui/input';
 
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+
 import { billingSchema } from '../helpers/billingSchema';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { Controller, SubmitHandler, useForm } from 'react-hook-form';
@@ -79,9 +68,6 @@ const Billing = () => {
   const formRef = useRef<HTMLFormElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const clientTriggerRef = useRef<HTMLButtonElement>(null);
-  const sellTypeTriggerRef = useRef<HTMLButtonElement>(null);
-  const expirationButtonRef = useRef<HTMLButtonElement>(null);
-  const paymentMethodTriggerRef = useRef<HTMLButtonElement>(null);
   const invoiceNoteRef = useRef<HTMLTextAreaElement | null>(null);
   const productSearchRef = useRef<HTMLInputElement>(null);
   const printDialogButtonRef = useRef<HTMLButtonElement>(null);
@@ -258,6 +244,7 @@ const Billing = () => {
     const dateExp = values.invoice_expiration ? new Date(values.invoice_expiration) : new Date();
     const invoice: any = {
       ...invoiceCreated,
+      client_id: (invoiceCreated.client_id === '--' || !invoiceCreated.client_id) ? null : invoiceCreated.client_id,
       invoice_date: format(new Date(), 'yyyy-MM-dd'),
       store_id: storeId!,
       isCredit: isCreditSale,
@@ -377,7 +364,7 @@ const Billing = () => {
     
     setCheckClientModalOpen(false);
     setResolvePendingClient(null);
-    focusElement(sellTypeTriggerRef.current);
+    focusElement(productSearchRef.current);
   };
 
   const handleConfirmNew = async () => {
@@ -571,17 +558,15 @@ const Billing = () => {
         onSubmit={handleSubmit(onSubmit)}
       >
         <section className="relative rounded-md shadow-md p-4 border mb-4 before:absolute before:inset-x-0 before:top-0 before:h-[3px] before:bg-sale-accent-strong before:rounded-t-md">
-          <div className="w-2/5 text-sm">
+          <div className="w-full md:w-2/5 text-sm">
             <h1 className="text-2xl font-bold">Nueva factura</h1>
-            <p className="mt-2">
-              Por favor, complete el formulario a continuación con los detalles necesarios para
-              generar su nueva factura.
+            <p className="mt-1 text-muted-foreground">
+              Complete los detalles básicos de la transacción.
             </p>
-            <p>Asegúrese de incluir toda la información requerida.</p>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 mt-8">
-            <div className="w-full flex flex-wrap">
+          <div className="grid grid-cols-3 gap-6 mt-6 border-t pt-4">
+            <div className="w-full">
               <Label htmlFor="client_id">Agregar Cliente *</Label>
 
               <Controller
@@ -598,7 +583,7 @@ const Billing = () => {
                       setValue('client_name', client.name);
                       setIsClientSelected(true);
                     }}
-                    onAfterSelect={() => focusElement(sellTypeTriggerRef.current)}
+                    onAfterSelect={() => focusElement(productSearchRef.current)}
                     placeholder="Seleccionar Cliente"
                     searchPlaceholder="Buscar Cliente"
                     field={field}
@@ -609,128 +594,21 @@ const Billing = () => {
               />
             </div>
 
-            <div className="w-full flex flex-wrap">
-              <Label htmlFor="invoice_date">Fecha de la factura *</Label>
-              <Controller
-                name="invoice_date"
-                control={control}
-                render={() => (
-                  <DatePicker
-                    id="invoice_date"
-                    disabled={true}
-                    dateSelected={true}
-                    value={new Date()}
-                    className="w-full h-10 bg-transparent"
-                  />
-                )}
-              />
+            <div className="w-full">
+              <Label htmlFor="seller">Vendedor</Label>
+              <Input id="seller" readOnly disabled className="h-10 bg-muted/50 font-medium" value={currentUser.sellerName || currentUser.email || ''} />
+              <Input type="hidden" {...register('seller_id')} value={currentUser.id || ''} />
             </div>
 
-            <div className="w-full flex gap-2 sm:flex-wrap lg:flex-nowrap">
-              <div className="sm:w-full lg:w-1/2">
-                <Label htmlFor="sell_type">Tipo de venta</Label>
-                <div
-                  key={sellType === SELL_TYPES.CREDITO ? 'credito-pulse' : 'contado-pulse'}
-                  className={sellType === SELL_TYPES.CREDITO ? 'pulse-once-accent rounded-md' : ''}
-                >
-                  <SaleTypeToggle
-                    id="sell_type"
-                    tabIndex={1}
-                    triggerRef={sellTypeTriggerRef}
-                    value={sellType}
-                    disabled={!isClientSelected}
-                    onChange={(value) => {
-                      setSellType(value);
-                      setValue('isCredit', value === SELL_TYPES.CREDITO, {
-                        shouldValidate: true
-                      });
-                      if (value === SELL_TYPES.CREDITO) {
-                        focusElement(expirationButtonRef.current);
-                        return;
-                      }
-                      focusElement(paymentMethodTriggerRef.current);
-                    }}
-                  />
-                </div>
-              </div>
-              <div className="sm:w-full lg:w-1/2">
-                <Label htmlFor="invoice_expiration">Fecha de vencimiento</Label>
-                <Controller
-                  name="invoice_expiration"
-                  control={control}
-                  render={({ field }) => {
-                    const expirationDate = field.value ? new Date(field.value) : new Date();
-                    if (!field.value) {
-                      expirationDate.setDate(expirationDate.getDate() + 5);
-                    }
-
-                    return (
-                      <DatePicker
-                        buttonRef={expirationButtonRef}
-                        id="invoice_expiration"
-                        tabIndex={1}
-                        value={expirationDate}
-                        onChange={(value) => {
-                          field.onChange(value);
-                          focusElement(paymentMethodTriggerRef.current);
-                        }}
-                        className={cn(
-                          'w-full h-10 bg-transparent focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue',
-                          sellType === SELL_TYPES.CREDITO ? 'border-sale-accent/60' : 'opacity-50'
-                        )}
-                      />
-                    );
-                  }}
-                />
-              </div>
-            </div>
-
-            <div className="w-full flex gap-2 sm:flex-wrap lg:flex-nowrap">
-              <div className="sm:w-full lg:w-1/2">
-                <Label htmlFor="payment_method">Metódo de pago</Label>
-                <Controller
-                  name="payment_method"
-                  control={control}
-                  defaultValue={PAYMENT_METHODS.EFECTIVO} // Valor predeterminado si lo necesitas
-                  render={({ field }) => (
-                    <Select
-                      value={field.value || ''}
-                      onValueChange={(value) => {
-                        field.onChange(value);
-                        focusElement(invoiceNoteRef.current);
-                      }}
-                    >
-                      <SelectTrigger
-                        ref={paymentMethodTriggerRef}
-                        id="payment_method"
-                        tabIndex={1}
-                        data-enter-behavior="native"
-                        className="w-full h-10 focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue"
-                      >
-                        <SelectValue placeholder="Seleccionar método de pago" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={PAYMENT_METHODS.EFECTIVO}>Efectivo</SelectItem>
-                        <SelectItem value={PAYMENT_METHODS.TRANSFERENCIA}>Transferencia</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-              </div>
-              <div className="sm:w-full lg:w-1/2">
-                <Label htmlFor="seller">Vendedor</Label>
-                <Input id="seller" readOnly disabled className="h-10" value={currentUser.email} />
-                <Input type="hidden" {...register('seller_id')} value={currentUser.id || ''} />
-              </div>
-            </div>
-
-            <div className="w-full xl:col-span-1 sm:col-span-2 flex gap-2 flex-wrap items-start flex-col">
-              <Label htmlFor="invoice_note">Detalles de la factura</Label>
+            <div className="w-full flex flex-col">
+              <Label htmlFor="invoice_note" className="text-xs font-semibold text-muted-foreground mb-1.5">
+                Detalles de la factura (Notas)
+              </Label>
               <Textarea
                 id="invoice_note"
                 tabIndex={4}
-                data-enter-next="#product-search"
-                className="h-10 focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue"
+                placeholder="Ej. Entregar en empaque de regalo, observaciones del cliente, etc."
+                className="h-10 min-h-[40px] max-h-[100px] py-2 px-3 text-sm rounded-md border border-input bg-background shadow-sm transition-all duration-200 placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-theme_blue disabled:cursor-not-allowed disabled:opacity-50 resize-none"
                 {...invoiceNoteField}
                 ref={(node) => {
                   invoiceNoteField.ref(node);

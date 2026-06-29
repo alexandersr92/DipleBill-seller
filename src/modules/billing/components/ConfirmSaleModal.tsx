@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import axiosInstance from '@/helpers/axiosInstance';
 import { 
   Loader2, 
   DollarSign, 
@@ -46,7 +47,10 @@ export const ConfirmSaleModal = ({
   // Metadatos para Efectivo
   const [paidNio, setPaidNio] = useState<string>('');
   const [paidUsd, setPaidUsd] = useState<string>('');
-  const [exchangeRate, setExchangeRate] = useState<number>(36.5);
+  const [exchangeRate, setExchangeRate] = useState<number>(() => {
+    const saved = localStorage.getItem('usd_exchange_rate');
+    return saved ? parseFloat(saved) : 36.5;
+  });
 
   // Metadatos para Transferencia
   const [bank, setBank] = useState<string>('');
@@ -59,7 +63,7 @@ export const ConfirmSaleModal = ({
 
 
 
-  // Resetear estados al abrir
+  // Resetear estados al abrir y cargar la tasa de cambio desde el servidor
   useEffect(() => {
     if (open) {
       const isCreditDefault = sellType === SELL_TYPES.CREDITO;
@@ -73,6 +77,25 @@ export const ConfirmSaleModal = ({
       setCardDigits('');
       setCardRef('');
       setCardBrand('Visa');
+
+      // Cargar tasa de cambio oficial configurada por el Owner
+      const loadOfficialExchangeRate = async () => {
+        try {
+          const response = await axiosInstance.get('/v1/settings?key=usd_exchange_rate');
+          const records = response.data?.data || response.data || [];
+          if (records.length > 0) {
+            const val = parseFloat(records[0].value);
+            if (val > 0) {
+              setExchangeRate(val);
+              localStorage.setItem('usd_exchange_rate', val.toString());
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching exchange rate from database settings:', error);
+        }
+      };
+
+      loadOfficialExchangeRate();
     }
   }, [open, sellType]);
 
@@ -88,14 +111,7 @@ export const ConfirmSaleModal = ({
   const formattedChange = currencyFormatter({ currency: 'NIO', value: changeDueNio });
   const formattedMissing = currencyFormatter({ currency: 'NIO', value: missingAmountNio });
 
-  // Incrementos Rápidos de Efectivo
-  const handleQuickAddNio = (amount: number) => {
-    setPaidNio((prev) => ((parseFloat(prev) || 0) + amount).toString());
-  };
 
-  const handleQuickAddUsd = (amount: number) => {
-    setPaidUsd((prev) => ((parseFloat(prev) || 0) + amount).toString());
-  };
 
   const handlePayExact = () => {
     setPaidNio(total.toString());
@@ -196,8 +212,7 @@ export const ConfirmSaleModal = ({
               <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Proceso de Pago</span>
               <h2 className="text-xl font-bold text-foreground">
                 {step === 1 && "1. Tipo de Venta"}
-                {step === 2 && "2. Forma de Pago"}
-                {step === 3 && "3. Detalles de Pago"}
+                {step === 2 && "2. Detalles de Cobro"}
               </h2>
             </div>
             {step > 1 && (
@@ -262,7 +277,7 @@ export const ConfirmSaleModal = ({
                     return;
                   }
                   setIsCreditSale(true);
-                  setStep(3); // El crédito va directo a la pantalla de confirmación
+                  setStep(2);
                 }}
                 disabled={isSubmitting || !clientName || clientName === 'Cliente Genérico' || clientName === 'Consumidor Final'}
                 className={cn(
@@ -291,69 +306,71 @@ export const ConfirmSaleModal = ({
             </div>
           )}
 
-          {/* PASO 2: SELECCIONAR MÉTODO DE PAGO (CONTADO) */}
-          {step === 2 && (
-            <div className="grid grid-cols-3 gap-3 my-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setPaymentMethod('CASH');
-                  setStep(3);
-                }}
-                disabled={isSubmitting}
-                className={cn(
-                  "p-4 rounded-xl border flex flex-col items-center justify-center gap-2.5 transition-all active:scale-95",
-                  paymentMethod === 'CASH' ? "border-blue-600 bg-blue-500/5 ring-1 ring-blue-500" : "border-border bg-card hover:border-blue-400"
-                )}
-              >
-                <Coins className="w-5 h-5 text-blue-600" />
-                <span className="font-semibold text-xs text-foreground">Efectivo</span>
-              </button>
+          {/* PASO 2: DETALLES DE COBRO (CONTADO - MERGED) */}
+          {step === 2 && !isCreditSale && (
+            <div className="flex flex-col gap-4">
+              {/* Selector de Forma de Pago (Pestañas horizontales) */}
+              <div className="grid grid-cols-3 gap-2 p-1 bg-muted/60 border rounded-lg select-none">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('CASH')}
+                  className={cn(
+                    "py-1.5 text-xs font-semibold rounded-md transition-all flex items-center justify-center gap-1.5",
+                    paymentMethod === 'CASH' 
+                      ? "bg-background text-foreground shadow-sm border border-secondary" 
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                  disabled={isSubmitting}
+                >
+                  <Coins className="w-3.5 h-3.5 text-blue-600" />
+                  Efectivo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('TRANSFER')}
+                  className={cn(
+                    "py-1.5 text-xs font-semibold rounded-md transition-all flex items-center justify-center gap-1.5",
+                    paymentMethod === 'TRANSFER' 
+                      ? "bg-background text-foreground shadow-sm border border-secondary" 
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                  disabled={isSubmitting}
+                >
+                  <ArrowRightLeft className="w-3.5 h-3.5 text-blue-600" />
+                  Transferencia
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('CARD')}
+                  className={cn(
+                    "py-1.5 text-xs font-semibold rounded-md transition-all flex items-center justify-center gap-1.5",
+                    paymentMethod === 'CARD' 
+                      ? "bg-background text-foreground shadow-sm border border-secondary" 
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                  disabled={isSubmitting}
+                >
+                  <CreditCard className="w-3.5 h-3.5 text-blue-600" />
+                  Tarjeta
+                </button>
+              </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setPaymentMethod('TRANSFER');
-                  setStep(3);
-                }}
-                disabled={isSubmitting}
-                className={cn(
-                  "p-4 rounded-xl border flex flex-col items-center justify-center gap-2.5 transition-all active:scale-95",
-                  paymentMethod === 'TRANSFER' ? "border-blue-600 bg-blue-500/5 ring-1 ring-blue-500" : "border-border bg-card hover:border-blue-400"
-                )}
-              >
-                <ArrowRightLeft className="w-5 h-5 text-blue-600" />
-                <span className="font-semibold text-xs text-foreground">Transferencia</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setPaymentMethod('CARD');
-                  setStep(3);
-                }}
-                disabled={isSubmitting}
-                className={cn(
-                  "p-4 rounded-xl border flex flex-col items-center justify-center gap-2.5 transition-all active:scale-95",
-                  paymentMethod === 'CARD' ? "border-blue-600 bg-blue-500/5 ring-1 ring-blue-500" : "border-border bg-card hover:border-blue-400"
-                )}
-              >
-                <CreditCard className="w-5 h-5 text-blue-600" />
-                <span className="font-semibold text-xs text-foreground">Tarjeta</span>
-              </button>
-            </div>
-          )}
-
-          {/* PASO 3: INGRESAR DATOS DE DETALLE */}
-          {step === 3 && (
-            <div className="flex flex-col gap-4 my-1 animate-in fade-in duration-200">
-              {/* DETALLE EFECTIVO CON CALCULADORA DE VUELTO */}
-              {!isCreditSale && paymentMethod === 'CASH' && (
-                <div className="flex flex-col gap-4">
-                  {/* Fila superior: Valores e Inputs */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-1.5">
-                      <Label htmlFor="paidNio" className="text-xs font-semibold text-muted-foreground">Pago en Córdobas (NIO)</Label>
+              {/* DETALLE EFECTIVO */}
+              {paymentMethod === 'CASH' && (
+                <div className="flex flex-col gap-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex flex-col gap-1.5 flex-1">
+                      <div className="flex justify-between items-center">
+                        <Label htmlFor="paidNio" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Pago en Córdobas</Label>
+                        <button
+                          type="button"
+                          onClick={handlePayExact}
+                          disabled={isSubmitting}
+                          className="text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:underline"
+                        >
+                          Exacto
+                        </button>
+                      </div>
                       <div className="relative">
                         <span className="absolute left-2.5 top-2 text-xs font-semibold text-muted-foreground/80">C$</span>
                         <Input
@@ -364,13 +381,13 @@ export const ConfirmSaleModal = ({
                           value={paidNio}
                           onChange={(e) => setPaidNio(e.target.value)}
                           placeholder="0.00"
-                          className="pl-8 h-8 text-sm"
+                          className="pl-8 h-8 text-sm focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue"
                           disabled={isSubmitting}
                         />
                       </div>
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <Label htmlFor="paidUsd" className="text-xs font-semibold text-muted-foreground">Pago en Dólares (USD)</Label>
+                      <Label htmlFor="paidUsd" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Pago en Dólares</Label>
                       <div className="relative">
                         <span className="absolute left-2.5 top-2 text-xs font-semibold text-muted-foreground/80">$</span>
                         <Input
@@ -381,189 +398,75 @@ export const ConfirmSaleModal = ({
                           value={paidUsd}
                           onChange={(e) => setPaidUsd(e.target.value)}
                           placeholder="0.00"
-                          className="pl-8 h-8 text-sm"
+                          className="pl-8 h-8 text-sm focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue"
                           disabled={isSubmitting}
                         />
                       </div>
                     </div>
                   </div>
 
-                  {/* Fila Tasa de Cambio (Usada para el cálculo) */}
+                  {/* Fila Tasa de Cambio (Solo Lectura) */}
                   <div className="flex items-center justify-between border bg-muted/30 p-2 rounded-lg text-xs gap-3">
                     <div className="flex items-center gap-1 text-muted-foreground font-medium">
                       <Calculator className="w-3.5 h-3.5 text-blue-600" />
                       <span>Tasa de cambio USD/NIO:</span>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <span>C$</span>
-                      <Input
-                        type="number"
-                        step="any"
-                        value={exchangeRate}
-                        onChange={(e) => setExchangeRate(parseFloat(e.target.value) || 0)}
-                        className="w-16 h-6 text-center text-xs p-1"
-                        disabled={isSubmitting}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Botones de incremento rápido */}
-                  <div className="flex flex-col gap-2">
-                    <div className="flex gap-2 justify-center flex-wrap select-none">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={handlePayExact}
-                        disabled={isSubmitting}
-                        className="h-6 text-[10px] font-bold border-blue-200 hover:bg-blue-50 text-blue-700"
-                      >
-                        Pagar Exacto
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleQuickAddNio(50)}
-                        disabled={isSubmitting}
-                        className="h-6 text-[10px] font-medium"
-                      >
-                        +C$50
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleQuickAddNio(100)}
-                        disabled={isSubmitting}
-                        className="h-6 text-[10px] font-medium"
-                      >
-                        +C$100
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleQuickAddNio(500)}
-                        disabled={isSubmitting}
-                        className="h-6 text-[10px] font-medium"
-                      >
-                        +C$500
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleQuickAddNio(1000)}
-                        disabled={isSubmitting}
-                        className="h-6 text-[10px] font-medium"
-                      >
-                        +C$1000
-                      </Button>
-                    </div>
-                    <div className="flex gap-2 justify-center flex-wrap select-none">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleQuickAddUsd(5)}
-                        disabled={isSubmitting}
-                        className="h-6 text-[10px] font-medium border-emerald-100 text-emerald-700 hover:bg-emerald-50"
-                      >
-                        +$5
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleQuickAddUsd(10)}
-                        disabled={isSubmitting}
-                        className="h-6 text-[10px] font-medium border-emerald-100 text-emerald-700 hover:bg-emerald-50"
-                      >
-                        +$10
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleQuickAddUsd(20)}
-                        disabled={isSubmitting}
-                        className="h-6 text-[10px] font-medium border-emerald-100 text-emerald-700 hover:bg-emerald-50"
-                      >
-                        +$20
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleQuickAddUsd(50)}
-                        disabled={isSubmitting}
-                        className="h-6 text-[10px] font-medium border-emerald-100 text-emerald-700 hover:bg-emerald-50"
-                      >
-                        +$50
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleQuickAddUsd(100)}
-                        disabled={isSubmitting}
-                        className="h-6 text-[10px] font-medium border-emerald-100 text-emerald-700 hover:bg-emerald-50"
-                      >
-                        +$100
-                      </Button>
+                    <div className="font-semibold text-foreground px-2 py-0.5 bg-background rounded border text-xs">
+                      C$ {exchangeRate.toFixed(2)}
                     </div>
                   </div>
 
                   {/* Panel de Vuelto / Saldo Faltante */}
                   <div className={cn(
                     "rounded-xl border p-4 flex flex-col items-center justify-center text-center transition-all duration-300",
-                    totalPaidEquivalent >= total - 0.01 
-                      ? "bg-emerald-500/5 border-emerald-500/20 text-emerald-700" 
-                      : "bg-amber-500/5 border-amber-500/20 text-amber-700"
+                    totalPaidEquivalent >= total - 0.01
+                      ? "bg-emerald-500/5 border-emerald-500/25 text-emerald-800"
+                      : "bg-amber-500/5 border-amber-500/25 text-amber-800"
                   )}>
                     {totalPaidEquivalent >= total - 0.01 ? (
-                      <>
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-600">Cambio a entregar (Vuelto)</span>
-                        <span className="text-3xl font-extrabold mt-1 animate-in zoom-in-95 duration-200">{formattedChange}</span>
-                        <p className="text-[10px] text-emerald-600/80 mt-1.5">Pago completado (Total pagado: {formattedPaid})</p>
-                      </>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[10px] uppercase font-bold tracking-wider opacity-75">Cambio a entregar</span>
+                        <span className="text-xl font-black">{formattedChange}</span>
+                        {rawPaidUsd > 0 && (
+                          <p className="text-[10px] opacity-80 mt-0.5">
+                            Recibido: {formattedPaid} (Equivalente)
+                          </p>
+                        )}
+                      </div>
                     ) : (
-                      <>
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-amber-600">Monto faltante por cubrir</span>
-                        <span className="text-3xl font-extrabold mt-1">{formattedMissing}</span>
-                        <p className="text-[10px] text-amber-600/80 mt-1.5">Falta por recibir (Total pagado: {formattedPaid})</p>
-                      </>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[10px] uppercase font-bold tracking-wider opacity-75">Monto faltante</span>
+                        <span className="text-xl font-black">{formattedMissing}</span>
+                      </div>
                     )}
                   </div>
                 </div>
               )}
 
               {/* DETALLE TRANSFERENCIA */}
-              {!isCreditSale && paymentMethod === 'TRANSFER' && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1.5 col-span-2">
-                    <Label htmlFor="bank" className="text-xs font-semibold text-muted-foreground">Banco del cual se transfiere *</Label>
+              {paymentMethod === 'TRANSFER' && (
+                <div className="grid grid-cols-2 gap-3 my-1">
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="bank" className="text-xs font-semibold text-muted-foreground">Banco de Origen</Label>
                     <Input
                       id="bank"
                       type="text"
-                      placeholder="Ej. BAC, BANPRO, LAFISE, etc."
+                      placeholder="Ej. LAFISE, BANPRO"
                       value={bank}
                       onChange={(e) => setBank(e.target.value)}
-                      className="h-8.5 text-sm"
+                      className="h-8.5 text-sm focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue"
                       disabled={isSubmitting}
-                      autoFocus
                     />
                   </div>
-                  <div className="flex flex-col gap-1.5 col-span-2">
-                    <Label htmlFor="transferRef" className="text-xs font-semibold text-muted-foreground">Número de Referencia de la Transferencia *</Label>
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="transferRef" className="text-xs font-semibold text-muted-foreground">Número de Referencia</Label>
                     <Input
                       id="transferRef"
                       type="text"
-                      placeholder="Ej. 1827364"
+                      placeholder="Ej. TX-102938"
                       value={transferRef}
                       onChange={(e) => setTransferRef(e.target.value)}
-                      className="h-8.5 text-sm"
+                      className="h-8.5 text-sm focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue"
                       disabled={isSubmitting}
                     />
                   </div>
@@ -571,76 +474,69 @@ export const ConfirmSaleModal = ({
               )}
 
               {/* DETALLE TARJETA */}
-              {!isCreditSale && paymentMethod === 'CARD' && (
-                <div className="flex flex-col gap-4">
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="flex flex-col gap-1.5 col-span-2">
-                      <Label className="text-xs font-semibold text-muted-foreground">Franquicia de la Tarjeta</Label>
-                      <div className="flex gap-2">
-                        {['Visa', 'Mastercard', 'Amex'].map((brand) => (
-                          <button
-                            key={brand}
-                            type="button"
-                            onClick={() => setCardBrand(brand)}
-                            disabled={isSubmitting}
-                            className={cn(
-                              "flex-1 h-8 rounded border text-xs font-semibold flex items-center justify-center transition-all",
-                              cardBrand === brand ? "border-blue-600 bg-blue-50/50 text-blue-700 font-bold" : "border-border bg-card"
-                            )}
-                          >
-                            {brand}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="flex flex-col gap-1.5 col-span-1">
-                      <Label htmlFor="cardDigits" className="text-xs font-semibold text-muted-foreground">Últimos 4 *</Label>
-                      <Input
-                        id="cardDigits"
-                        type="text"
-                        maxLength={4}
-                        placeholder="1234"
-                        value={cardDigits}
-                        onChange={(e) => setCardDigits(e.target.value.replace(/\D/g, ''))}
-                        className="h-8.5 text-center text-sm"
-                        disabled={isSubmitting}
-                        autoFocus
-                      />
-                    </div>
+              {paymentMethod === 'CARD' && (
+                <div className="grid grid-cols-3 gap-3 my-1">
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="cardBrand" className="text-xs font-semibold text-muted-foreground">Franquicia / Marca</Label>
+                    <select
+                      id="cardBrand"
+                      value={cardBrand}
+                      onChange={(e) => setCardBrand(e.target.value)}
+                      className="h-8.5 text-sm rounded-md border border-input bg-background px-3 py-1 text-xs focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue"
+                      disabled={isSubmitting}
+                    >
+                      <option value="Visa">Visa</option>
+                      <option value="Mastercard">Mastercard</option>
+                      <option value="AMEX">AMEX</option>
+                      <option value="BAC">BAC Credomatic</option>
+                    </select>
                   </div>
-                  <div className="flex flex-col gap-1.5 col-span-2">
-                    <Label htmlFor="cardRef" className="text-xs font-semibold text-muted-foreground">Número de Referencia / Voucher *</Label>
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="cardDigits" className="text-xs font-semibold text-muted-foreground">Últimos 4 Dígitos</Label>
+                    <Input
+                      id="cardDigits"
+                      type="text"
+                      maxLength={4}
+                      placeholder="0000"
+                      value={cardDigits}
+                      onChange={(e) => setCardDigits(e.target.value.replace(/\D/g, ''))}
+                      className="h-8.5 text-sm focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue"
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="cardRef" className="text-xs font-semibold text-muted-foreground">Nº Referencia (Voucher)</Label>
                     <Input
                       id="cardRef"
                       type="text"
                       placeholder="Ej. 129384"
                       value={cardRef}
                       onChange={(e) => setCardRef(e.target.value)}
-                      className="h-8.5 text-sm"
+                      className="h-8.5 text-sm focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue"
                       disabled={isSubmitting}
                     />
                   </div>
                 </div>
               )}
+            </div>
+          )}
 
-              {/* DETALLE CRÉDITO */}
-              {isCreditSale && (
-                <div className="flex flex-col gap-3 rounded-lg border bg-purple-500/5 border-purple-500/20 p-4">
-                  <div className="flex items-start gap-2 text-purple-800">
-                    <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                    <div className="flex flex-col">
-                      <span className="text-xs font-bold uppercase tracking-wider text-purple-700">Venta a Crédito</span>
-                      <p className="text-xs text-purple-600/90 mt-1">
-                        Se generará un saldo pendiente por cobrar a nombre de <strong className="text-purple-800">{clientName}</strong>.
-                      </p>
-                    </div>
-                  </div>
-                  {expirationDate && (
-                    <div className="border-t border-purple-200 mt-2 pt-2 text-xs flex justify-between text-purple-700 font-medium">
-                      <span>Vencimiento:</span>
-                      <span className="font-bold">{expirationDate}</span>
-                    </div>
-                  )}
+          {/* PASO 2: DETALLES DE PAGO (CRÉDITO) */}
+          {step === 2 && isCreditSale && (
+            <div className="flex flex-col gap-3 rounded-lg border bg-purple-500/5 border-purple-500/20 p-4 my-2">
+              <div className="flex items-start gap-2 text-purple-800">
+                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold uppercase tracking-wider text-purple-700">Venta a Crédito</span>
+                  <p className="text-xs text-purple-600/90 mt-1">
+                    Se generará un saldo pendiente por cobrar a nombre de <strong className="text-purple-800">{clientName}</strong>.
+                  </p>
+                </div>
+              </div>
+              {expirationDate && (
+                <div className="border-t border-purple-200 mt-2 pt-2 text-xs flex justify-between text-purple-700 font-medium">
+                  <span>Vencimiento:</span>
+                  <span className="font-bold">{expirationDate}</span>
                 </div>
               )}
             </div>
@@ -661,7 +557,7 @@ export const ConfirmSaleModal = ({
           </Button>
 
           <div className="flex items-center gap-2">
-            {step === 3 && (
+            {step === 2 && (
               <Button
                 type="button"
                 onClick={handleFinalSubmit}
@@ -687,18 +583,11 @@ export const ConfirmSaleModal = ({
               </Button>
             )}
             
-            {step < 3 && (
+            {step === 1 && (
               <Button
                 type="button"
-                onClick={() => {
-                  if (step === 1) {
-                    if (isCreditSale) setStep(3);
-                    else setStep(2);
-                  } else if (step === 2) {
-                    setStep(3);
-                  }
-                }}
-                disabled={isSubmitting || (step === 1 && isCreditSale && (!clientName || clientName === 'Cliente Genérico' || clientName === 'Consumidor Final'))}
+                onClick={() => setStep(2)}
+                disabled={isSubmitting || (isCreditSale && (!clientName || clientName === 'Cliente Genérico' || clientName === 'Consumidor Final'))}
                 className="h-9 px-5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white"
               >
                 Siguiente
