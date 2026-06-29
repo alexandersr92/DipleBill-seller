@@ -1,6 +1,6 @@
 import { downloadInvoiceAsPDF, InvoiceData, handleInvoicePrintHtml } from '.';
 import { getStoreLogoAsBase64 } from '../services/billingApi';
-import { ISingleInvoice, PAYMENT_METHODS } from '../types';
+import { ISingleInvoice } from '../types';
 
 interface IInvoiceActions {
   settings: {
@@ -24,13 +24,23 @@ export const invoiceActions = async ({ settings, invoice, action }: IInvoiceActi
     .trim()
     .toLowerCase();
   const isCreditSale = normalizedInvoiceType === 'credit' || normalizedInvoiceType === 'credito';
-  const paymentMethod = isCreditSale
-    ? undefined
-    : invoice.method === PAYMENT_METHODS.EFECTIVO
-      ? 'Efectivo'
-      : invoice.method === PAYMENT_METHODS.TRANSFERENCIA
-        ? 'Transferencia'
-        : (invoice.method ?? '');
+  let paymentMethod = '';
+  if (isCreditSale || invoice.method === 'CREDIT') {
+    paymentMethod = 'Crédito';
+  } else {
+    if (invoice.method === 'CASH') {
+      paymentMethod = 'Efectivo';
+      if (invoice.payment_metadata?.paid_usd) {
+        paymentMethod += ` ($${invoice.payment_metadata.paid_usd} USD)`;
+      }
+    } else if (invoice.method === 'TRANSFER') {
+      paymentMethod = `Transf. ${invoice.payment_metadata?.bank || ''}`;
+    } else if (invoice.method === 'CARD') {
+      paymentMethod = `Tarjeta ${invoice.payment_metadata?.card_brand || ''}`;
+    } else {
+      paymentMethod = invoice.method ?? 'Efectivo';
+    }
+  }
 
   const products = invoice.invoice_details.map((product) => {
     return {

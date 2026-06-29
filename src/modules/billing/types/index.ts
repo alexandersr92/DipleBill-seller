@@ -167,6 +167,7 @@ export interface IInvoice {
   isCredit: boolean;
   init_payment: number;
   seller_id: string;
+  payment_metadata?: any;
 }
 
 export interface IInvoices extends IInvoice {
@@ -221,6 +222,7 @@ export interface ISingleInvoice extends IInvoiceBase {
   method: null | string;
   invoice_type?: string;
   invoice_note?: string;
+  payment_metadata?: any;
   invoice_details: {
     id: string;
     product_id: string;

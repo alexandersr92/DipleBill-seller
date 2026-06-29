@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Params, useParams, useNavigate } from 'react-router';
 import { useEffect, useState } from 'react';
-import { ISingleInvoice, PAYMENT_METHODS, SELL_TYPES } from '../types';
+import { ISingleInvoice, SELL_TYPES } from '../types';
 import { cancelInvoiceById, getInvoiceById } from '../services/billingApi';
 import {
   Table,
@@ -155,17 +155,47 @@ const Invoice = () => {
               </div>
               <div className="w-full">
                 <label className="text-sm mb-1" htmlFor="">
-                  Metodo de pago
+                  Método de pago
                 </label>
                 <Input
                   readOnly
                   disabled
                   className="h-10 border-gray-500"
                   value={
-                    invoice?.method === PAYMENT_METHODS.EFECTIVO ? 'Efectivo' : 'Transferencia'
+                    invoice?.method === 'CASH'
+                      ? 'Efectivo'
+                      : invoice?.method === 'TRANSFER'
+                        ? 'Transferencia'
+                        : invoice?.method === 'CARD'
+                          ? 'Tarjeta'
+                          : invoice?.method === 'CREDIT'
+                            ? 'Crédito'
+                            : invoice?.method || 'Efectivo'
                   }
                 />
               </div>
+
+              {invoice?.payment_metadata && (
+                <div className="w-full xl:col-span-1 sm:col-span-2 flex gap-2 flex-wrap items-start flex-col">
+                  <label className="text-sm mb-1">
+                    Detalles del Pago
+                  </label>
+                  <Input
+                    readOnly
+                    disabled
+                    className="h-10 border-gray-500 w-full"
+                    value={
+                      invoice.method === 'CASH'
+                        ? `Pagó C$ ${invoice.payment_metadata.paid_nio || 0} + $${invoice.payment_metadata.paid_usd || 0} USD (Tasa ${invoice.payment_metadata.exchange_rate || 36.5}) | Vuelto: C$ ${invoice.payment_metadata.change_nio || 0}`
+                        : invoice.method === 'TRANSFER'
+                          ? `Banco: ${invoice.payment_metadata.bank} | Ref: ${invoice.payment_metadata.reference}`
+                          : invoice.method === 'CARD'
+                            ? `${invoice.payment_metadata.card_brand || 'Tarjeta'} (*${invoice.payment_metadata.card_last_four || '0000'}) | Ref: ${invoice.payment_metadata.reference}`
+                            : JSON.stringify(invoice.payment_metadata)
+                    }
+                  />
+                </div>
+              )}
 
               <div className="w-full xl:col-span-1 sm:col-span-2 flex gap-2 flex-wrap items-start flex-col">
                 <label className="text-sm mb-1" htmlFor="">

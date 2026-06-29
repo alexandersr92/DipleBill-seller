@@ -29,12 +29,13 @@ import { InferType } from 'yup';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { createBilling } from '../services/billingThunks';
-import { IInvoice, IInvoiceProduct, ISingleInvoice, SELL_TYPES, PAYMENT_METHODS } from '../types';
+import { IInvoiceProduct, ISingleInvoice, SELL_TYPES, PAYMENT_METHODS } from '../types';
 import { useToast } from '@/components/hooks/use-toast';
-import { clearInvoice, resetProductsInvoice, updateInvoice } from '../slices/billingSlice';
+import { clearInvoice, resetProductsInvoice, updateInvoice, addProductsToBilling } from '../slices/billingSlice';
 import { sellerLogout } from '@/modules/auth/slices/userSlice';
 import { addClientFromInvoice, getClients } from '@/modules/clients/services/clientsThunks';
 import { handleKeyDown } from '../helpers';
+import { getBillingProductsApi } from '../services/billingApi';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -241,7 +242,11 @@ const Billing = () => {
     setConfirmSaleOpen(true);
   };
 
-  const handleConfirmedSubmit = async () => {
+  const handleConfirmedSubmit = async (
+    paymentMethod: string,
+    paymentMetadata: any,
+    isCreditSale: boolean
+  ) => {
     if (isSubmittingSale) return;
     if (!pendingFormValues || !currentUser.sellerId) {
       setConfirmSaleOpen(false);
@@ -251,11 +256,13 @@ const Billing = () => {
     setIsSubmittingSale(true);
     const values = pendingFormValues;
     const dateExp = values.invoice_expiration ? new Date(values.invoice_expiration) : new Date();
-    const invoice: IInvoice = {
+    const invoice: any = {
       ...invoiceCreated,
       invoice_date: format(new Date(), 'yyyy-MM-dd'),
       store_id: storeId!,
-      payment_method: values.payment_method ?? PAYMENT_METHODS.EFECTIVO,
+      isCredit: isCreditSale,
+      payment_method: isCreditSale ? 'CREDIT' : paymentMethod,
+      payment_metadata: paymentMetadata,
       payment_date: format(dateExp, 'yyyy-MM-dd'),
       seller_id: currentUser.sellerId,
       products: productsSelected.map((product) => ({
@@ -420,6 +427,140 @@ const Billing = () => {
       window.removeEventListener('keydown', handleDialogShortcuts);
     };
   }, [isOpenDialogAfterInvoice]);
+
+  // Atajos de Teclado Globales
+  useEffect(() => {
+    const handleGlobalShortcuts = (event: KeyboardEvent) => {
+      if (confirmSaleOpen || checkClientModalOpen) return;
+
+      switch (event.key) {
+        case 'F1':
+          event.preventDefault();
+          productSearchRef.current?.focus();
+          productSearchRef.current?.select();
+          break;
+        case 'F2':
+          event.preventDefault();
+          clientTriggerRef.current?.click();
+          break;
+        case 'F3':
+          event.preventDefault();
+          if (isClientSelected) {
+            const nextType = sellType === 'credito' ? 'contado' : 'credito';
+            setSellType(nextType);
+            setValue('isCredit', nextType === 'credito', { shouldValidate: true });
+            toast({
+              title: `Venta cambiada a ${nextType === 'credito' ? 'Crédito' : 'Contado'}`,
+              variant: 'success',
+              duration: 1500
+            });
+          } else {
+            toast({
+              title: 'Debe seleccionar un cliente primero para vender a Crédito',
+              variant: 'warning'
+            });
+          }
+          break;
+        case 'F4':
+          event.preventDefault();
+          buttonRef.current?.click();
+          break;
+        case 'F8':
+          event.preventDefault();
+          handleCancelInvoice();
+          toast({
+            title: 'Factura limpiada',
+            variant: 'default',
+            duration: 1500
+          });
+          break;
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalShortcuts);
+    return () => {
+      window.removeEventListener('keydown', handleGlobalShortcuts);
+    };
+  }, [sellType, isClientSelected, setValue, confirmSaleOpen, checkClientModalOpen]);
+
+  // Lector de Código de Barras Global
+  useEffect(() => {
+    let buffer = '';
+    let lastKeyTime = Date.now();
+
+    const handleBarcodeScan = async (e: KeyboardEvent) => {
+      const currentTime = Date.now();
+      const isScanner = currentTime - lastKeyTime < 35;
+      lastKeyTime = currentTime;
+
+      const target = e.target as HTMLElement | null;
+      const isInputFocused = target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA';
+
+      if (e.key.length === 1) {
+        if (isScanner || buffer.length > 0) {
+          buffer += e.key;
+        } else if (!isInputFocused) {
+          buffer = e.key;
+        }
+      } else if (e.key === 'Enter') {
+        if (buffer.length >= 3 && (isScanner || currentTime - lastKeyTime < 50)) {
+          e.preventDefault();
+          e.stopPropagation();
+          const barcode = buffer.trim();
+          buffer = '';
+
+          toast({
+            title: `Código leído: ${barcode}`,
+            variant: 'default',
+            duration: 1200
+          });
+
+          try {
+            const response = await getBillingProductsApi({
+              search: barcode,
+              storeId: storeId || ''
+            });
+            const items = Array.isArray(response?.data) ? response.data : [];
+            const exactProduct = items.find(
+              (p: any) => p.barcode?.toLowerCase() === barcode.toLowerCase()
+            );
+
+            if (exactProduct) {
+              dispatch(
+                addProductsToBilling({
+                  ...exactProduct,
+                  quantity: 1,
+                  total: exactProduct.price,
+                  tax: 0,
+                  grand_total: exactProduct.price,
+                  discount: 0
+                })
+              );
+              toast({
+                title: `${exactProduct.name} agregado`,
+                variant: 'success',
+                duration: 1500
+              });
+            } else {
+              toast({
+                title: `Código "${barcode}" no encontrado.`,
+                variant: 'error'
+              });
+            }
+          } catch (err) {
+            console.error('Error al escanear código de barra:', err);
+          }
+        } else {
+          buffer = '';
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleBarcodeScan);
+    return () => window.removeEventListener('keydown', handleBarcodeScan);
+  }, [storeId, dispatch]);
 
   return (
     <div className="relative">
@@ -702,6 +843,34 @@ const Billing = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* Barra de atajos flotante al final */}
+      <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur border-t py-2 px-4 flex flex-wrap justify-center gap-x-6 gap-y-1.5 text-[11px] text-muted-foreground select-none z-40 shadow-lg">
+        <div className="flex items-center gap-1.5">
+          <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[9px] font-extrabold shadow-sm">F1</kbd>
+          <span>Buscar Producto</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[9px] font-extrabold shadow-sm">F2</kbd>
+          <span>Seleccionar Cliente</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[9px] font-extrabold shadow-sm">F3</kbd>
+          <span>Contado / Crédito</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[9px] font-extrabold shadow-sm">F4</kbd>
+          <span>Pagar (Cobrar)</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[9px] font-extrabold shadow-sm">F8</kbd>
+          <span>Limpiar Pantalla</span>
+        </div>
+        <div className="h-4 w-px bg-border hidden md:block" />
+        <div className="flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="text-[10px] font-medium">Lectora Activa</span>
+        </div>
+      </div>
     </div>
   );
 };
