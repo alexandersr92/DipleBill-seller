@@ -49,9 +49,13 @@ export function useValidateToken() {
           const savedStoreId = localStorage.getItem('currentStoreId');
           let currentStoreId = savedStoreId;
           if (!currentStoreId && storesResult && storesResult.length > 0) {
-            const firstStoreId = storesResult[0].id;
-            localStorage.setItem('currentStoreId', firstStoreId);
-            currentStoreId = firstStoreId;
+            // Si solo tiene 1 sucursal, la seleccionamos por defecto.
+            // Si tiene múltiples, dejamos que el usuario la seleccione en el Lock screen.
+            if (storesResult.length === 1) {
+              const firstStoreId = storesResult[0].id;
+              localStorage.setItem('currentStoreId', firstStoreId);
+              currentStoreId = firstStoreId;
+            }
           }
 
           const storeIdToFetch = currentStoreId || '';

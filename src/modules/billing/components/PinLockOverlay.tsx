@@ -2,22 +2,27 @@ import { useRef, useState, useEffect } from 'react';
 import { Loader2, Lock, LogOut, UserRound, Store } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { setSeller } from '@/modules/auth/slices/userSlice';
+import { setSeller, sellerLogout } from '@/modules/auth/slices/userSlice';
 import { sellerLoginService, performLogout } from '@/modules/auth/services/authService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/hooks/use-toast';
+import { fetchCurrentStore } from '@/modules/stores/slices/storeThunks';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
 
 export const PinLockOverlay = () => {
   const dispatch = useAppDispatch();
   const { toast } = useToast();
 
-  const { store } = useAppSelector((state) => state.storeSlice);
-  const storeId =
-    store?.id ||
-    localStorage.getItem('currentStoreId') ||
-    '';
+  const { store, stores } = useAppSelector((state) => state.storeSlice);
+  const storeId = store?.id || '';
 
   const [code, setCode] = useState<string>('');
   const [pin, setPin] = useState<string>('');
@@ -28,13 +33,29 @@ export const PinLockOverlay = () => {
   const codeRef = useRef<HTMLInputElement>(null);
   const pinRef = useRef<HTMLInputElement>(null);
 
-  // Auto focus Code input on mount
+  // Auto focus Code input on mount or when store is selected
   useEffect(() => {
-    const timer = setTimeout(() => {
-      codeRef.current?.focus();
-    }, 150);
-    return () => clearTimeout(timer);
-  }, []);
+    if (store) {
+      const timer = setTimeout(() => {
+        codeRef.current?.focus();
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [store]);
+
+  const handleStoreChange = (newStoreId: string) => {
+    localStorage.setItem('currentStoreId', newStoreId);
+    dispatch(fetchCurrentStore(newStoreId));
+
+    // Al cambiar de sucursal, limpiamos los datos del vendedor y reseteamos el formulario
+    localStorage.removeItem('seller_id');
+    localStorage.removeItem('seller_name');
+    localStorage.removeItem('seller_code');
+    dispatch(sellerLogout());
+    setCode('');
+    setPin('');
+    setError(null);
+  };
 
   const handleVerify = async (currentPin: string) => {
     if (isVerifying) return;
@@ -139,135 +160,180 @@ export const PinLockOverlay = () => {
           Por favor ingresa tus credenciales de vendedor para desbloquear la pantalla.
         </p>
 
-        {store && (
-          <div className="text-xs font-semibold mt-4 text-foreground flex items-center gap-1.5 bg-muted/60 px-3 py-1.5 rounded-lg border border-border/40">
-            <Store className="w-4 h-4 text-sale-accent-text" />
-            <span>Sucursal: {store.name}</span>
-          </div>
-        )}
-
-        <div className="w-full max-w-[240px] flex flex-col gap-4 mt-6">
-          {/* Seller Code Input */}
-          <div className="grid gap-1 w-full">
-            <Label htmlFor="code" className="text-left text-xs font-semibold text-muted-foreground">Código de Vendedor</Label>
-            <div className="relative">
-              <UserRound className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="code"
-                ref={codeRef}
-                placeholder="Ej. VEND-01"
-                type="text"
-                autoCapitalize="characters"
-                autoComplete="off"
-                className="pl-9 h-9 text-sm focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-sale-accent"
-                disabled={isVerifying}
-                value={code}
-                onChange={(e) => {
-                  setCode(e.target.value.toUpperCase());
-                  setError(null);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    pinRef.current?.focus();
-                  }
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Pin Visual Representation */}
-          <div className="grid gap-1 w-full">
-            <Label className="text-left text-xs font-semibold text-muted-foreground">PIN de Seguridad</Label>
-            <div 
-              className={cn(
-                "flex justify-center items-center gap-3.5 h-9 px-3 rounded-md bg-muted/30 border transition-all duration-200 w-full cursor-pointer relative",
-                isShaking && "animate-shake border-destructive/50 bg-destructive/5",
-                error && !isShaking && "border-destructive/30",
-                "focus-within:ring-1 focus-within:ring-sale-accent/40 focus-within:border-sale-accent"
-              )}
-              onClick={() => pinRef.current?.focus()}
-            >
-              <input
-                ref={pinRef}
-                type="password"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                value={pin}
-                onChange={(e) => {
-                  setPin(e.target.value.replace(/\D/g, ''));
-                  setError(null);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleVerify(pin);
-                  }
-                }}
-                className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
-                disabled={isVerifying}
-                maxLength={10}
-              />
-              {pin.length === 0 ? (
-                <span className="text-muted-foreground/40 text-xs tracking-wider">Ingresar PIN</span>
-              ) : (
-                <div className="flex gap-2">
-                  {pin.split('').map((_, i) => (
-                    <div 
-                      key={i} 
-                      className="w-2.5 h-2.5 rounded-full bg-sale-accent animate-in zoom-in-75 duration-150" 
-                    />
+        {!store ? (
+          <div className="w-full max-w-[240px] flex flex-col gap-4 mt-6">
+            <div className="grid gap-1.5 w-full">
+              <Label className="text-left text-xs font-semibold text-muted-foreground">Seleccionar Sucursal</Label>
+              <Select value="" onValueChange={handleStoreChange}>
+                <SelectTrigger className="h-9 w-full bg-transparent border-border text-foreground focus:ring-0 focus:ring-offset-0">
+                  <SelectValue placeholder="Seleccionar Sucursal" />
+                </SelectTrigger>
+                <SelectContent>
+                  {stores.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name}
+                    </SelectItem>
                   ))}
-                </div>
-              )}
+                </SelectContent>
+              </Select>
             </div>
+            <p className="text-xs text-muted-foreground text-center mt-2">
+              Seleccione una sucursal para poder ingresar sus credenciales de vendedor.
+            </p>
           </div>
-        </div>
+        ) : (
+          <>
+            {/* Si hay múltiples sucursales, permitimos cambiarla en el mismo Lock screen */}
+            {stores.length > 1 && (
+              <div className="w-full max-w-[240px] flex flex-col gap-1.5 mt-4">
+                <Label className="text-left text-xs font-semibold text-muted-foreground">Sucursal</Label>
+                <Select value={store.id} onValueChange={handleStoreChange}>
+                  <SelectTrigger className="h-9 w-full bg-transparent border-border text-foreground focus:ring-0 focus:ring-offset-0">
+                    <SelectValue placeholder="Seleccionar Sucursal" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {stores.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
-        {error && (
-          <p className="mt-2.5 text-xs text-destructive font-medium animate-in fade-in-50 slide-in-from-top-1 text-center max-w-[240px]">
-            {error}
-          </p>
-        )}
+            {/* Si solo hay 1 sucursal, la mostramos estática como antes */}
+            {stores.length === 1 && (
+              <div className="text-xs font-semibold mt-4 text-foreground flex items-center gap-1.5 bg-muted/60 px-3 py-1.5 rounded-lg border border-border/40">
+                <Store className="w-4 h-4 text-sale-accent-text" />
+                <span>Sucursal: {store.name}</span>
+              </div>
+            )}
 
-        {/* Keypad */}
-        <div className="grid grid-cols-3 gap-2 w-full max-w-[240px] mx-auto mt-5">
-          {keys.map((key) => (
-            <button
-              key={key}
+            <div className="w-full max-w-[240px] flex flex-col gap-4 mt-6">
+              {/* Seller Code Input */}
+              <div className="grid gap-1 w-full">
+                <Label htmlFor="code" className="text-left text-xs font-semibold text-muted-foreground">Código de Vendedor</Label>
+                <div className="relative">
+                  <UserRound className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="code"
+                    ref={codeRef}
+                    placeholder="Ej. VEND-01"
+                    type="text"
+                    autoCapitalize="characters"
+                    autoComplete="off"
+                    className="pl-9 h-9 text-sm focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-sale-accent"
+                    disabled={isVerifying}
+                    value={code}
+                    onChange={(e) => {
+                      setCode(e.target.value.toUpperCase());
+                      setError(null);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        pinRef.current?.focus();
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Pin Visual Representation */}
+              <div className="grid gap-1 w-full">
+                <Label className="text-left text-xs font-semibold text-muted-foreground">PIN de Seguridad</Label>
+                <div 
+                  className={cn(
+                    "flex justify-center items-center gap-3.5 h-9 px-3 rounded-md bg-muted/30 border transition-all duration-200 w-full cursor-pointer relative",
+                    isShaking && "animate-shake border-destructive/50 bg-destructive/5",
+                    error && !isShaking && "border-destructive/30",
+                    "focus-within:ring-1 focus-within:ring-sale-accent/40 focus-within:border-sale-accent"
+                  )}
+                  onClick={() => pinRef.current?.focus()}
+                >
+                  <input
+                    ref={pinRef}
+                    type="password"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={pin}
+                    onChange={(e) => {
+                      setPin(e.target.value.replace(/\D/g, ''));
+                      setError(null);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleVerify(pin);
+                      }
+                    }}
+                    className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                    disabled={isVerifying}
+                    maxLength={10}
+                  />
+                  {pin.length === 0 ? (
+                    <span className="text-muted-foreground/40 text-xs tracking-wider">Ingresar PIN</span>
+                  ) : (
+                    <div className="flex gap-2">
+                      {pin.split('').map((_, i) => (
+                        <div 
+                          key={i} 
+                          className="w-2.5 h-2.5 rounded-full bg-sale-accent animate-in zoom-in-75 duration-150" 
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {error && (
+              <p className="mt-2.5 text-xs text-destructive font-medium animate-in fade-in-50 slide-in-from-top-1 text-center max-w-[240px]">
+                {error}
+              </p>
+            )}
+
+            {/* Keypad */}
+            <div className="grid grid-cols-3 gap-2 w-full max-w-[240px] mx-auto mt-5">
+              {keys.map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  disabled={isVerifying}
+                  onClick={() => handleKeypadPress(key)}
+                  className={cn(
+                    "h-10 rounded-lg border text-base font-semibold flex items-center justify-center transition-all",
+                    "active:scale-95 disabled:opacity-50 disabled:pointer-events-none select-none",
+                    key === 'C' || key === '⌫' 
+                      ? "bg-muted hover:bg-muted/80 text-muted-foreground border-transparent text-sm" 
+                      : "bg-background hover:bg-muted border-border hover:border-muted-foreground/20"
+                  )}
+                >
+                  {key}
+                </button>
+              ))}
+            </div>
+
+            <Button
               type="button"
-              disabled={isVerifying}
-              onClick={() => handleKeypadPress(key)}
-              className={cn(
-                "h-10 rounded-lg border text-base font-semibold flex items-center justify-center transition-all",
-                "active:scale-95 disabled:opacity-50 disabled:pointer-events-none select-none",
-                key === 'C' || key === '⌫' 
-                  ? "bg-muted hover:bg-muted/80 text-muted-foreground border-transparent text-sm" 
-                  : "bg-background hover:bg-muted border-border hover:border-muted-foreground/20"
-              )}
+              disabled={isVerifying || pin.length < 4 || !code}
+              onClick={() => handleVerify(pin)}
+              className="w-full max-w-[240px] h-10 bg-sale-accent text-sale-accent-foreground hover:bg-sale-accent/90 font-medium rounded-lg mt-5 shadow-md transition-all flex items-center justify-center gap-2"
             >
-              {key}
-            </button>
-          ))}
-        </div>
-
-        <Button
-          type="button"
-          disabled={isVerifying || pin.length < 4 || !code}
-          onClick={() => handleVerify(pin)}
-          className="w-full max-w-[240px] h-10 bg-sale-accent text-sale-accent-foreground hover:bg-sale-accent/90 font-medium rounded-lg mt-5 shadow-md transition-all flex items-center justify-center gap-2"
-        >
-          {isVerifying ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Validando...
-            </>
-          ) : (
-            <>
-              Desbloquear Pantalla
-            </>
-          )}
-        </Button>
+              {isVerifying ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Validando...
+                </>
+              ) : (
+                <>
+                  Desbloquear Pantalla
+                </>
+              )}
+            </Button>
+          </>
+        )}
 
         <button
           type="button"
