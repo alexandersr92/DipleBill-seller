@@ -345,6 +345,11 @@ const buildInvoiceHtml = (data: InvoiceData) => {
           white-space: nowrap;
         }
 
+        .paper .meta-label-wrap {
+          white-space: normal;
+          word-break: break-word;
+        }
+
         .paper .meta-value,
         .paper .totals-value {
           text-align: right;
@@ -455,15 +460,22 @@ const buildInvoiceHtml = (data: InvoiceData) => {
             <td class="meta-value">${escapeHtml(currentPrintedTime || '')}</td>
           </tr>
           <tr>
-            <td class="meta-label" colspan="2">Moneda: ${escapeHtml(data.currencyType)}</td>
+            <td class="meta-label-wrap" colspan="2">Moneda: ${escapeHtml(data.currencyType)}</td>
           </tr>
           <tr>
-            <td class="meta-label" colspan="2">Cliente: ${escapeHtml(data.clientName)}</td>
+            <td class="meta-label-wrap" colspan="2">Cliente: ${escapeHtml(data.clientName)}</td>
           </tr>
+          ${
+            data.sellerName
+              ? `<tr>
+            <td class="meta-label-wrap" colspan="2">Vendedor: ${escapeHtml(data.sellerName)}</td>
+          </tr>`
+              : ''
+          }
           ${
             data.paymentMethod
               ? `<tr>
-            <td class="meta-label" colspan="2">Tipo de pago: ${escapeHtml(data.paymentMethod)}</td>
+            <td class="meta-label-wrap" colspan="2">Tipo de pago: ${escapeHtml(data.paymentMethod)}</td>
           </tr>`
               : ''
           }
@@ -688,6 +700,7 @@ export interface InvoiceData {
   paymentMethod?: string;
   currencyType: string;
   clientName: string;
+  sellerName?: string;
   items: InvoiceItem[];
   totalItems: number;
   subtotal: number;

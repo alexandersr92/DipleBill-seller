@@ -223,6 +223,8 @@ export interface ISingleInvoice extends IInvoiceBase {
   invoice_type?: string;
   invoice_note?: string;
   payment_metadata?: any;
+  seller_id?: string | null;
+  seller?: string | null;
   invoice_details: {
     id: string;
     product_id: string;

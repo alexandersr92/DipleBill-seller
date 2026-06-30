@@ -95,6 +95,7 @@ export const invoiceActions = async ({ settings, invoice, action }: IInvoiceActi
     currencyType: settings.store_currency,
     invoiceType: invoice.invoice_type ?? 'Contado',
     clientName: invoice.client_name ?? '',
+    sellerName: invoice.seller ?? '',
     items: products ?? [],
     totalItems: invoice.total_items ?? 0,
     subtotal: (invoice.grand_total ?? 0) + (invoice.discount ?? 0),

@@ -151,7 +151,7 @@ const Invoice = () => {
                 <label className="text-sm mb-1" htmlFor="">
                   Vendedor
                 </label>
-                <Input readOnly disabled className="h-10 border-gray-500" value="emila@emai.com" />
+                <Input readOnly disabled className="h-10 border-gray-500" value={invoice?.seller || ''} />
               </div>
               <div className="w-full">
                 <label className="text-sm mb-1" htmlFor="">
