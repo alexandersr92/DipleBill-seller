@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axiosInstance from '@/helpers/axiosInstance';
 import { 
   Loader2, 
@@ -18,7 +18,7 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { SELL_TYPES } from '../types';
 import { currencyFormatter } from '../helpers';
-
+ 
 interface ConfirmSaleModalProps {
   open: boolean;
   sellType: string;
@@ -29,7 +29,7 @@ interface ConfirmSaleModalProps {
   onCancel: () => void;
   onConfirm: (paymentMethod: string, paymentMetadata: any, isCreditSale: boolean) => void;
 }
-
+ 
 export const ConfirmSaleModal = ({
   open,
   sellType,
@@ -44,24 +44,43 @@ export const ConfirmSaleModal = ({
   const [isCreditSale, setIsCreditSale] = useState<boolean>(false);
   const [paymentMethod, setPaymentMethod] = useState<string>('CASH');
 
-  // Metadatos para Efectivo
-  const [paidNio, setPaidNio] = useState<string>('');
-  const [paidUsd, setPaidUsd] = useState<string>('');
   const [exchangeRate, setExchangeRate] = useState<number>(() => {
     const saved = localStorage.getItem('usd_exchange_rate');
     return saved ? parseFloat(saved) : 36.5;
   });
 
-  // Metadatos para Transferencia
-  const [bank, setBank] = useState<string>('');
-  const [transferRef, setTransferRef] = useState<string>('');
+  // Refs para auto-focus con teclado
+  const cashNioRef = useRef<HTMLInputElement>(null);
+  const transBankRef = useRef<HTMLSelectElement>(null);
+  const cardBrandRef = useRef<HTMLSelectElement>(null);
 
-  // Metadatos para Tarjeta
-  const [cardDigits, setCardDigits] = useState<string>('');
-  const [cardRef, setCardRef] = useState<string>('');
-  const [cardBrand, setCardBrand] = useState<string>('Visa');
+  // Metadatos para Pago (Efectivo, Transferencia y Tarjeta unificados)
+  const [multipleCashNio, setMultipleCashNio] = useState<string>('');
+  const [multipleCashUsd, setMultipleCashUsd] = useState<string>('');
+  const [multipleTransferBank, setMultipleTransferBank] = useState<string>('');
+  const [multipleTransferRef, setMultipleTransferRef] = useState<string>('');
+  const [multipleTransferAmount, setMultipleTransferAmount] = useState<string>('');
+  const [multipleCardBrand, setMultipleCardBrand] = useState<string>('Visa');
+  const [multipleCardDigits, setMultipleCardDigits] = useState<string>('');
+  const [multipleCardRef, setMultipleCardRef] = useState<string>('');
+  const [multipleCardAmount, setMultipleCardAmount] = useState<string>('');
 
-
+  // Auto-focus al abrir el modal o cambiar de pestaña
+  useEffect(() => {
+    if (step === 2) {
+      const timer = setTimeout(() => {
+        if (paymentMethod === 'CASH') {
+          cashNioRef.current?.focus();
+          cashNioRef.current?.select();
+        } else if (paymentMethod === 'TRANSFER') {
+          transBankRef.current?.focus();
+        } else if (paymentMethod === 'CARD') {
+          cardBrandRef.current?.focus();
+        }
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [paymentMethod, step]);
 
   // Resetear estados al abrir y cargar la tasa de cambio desde el servidor
   useEffect(() => {
@@ -70,13 +89,17 @@ export const ConfirmSaleModal = ({
       setStep(1);
       setIsCreditSale(isCreditDefault);
       setPaymentMethod('CASH');
-      setPaidNio('');
-      setPaidUsd('');
-      setBank('');
-      setTransferRef('');
-      setCardDigits('');
-      setCardRef('');
-      setCardBrand('Visa');
+
+      // Resetear estados de pago
+      setMultipleCashNio('');
+      setMultipleCashUsd('');
+      setMultipleTransferBank('');
+      setMultipleTransferRef('');
+      setMultipleTransferAmount('');
+      setMultipleCardBrand('Visa');
+      setMultipleCardDigits('');
+      setMultipleCardRef('');
+      setMultipleCardAmount('');
 
       // Cargar tasa de cambio oficial configurada por el Owner
       const loadOfficialExchangeRate = async () => {
@@ -99,10 +122,14 @@ export const ConfirmSaleModal = ({
     }
   }, [open, sellType]);
 
-  // Cálculos de Efectivo + Vuelto
-  const rawPaidNio = parseFloat(paidNio) || 0;
-  const rawPaidUsd = parseFloat(paidUsd) || 0;
-  const totalPaidEquivalent = rawPaidNio + rawPaidUsd * exchangeRate;
+
+  // Cálculos de Pago
+  const rawMultCashNio = parseFloat(multipleCashNio) || 0;
+  const rawMultCashUsd = parseFloat(multipleCashUsd) || 0;
+  const rawMultTransferAmt = parseFloat(multipleTransferAmount) || 0;
+  const rawMultCardAmt = parseFloat(multipleCardAmount) || 0;
+
+  const totalPaidEquivalent = rawMultCashNio + rawMultCashUsd * exchangeRate + rawMultTransferAmt + rawMultCardAmt;
   const changeDueNio = Math.max(totalPaidEquivalent - total, 0);
   const missingAmountNio = Math.max(total - totalPaidEquivalent, 0);
 
@@ -111,55 +138,130 @@ export const ConfirmSaleModal = ({
   const formattedChange = currencyFormatter({ currency: 'NIO', value: changeDueNio });
   const formattedMissing = currencyFormatter({ currency: 'NIO', value: missingAmountNio });
 
+  // Autocompletar el total en un método específico (teniendo en cuenta otros aportes)
+  const handleFillExactCash = () => {
+    const remaining = Math.max(total - (rawMultTransferAmt + rawMultCardAmt), 0);
+    setMultipleCashNio(remaining.toFixed(2));
+    setMultipleCashUsd('');
+  };
 
+  const handleFillExactTransfer = () => {
+    const remaining = Math.max(total - (rawMultCashNio + rawMultCashUsd * exchangeRate + rawMultCardAmt), 0);
+    setMultipleTransferAmount(remaining.toFixed(2));
+  };
 
-  const handlePayExact = () => {
-    setPaidNio(total.toString());
-    setPaidUsd('');
+  const handleFillExactCard = () => {
+    const remaining = Math.max(total - (rawMultCashNio + rawMultCashUsd * exchangeRate + rawMultTransferAmt), 0);
+    setMultipleCardAmount(remaining.toFixed(2));
   };
 
   // Validaciones de confirmación
   const canConfirm = () => {
     if (isCreditSale) return true;
-    if (paymentMethod === 'CASH') {
-      return totalPaidEquivalent >= total - 0.01; // Margen de centavos
+
+    const hasCash = rawMultCashNio > 0 || rawMultCashUsd > 0;
+    const hasTransfer = rawMultTransferAmt > 0;
+    const hasCard = rawMultCardAmt > 0;
+
+    // Al menos un método de pago debe tener un monto mayor a cero
+    if (!hasCash && !hasTransfer && !hasCard) return false;
+
+    // Validaciones específicas de transferencia si tiene monto
+    if (hasTransfer) {
+      if (!multipleTransferBank || !multipleTransferRef.trim()) return false;
     }
-    if (paymentMethod === 'TRANSFER') {
-      return bank.trim().length > 0 && transferRef.trim().length > 0;
+
+    // Validaciones específicas de tarjeta si tiene monto
+    if (hasCard) {
+      if (!multipleCardBrand || multipleCardDigits.trim().length !== 4 || !multipleCardRef.trim()) return false;
     }
-    if (paymentMethod === 'CARD') {
-      return cardDigits.trim().length === 4 && cardRef.trim().length > 0;
-    }
-    return false;
+
+    // El total abonado debe cubrir el total de la factura
+    return totalPaidEquivalent >= total - 0.01;
   };
 
   const handleFinalSubmit = () => {
     if (!canConfirm()) return;
 
+    let finalMethod = 'CASH';
     let metadata: any = {};
+
     if (!isCreditSale) {
-      if (paymentMethod === 'CASH') {
+      const hasCash = rawMultCashNio > 0 || rawMultCashUsd > 0;
+      const hasTransfer = rawMultTransferAmt > 0;
+      const hasCard = rawMultCardAmt > 0;
+
+      const activeCount = (hasCash ? 1 : 0) + (hasTransfer ? 1 : 0) + (hasCard ? 1 : 0);
+
+      if (activeCount > 1) {
+        finalMethod = 'MULTIPLE';
+        const payments: any[] = [];
+
+        // Si hay efectivo, calcular su aporte neto restando el vuelto general
+        if (hasCash) {
+          const cashBruto = rawMultCashNio + rawMultCashUsd * exchangeRate;
+          const cashNeto = Math.max(cashBruto - changeDueNio, 0);
+          payments.push({
+            method: 'CASH',
+            amount: cashNeto,
+            paid_nio: rawMultCashNio,
+            paid_usd: rawMultCashUsd,
+            exchange_rate: exchangeRate,
+            change_nio: changeDueNio
+          });
+        }
+
+        // Si hay transferencia
+        if (hasTransfer) {
+          payments.push({
+            method: 'TRANSFER',
+            amount: rawMultTransferAmt,
+            bank: multipleTransferBank,
+            reference: multipleTransferRef.trim()
+          });
+        }
+
+        // Si hay tarjeta
+        if (hasCard) {
+          payments.push({
+            method: 'CARD',
+            amount: rawMultCardAmt,
+            card_brand: multipleCardBrand,
+            card_last_four: multipleCardDigits.trim(),
+            reference: multipleCardRef.trim()
+          });
+        }
+
         metadata = {
-          paid_nio: rawPaidNio,
-          paid_usd: rawPaidUsd,
+          multiple: true,
+          payments
+        };
+      } else if (hasTransfer) {
+        finalMethod = 'TRANSFER';
+        metadata = {
+          bank: multipleTransferBank,
+          reference: multipleTransferRef.trim()
+        };
+      } else if (hasCard) {
+        finalMethod = 'CARD';
+        metadata = {
+          card_last_four: multipleCardDigits.trim(),
+          reference: multipleCardRef.trim(),
+          card_brand: multipleCardBrand
+        };
+      } else {
+        // Solo Efectivo
+        finalMethod = 'CASH';
+        metadata = {
+          paid_nio: rawMultCashNio,
+          paid_usd: rawMultCashUsd,
           exchange_rate: exchangeRate,
           change_nio: changeDueNio
-        };
-      } else if (paymentMethod === 'TRANSFER') {
-        metadata = {
-          bank: bank.trim(),
-          reference: transferRef.trim()
-        };
-      } else if (paymentMethod === 'CARD') {
-        metadata = {
-          card_last_four: cardDigits.trim(),
-          reference: cardRef.trim(),
-          card_brand: cardBrand
         };
       }
     }
 
-    onConfirm(paymentMethod, metadata, isCreditSale);
+    onConfirm(finalMethod, metadata, isCreditSale);
   };
 
   // Atajos de teclado en el modal
@@ -180,11 +282,52 @@ export const ConfirmSaleModal = ({
           handleFinalSubmit();
         }
       }
+
+      // Cambiar entre pestañas con F2, F3, F4 o Alt+1, Alt+2, Alt+3
+      if (e.key === 'F2' || (e.altKey && e.key === '1')) {
+        e.preventDefault();
+        setPaymentMethod('CASH');
+      }
+      if (e.key === 'F3' || (e.altKey && e.key === '2')) {
+        e.preventDefault();
+        setPaymentMethod('TRANSFER');
+      }
+      if (e.key === 'F4' || (e.altKey && e.key === '3')) {
+        e.preventDefault();
+        setPaymentMethod('CARD');
+      }
+
+      // Autocompletar restante con F8
+      if (e.key === 'F8') {
+        e.preventDefault();
+        if (paymentMethod === 'CASH') {
+          handleFillExactCash();
+        } else if (paymentMethod === 'TRANSFER') {
+          handleFillExactTransfer();
+        } else if (paymentMethod === 'CARD') {
+          handleFillExactCard();
+        }
+      }
     };
 
     window.addEventListener('keydown', handleModalShortcuts);
     return () => window.removeEventListener('keydown', handleModalShortcuts);
-  }, [open, step, isCreditSale, paymentMethod, paidNio, paidUsd, bank, transferRef, cardDigits, cardRef, cardBrand, isSubmitting]);
+  }, [
+    open,
+    step,
+    isCreditSale,
+    paymentMethod,
+    multipleCashNio,
+    multipleCashUsd,
+    multipleTransferBank,
+    multipleTransferRef,
+    multipleTransferAmount,
+    multipleCardBrand,
+    multipleCardDigits,
+    multipleCardRef,
+    multipleCardAmount,
+    isSubmitting
+  ]);
 
   return (
     <AlertDialog
@@ -197,20 +340,20 @@ export const ConfirmSaleModal = ({
     >
       <AlertDialogContent
         onOpenAutoFocus={(e) => e.preventDefault()}
-        className="border border-sale-accent/40 max-w-lg rounded-xl overflow-hidden p-0 flex flex-col bg-card select-none"
+        className="border-2 border-slate-400 dark:border-slate-700 max-w-lg rounded-xl overflow-hidden p-0 flex flex-col bg-background select-none shadow-2xl"
       >
         {/* Banner Superior Reactivo */}
         <div className={cn(
-          "h-2 px-6 transition-all duration-300",
-          isCreditSale ? "bg-purple-600" : "bg-blue-600"
+          "h-2.5 px-6 transition-all duration-300",
+          isCreditSale ? "bg-purple-650" : "bg-blue-650"
         )} />
 
         <div className="p-6 flex flex-col gap-4">
           {/* Cabecera dinámica según el paso */}
-          <div className="flex items-center justify-between border-b pb-3">
+          <div className="flex items-center justify-between border-b border-slate-300 dark:border-slate-850 pb-3">
             <div className="flex flex-col">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Proceso de Pago</span>
-              <h2 className="text-xl font-bold text-foreground">
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-800 dark:text-slate-100">Proceso de Pago</span>
+              <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
                 {step === 1 && "1. Tipo de Venta"}
                 {step === 2 && "2. Detalles de Cobro"}
               </h2>
@@ -221,7 +364,7 @@ export const ConfirmSaleModal = ({
                 variant="ghost"
                 size="sm"
                 onClick={() => setStep((prev) => prev - 1)}
-                className="h-8 text-xs flex items-center gap-1 hover:bg-muted"
+                className="h-8 text-xs flex items-center gap-1 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-900 dark:text-white font-bold border border-slate-300 dark:border-slate-700"
                 disabled={isSubmitting}
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -230,15 +373,15 @@ export const ConfirmSaleModal = ({
             )}
           </div>
 
-          {/* Información del pedido flotante */}
-          <div className="flex justify-between items-center bg-muted/50 border rounded-lg p-3 text-sm">
+          {/* Información del pedido flotante - ALTO CONTRASTE */}
+          <div className="flex justify-between items-center bg-slate-200 dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-800 rounded-lg p-3.5 text-sm shadow-inner select-none">
             <div className="flex flex-col">
-              <span className="text-[10px] uppercase font-bold text-muted-foreground">Cliente</span>
-              <span className="font-semibold text-foreground truncate max-w-[200px]">{clientName}</span>
+              <span className="text-[11px] uppercase font-black text-slate-800 dark:text-slate-100">Cliente</span>
+              <span className="font-extrabold text-slate-900 dark:text-white truncate max-w-[200px]">{clientName}</span>
             </div>
             <div className="flex flex-col items-end">
-              <span className="text-[10px] uppercase font-bold text-muted-foreground">Total a Cobrar</span>
-              <span className="text-lg font-bold text-foreground">{formattedTotal}</span>
+              <span className="text-[11px] uppercase font-black text-slate-800 dark:text-slate-100">Total a Cobrar</span>
+              <span className="text-xl font-black text-slate-900 dark:text-white">{formattedTotal}</span>
             </div>
           </div>
 
@@ -253,20 +396,24 @@ export const ConfirmSaleModal = ({
                 }}
                 disabled={isSubmitting}
                 className={cn(
-                  "p-5 rounded-xl border flex flex-col items-center justify-center gap-3 transition-all",
+                  "p-5 rounded-xl border-2 flex flex-col items-center justify-center gap-3 transition-all",
                   "hover:border-blue-500 hover:bg-blue-50/20 active:scale-95 group",
-                  !isCreditSale ? "border-blue-600 bg-blue-500/5 ring-1 ring-blue-500" : "border-border bg-card"
+                  !isCreditSale 
+                    ? "border-blue-600 bg-blue-500/10 ring-2 ring-blue-500" 
+                    : "border-slate-300 dark:border-slate-800 bg-background text-slate-800 dark:text-slate-200"
                 )}
               >
                 <div className={cn(
-                  "w-12 h-12 rounded-full flex items-center justify-center border transition-all",
-                  !isCreditSale ? "bg-blue-100 text-blue-600 border-blue-200" : "bg-muted text-muted-foreground border-border"
+                  "w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all",
+                  !isCreditSale 
+                    ? "bg-blue-600 text-white border-blue-500" 
+                    : "bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-slate-105 border-slate-300 dark:border-slate-700"
                 )}>
-                  <DollarSign className="w-6 h-6" />
+                  <DollarSign className="w-6 h-6 stroke-[3px]" />
                 </div>
                 <div className="text-center">
-                  <p className="font-bold text-sm text-foreground">Venta a Contado</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">Cobro inmediato</p>
+                  <p className="font-black text-sm text-slate-900 dark:text-white">Venta a Contado</p>
+                  <p className="text-[10px] font-bold text-slate-700 dark:text-slate-400 mt-0.5">Cobro inmediato</p>
                 </div>
               </button>
 
@@ -281,21 +428,25 @@ export const ConfirmSaleModal = ({
                 }}
                 disabled={isSubmitting || !clientName || clientName === 'Cliente Genérico' || clientName === 'Consumidor Final'}
                 className={cn(
-                  "p-5 rounded-xl border flex flex-col items-center justify-center gap-3 transition-all relative",
+                  "p-5 rounded-xl border-2 flex flex-col items-center justify-center gap-3 transition-all relative",
                   (!clientName || clientName === 'Cliente Genérico' || clientName === 'Consumidor Final') && "opacity-50 cursor-not-allowed",
                   "hover:border-purple-500 hover:bg-purple-50/20 active:scale-95 group",
-                  isCreditSale ? "border-purple-600 bg-purple-500/5 ring-1 ring-purple-500" : "border-border bg-card"
+                  isCreditSale 
+                    ? "border-purple-600 bg-purple-500/10 ring-2 ring-purple-500" 
+                    : "border-slate-300 dark:border-slate-800 bg-background text-slate-800 dark:text-slate-200"
                 )}
               >
                 <div className={cn(
-                  "w-12 h-12 rounded-full flex items-center justify-center border transition-all",
-                  isCreditSale ? "bg-purple-100 text-purple-600 border-purple-200" : "bg-muted text-muted-foreground border-border"
+                  "w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all",
+                  isCreditSale 
+                    ? "bg-purple-600 text-white border-purple-500" 
+                    : "bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-slate-105 border-slate-300 dark:border-slate-700"
                 )}>
-                  <Calendar className="w-6 h-6" />
+                  <Calendar className="w-6 h-6 stroke-[3px]" />
                 </div>
                 <div className="text-center">
-                  <p className="font-bold text-sm text-foreground">Venta a Crédito</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                  <p className="font-black text-sm text-slate-900 dark:text-white">Venta a Crédito</p>
+                  <p className="text-[10px] font-bold text-slate-700 dark:text-slate-400 mt-0.5">
                     {(!clientName || clientName === 'Cliente Genérico' || clientName === 'Consumidor Final') 
                       ? "Requiere cliente registrado" 
                       : "Pago en cuotas diferidas"
@@ -308,235 +459,323 @@ export const ConfirmSaleModal = ({
 
           {/* PASO 2: DETALLES DE COBRO (CONTADO - MERGED) */}
           {step === 2 && !isCreditSale && (
-            <div className="flex flex-col gap-4">
-              {/* Selector de Forma de Pago (Pestañas horizontales) */}
-              <div className="grid grid-cols-3 gap-2 p-1 bg-muted/60 border rounded-lg select-none">
+            <div className="flex flex-col gap-3">
+              {/* Selector de Forma de Pago (Pestañas horizontales) - ALTO CONTRASTE */}
+              <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-200 dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-800 rounded-lg select-none">
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('CASH')}
                   className={cn(
-                    "py-1.5 text-xs font-semibold rounded-md transition-all flex items-center justify-center gap-1.5",
+                    "py-1.5 text-[11px] font-black rounded-md transition-all flex items-center justify-center gap-1.5 border-2",
                     paymentMethod === 'CASH' 
-                      ? "bg-background text-foreground shadow-sm border border-secondary" 
-                      : "text-muted-foreground hover:text-foreground"
+                      ? "bg-blue-600 text-white shadow-md border-blue-500" 
+                      : "text-slate-800 dark:text-slate-200 border-transparent hover:bg-slate-300/60 dark:hover:bg-slate-800/60"
                   )}
                   disabled={isSubmitting}
                 >
-                  <Coins className="w-3.5 h-3.5 text-blue-600" />
-                  Efectivo
+                  <Coins className="w-3.5 h-3.5 stroke-[2.5px]" />
+                  <span>Efectivo</span>
+                  <kbd className="hidden md:inline-block px-1 rounded bg-white/20 text-[9px] font-semibold">F2</kbd>
                 </button>
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('TRANSFER')}
                   className={cn(
-                    "py-1.5 text-xs font-semibold rounded-md transition-all flex items-center justify-center gap-1.5",
+                    "py-1.5 text-[11px] font-black rounded-md transition-all flex items-center justify-center gap-1.5 border-2",
                     paymentMethod === 'TRANSFER' 
-                      ? "bg-background text-foreground shadow-sm border border-secondary" 
-                      : "text-muted-foreground hover:text-foreground"
+                      ? "bg-blue-600 text-white shadow-md border-blue-500" 
+                      : "text-slate-800 dark:text-slate-200 border-transparent hover:bg-slate-300/60 dark:hover:bg-slate-800/60"
                   )}
                   disabled={isSubmitting}
                 >
-                  <ArrowRightLeft className="w-3.5 h-3.5 text-blue-600" />
-                  Transferencia
+                  <ArrowRightLeft className="w-3.5 h-3.5 stroke-[2.5px]" />
+                  <span>Transf.</span>
+                  <kbd className="hidden md:inline-block px-1 rounded bg-white/20 text-[9px] font-semibold">F3</kbd>
                 </button>
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('CARD')}
                   className={cn(
-                    "py-1.5 text-xs font-semibold rounded-md transition-all flex items-center justify-center gap-1.5",
+                    "py-1.5 text-[11px] font-black rounded-md transition-all flex items-center justify-center gap-1.5 border-2",
                     paymentMethod === 'CARD' 
-                      ? "bg-background text-foreground shadow-sm border border-secondary" 
-                      : "text-muted-foreground hover:text-foreground"
+                      ? "bg-blue-600 text-white shadow-md border-blue-500" 
+                      : "text-slate-800 dark:text-slate-200 border-transparent hover:bg-slate-300/60 dark:hover:bg-slate-800/60"
                   )}
                   disabled={isSubmitting}
                 >
-                  <CreditCard className="w-3.5 h-3.5 text-blue-600" />
-                  Tarjeta
+                  <CreditCard className="w-3.5 h-3.5 stroke-[2.5px]" />
+                  <span>Tarjeta</span>
+                  <kbd className="hidden md:inline-block px-1 rounded bg-white/20 text-[9px] font-semibold">F4</kbd>
                 </button>
               </div>
 
-              {/* DETALLE EFECTIVO */}
-              {paymentMethod === 'CASH' && (
-                <div className="flex flex-col gap-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="flex flex-col gap-1.5 flex-1">
-                      <div className="flex justify-between items-center">
-                        <Label htmlFor="paidNio" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Pago en Córdobas</Label>
-                        <button
-                          type="button"
-                          onClick={handlePayExact}
+              {/* Contenedor del método activo */}
+              <div className="min-h-[175px] flex flex-col justify-center">
+                {/* EFECTIVO PORTION */}
+                {paymentMethod === 'CASH' && (
+                  <div className="border-2 border-slate-350 dark:border-slate-700 rounded-lg p-3.5 bg-slate-50 dark:bg-slate-950/20">
+                    <div className="flex justify-between items-center mb-2.5">
+                      <h3 className="text-xs font-black uppercase text-blue-600 dark:text-blue-400 tracking-wider flex items-center gap-1.5">
+                        <Coins className="w-4 h-4 stroke-[2.5px]" />
+                        <span>1. Pago en Efectivo</span>
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={handleFillExactCash}
+                        disabled={isSubmitting}
+                        className="text-[10px] bg-blue-650 hover:bg-blue-700 text-white font-extrabold px-2.5 py-1 rounded border border-blue-500 transition-all uppercase tracking-wider shadow-sm flex items-center gap-1.5"
+                      >
+                        <span>Pagar Restante</span>
+                        <kbd className="px-1 rounded bg-white/20 text-[9px] font-semibold">F8</kbd>
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="flex flex-col gap-1">
+                        <Label htmlFor="multCashNio" className="text-[11px] font-bold text-slate-800 dark:text-slate-100">Córdobas (C$)</Label>
+                        <div className="relative">
+                          <span className="absolute left-2.5 top-1.5 text-xs font-black text-slate-600 dark:text-slate-400">C$</span>
+                          <Input
+                            ref={cashNioRef}
+                            id="multCashNio"
+                            type="number"
+                            step="any"
+                            inputMode="decimal"
+                            value={multipleCashNio}
+                            onChange={(e) => setMultipleCashNio(e.target.value)}
+                            placeholder="0.00"
+                            className="pl-8 h-8 text-sm font-bold border-slate-400 dark:border-slate-650 text-slate-900 dark:text-white bg-background"
+                            disabled={isSubmitting}
+                          />
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <Label htmlFor="multCashUsd" className="text-[11px] font-bold text-slate-800 dark:text-slate-100">Dólares ($)</Label>
+                        <div className="relative">
+                          <span className="absolute left-2.5 top-1.5 text-xs font-black text-slate-600 dark:text-slate-400">$</span>
+                          <Input
+                            id="multCashUsd"
+                            type="number"
+                            step="any"
+                            inputMode="decimal"
+                            value={multipleCashUsd}
+                            onChange={(e) => setMultipleCashUsd(e.target.value)}
+                            placeholder="0.00"
+                            className="pl-8 h-8 text-sm font-bold border-slate-400 dark:border-slate-650 text-slate-900 dark:text-white bg-background"
+                            disabled={isSubmitting}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* TRANSFERENCIA PORTION */}
+                {paymentMethod === 'TRANSFER' && (
+                  <div className="border-2 border-slate-350 dark:border-slate-700 rounded-lg p-3.5 bg-slate-50 dark:bg-slate-950/20">
+                    <div className="flex justify-between items-center mb-2.5">
+                      <h3 className="text-xs font-black uppercase text-blue-600 dark:text-blue-400 tracking-wider flex items-center gap-1.5">
+                        <ArrowRightLeft className="w-4 h-4 stroke-[2.5px]" />
+                        <span>2. Pago por Transferencia</span>
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={handleFillExactTransfer}
+                        disabled={isSubmitting}
+                        className="text-[10px] bg-blue-650 hover:bg-blue-700 text-white font-extrabold px-2.5 py-1 rounded border border-blue-500 transition-all uppercase tracking-wider shadow-sm flex items-center gap-1.5"
+                      >
+                        <span>Copiar Restante</span>
+                        <kbd className="px-1 rounded bg-white/20 text-[9px] font-semibold">F8</kbd>
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 mb-2">
+                      <div className="flex flex-col gap-1">
+                        <Label htmlFor="multTransBank" className="text-[11px] font-bold text-slate-800 dark:text-slate-100">Banco</Label>
+                        <select
+                          ref={transBankRef}
+                          id="multTransBank"
+                          value={multipleTransferBank}
+                          onChange={(e) => setMultipleTransferBank(e.target.value)}
+                          className="h-8 text-xs rounded-md border border-slate-400 dark:border-slate-600 bg-background px-2 font-bold text-slate-900 dark:text-white"
                           disabled={isSubmitting}
-                          className="text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:underline"
                         >
-                          Exacto
-                        </button>
+                          <option value="">Seleccione...</option>
+                          <option value="BAC">BAC</option>
+                          <option value="BANPRO">BANPRO</option>
+                          <option value="LAFISE">LAFISE</option>
+                          <option value="FICOHSA">FICOHSA</option>
+                          <option value="AVANZ">AVANZ</option>
+                        </select>
                       </div>
-                      <div className="relative">
-                        <span className="absolute left-2.5 top-2 text-xs font-semibold text-muted-foreground/80">C$</span>
+                      <div className="flex flex-col gap-1">
+                        <Label htmlFor="multTransRef" className="text-[11px] font-bold text-slate-800 dark:text-slate-100">Referencia</Label>
                         <Input
-                          id="paidNio"
-                          type="number"
-                          step="any"
-                          inputMode="decimal"
-                          value={paidNio}
-                          onChange={(e) => setPaidNio(e.target.value)}
-                          placeholder="0.00"
-                          className="pl-8 h-8 text-sm focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue"
+                          id="multTransRef"
+                          type="text"
+                          placeholder="Nº Referencia"
+                          value={multipleTransferRef}
+                          onChange={(e) => setMultipleTransferRef(e.target.value)}
+                          className="h-8 text-sm font-bold border-slate-400 dark:border-slate-655 text-slate-900 dark:text-white bg-background"
                           disabled={isSubmitting}
                         />
                       </div>
                     </div>
-                    <div className="flex flex-col gap-1.5">
-                      <Label htmlFor="paidUsd" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Pago en Dólares</Label>
+                    <div className="flex flex-col gap-1">
+                      <Label htmlFor="multTransAmt" className="text-[11px] font-bold text-slate-800 dark:text-slate-100">Monto Transferencia (C$)</Label>
                       <div className="relative">
-                        <span className="absolute left-2.5 top-2 text-xs font-semibold text-muted-foreground/80">$</span>
+                        <span className="absolute left-2.5 top-1.5 text-xs font-black text-slate-600 dark:text-slate-400">C$</span>
                         <Input
-                          id="paidUsd"
+                          id="multTransAmt"
                           type="number"
                           step="any"
                           inputMode="decimal"
-                          value={paidUsd}
-                          onChange={(e) => setPaidUsd(e.target.value)}
+                          value={multipleTransferAmount}
+                          onChange={(e) => setMultipleTransferAmount(e.target.value)}
                           placeholder="0.00"
-                          className="pl-8 h-8 text-sm focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue"
+                          className="pl-8 h-8 text-sm font-bold border-slate-400 dark:border-slate-650 text-slate-900 dark:text-white bg-background"
                           disabled={isSubmitting}
                         />
                       </div>
                     </div>
                   </div>
+                )}
 
-                  {/* Fila Tasa de Cambio (Solo Lectura) */}
-                  <div className="flex items-center justify-between border bg-muted/30 p-2 rounded-lg text-xs gap-3">
-                    <div className="flex items-center gap-1 text-muted-foreground font-medium">
-                      <Calculator className="w-3.5 h-3.5 text-blue-600" />
-                      <span>Tasa de cambio USD/NIO:</span>
+                {/* TARJETA PORTION */}
+                {paymentMethod === 'CARD' && (
+                  <div className="border-2 border-slate-355 dark:border-slate-700 rounded-lg p-3.5 bg-slate-50 dark:bg-slate-950/20">
+                    <div className="flex justify-between items-center mb-2.5">
+                      <h3 className="text-xs font-black uppercase text-blue-600 dark:text-blue-400 tracking-wider flex items-center gap-1.5">
+                        <CreditCard className="w-4 h-4 stroke-[2.5px]" />
+                        <span>3. Pago con Tarjeta</span>
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={handleFillExactCard}
+                        disabled={isSubmitting}
+                        className="text-[10px] bg-blue-650 hover:bg-blue-700 text-white font-extrabold px-2.5 py-1 rounded border border-blue-500 transition-all uppercase tracking-wider shadow-sm flex items-center gap-1.5"
+                      >
+                        <span>Pagar Restante</span>
+                        <kbd className="px-1 rounded bg-white/20 text-[9px] font-semibold">F8</kbd>
+                      </button>
                     </div>
-                    <div className="font-semibold text-foreground px-2 py-0.5 bg-background rounded border text-xs">
-                      C$ {exchangeRate.toFixed(2)}
+                    <div className="grid grid-cols-3 gap-2 mb-2">
+                      <div className="flex flex-col gap-1">
+                        <Label htmlFor="multCardBrand" className="text-[11px] font-bold text-slate-800 dark:text-slate-100">Franquicia</Label>
+                        <select
+                          ref={cardBrandRef}
+                          id="multCardBrand"
+                          value={multipleCardBrand}
+                          onChange={(e) => setMultipleCardBrand(e.target.value)}
+                          className="h-8 text-[11px] rounded-md border border-slate-400 dark:border-slate-600 bg-background px-1 font-bold text-slate-900 dark:text-white"
+                          disabled={isSubmitting}
+                        >
+                          <option value="Visa">Visa</option>
+                          <option value="Mastercard">Mastercard</option>
+                          <option value="AMEX">AMEX</option>
+                          <option value="BAC">BAC</option>
+                        </select>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <Label htmlFor="multCardDigits" className="text-[11px] font-bold text-slate-800 dark:text-slate-100">Últimos 4</Label>
+                        <Input
+                          id="multCardDigits"
+                          type="text"
+                          maxLength={4}
+                          placeholder="0000"
+                          value={multipleCardDigits}
+                          onChange={(e) => setMultipleCardDigits(e.target.value.replace(/\D/g, ''))}
+                          className="pl-2 h-8 text-sm font-bold border-slate-400 dark:border-slate-650 text-slate-900 dark:text-white bg-background"
+                          disabled={isSubmitting}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <Label htmlFor="multCardRef" className="text-[11px] font-bold text-slate-800 dark:text-slate-100">Voucher</Label>
+                        <Input
+                          id="multCardRef"
+                          type="text"
+                          placeholder="Ref"
+                          value={multipleCardRef}
+                          onChange={(e) => setMultipleCardRef(e.target.value)}
+                          className="pl-2 h-8 text-sm font-bold border-slate-400 dark:border-slate-650 text-slate-900 dark:text-white bg-background"
+                          disabled={isSubmitting}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <Label htmlFor="multCardAmt" className="text-[11px] font-bold text-slate-800 dark:text-slate-100">Monto Tarjeta (C$)</Label>
+                      <div className="relative">
+                        <span className="absolute left-2.5 top-1.5 text-xs font-black text-slate-600 dark:text-slate-400">C$</span>
+                        <Input
+                          id="multCardAmt"
+                          type="number"
+                          step="any"
+                          inputMode="decimal"
+                          value={multipleCardAmount}
+                          onChange={(e) => setMultipleCardAmount(e.target.value)}
+                          placeholder="0.00"
+                          className="pl-8 h-8 text-sm font-bold border-slate-400 dark:border-slate-650 text-slate-900 dark:text-white bg-background"
+                          disabled={isSubmitting}
+                        />
+                      </div>
                     </div>
                   </div>
+                )}
+              </div>
 
-                  {/* Panel de Vuelto / Saldo Faltante */}
-                  <div className={cn(
-                    "rounded-xl border p-4 flex flex-col items-center justify-center text-center transition-all duration-300",
-                    totalPaidEquivalent >= total - 0.01
-                      ? "bg-emerald-500/5 border-emerald-500/25 text-emerald-800"
-                      : "bg-amber-500/5 border-amber-500/25 text-amber-800"
-                  )}>
-                    {totalPaidEquivalent >= total - 0.01 ? (
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-[10px] uppercase font-bold tracking-wider opacity-75">Cambio a entregar</span>
-                        <span className="text-xl font-black">{formattedChange}</span>
-                        {rawPaidUsd > 0 && (
-                          <p className="text-[10px] opacity-80 mt-0.5">
-                            Recibido: {formattedPaid} (Equivalente)
-                          </p>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-[10px] uppercase font-bold tracking-wider opacity-75">Monto faltante</span>
-                        <span className="text-xl font-black">{formattedMissing}</span>
-                      </div>
-                    )}
-                  </div>
+              {/* Fila Tasa de Cambio (Solo Lectura) */}
+              <div className="flex items-center justify-between border-2 border-slate-350 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/50 p-2.5 rounded-lg text-xs gap-3">
+                <div className="flex items-center gap-1.5 text-slate-800 dark:text-slate-200 font-bold">
+                  <Calculator className="w-4 h-4 text-blue-600" />
+                  <span>Tasa de cambio USD/NIO:</span>
                 </div>
-              )}
+                <div className="font-extrabold text-slate-900 dark:text-white px-2 py-0.5 bg-background rounded border-2 border-slate-300 dark:border-slate-700 text-xs">
+                  C$ {exchangeRate.toFixed(2)}
+                </div>
+              </div>
 
-              {/* DETALLE TRANSFERENCIA */}
-              {paymentMethod === 'TRANSFER' && (
-                <div className="grid grid-cols-2 gap-3 my-1">
-                  <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="bank" className="text-xs font-semibold text-muted-foreground">Banco de Origen</Label>
-                    <Input
-                      id="bank"
-                      type="text"
-                      placeholder="Ej. LAFISE, BANPRO"
-                      value={bank}
-                      onChange={(e) => setBank(e.target.value)}
-                      className="h-8.5 text-sm focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue"
-                      disabled={isSubmitting}
-                    />
+              {/* Panel de Vuelto / Saldo Faltante - ALTO CONTRASTE Y GLOBAL */}
+              <div className={cn(
+                "rounded-xl border-2 p-3.5 flex flex-col items-center justify-center text-center transition-all duration-300 shadow-inner",
+                totalPaidEquivalent >= total - 0.01
+                  ? "bg-emerald-100 dark:bg-emerald-950/40 border-emerald-500 text-emerald-800 dark:text-emerald-250"
+                  : "bg-amber-100 dark:bg-amber-950/40 border-amber-500 text-amber-800 dark:text-amber-255"
+              )}>
+                {totalPaidEquivalent >= total - 0.01 ? (
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[10px] uppercase font-black tracking-wider opacity-75">Cambio a entregar (Vuelto)</span>
+                    <span className="text-xl font-black">{formattedChange}</span>
+                    <p className="text-[10px] font-bold opacity-80 mt-0.5">
+                      Total Ingresado (Global): {formattedPaid}
+                    </p>
                   </div>
-                  <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="transferRef" className="text-xs font-semibold text-muted-foreground">Número de Referencia</Label>
-                    <Input
-                      id="transferRef"
-                      type="text"
-                      placeholder="Ej. TX-102938"
-                      value={transferRef}
-                      onChange={(e) => setTransferRef(e.target.value)}
-                      className="h-8.5 text-sm focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue"
-                      disabled={isSubmitting}
-                    />
+                ) : (
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[10px] uppercase font-black tracking-wider opacity-75">Monto faltante</span>
+                    <span className="text-xl font-black">{formattedMissing}</span>
+                    <p className="text-[10px] font-bold opacity-80 mt-0.5">
+                      Total Ingresado (Global): {formattedPaid}
+                    </p>
                   </div>
-                </div>
-              )}
-
-              {/* DETALLE TARJETA */}
-              {paymentMethod === 'CARD' && (
-                <div className="grid grid-cols-3 gap-3 my-1">
-                  <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="cardBrand" className="text-xs font-semibold text-muted-foreground">Franquicia / Marca</Label>
-                    <select
-                      id="cardBrand"
-                      value={cardBrand}
-                      onChange={(e) => setCardBrand(e.target.value)}
-                      className="h-8.5 text-sm rounded-md border border-input bg-background px-3 py-1 text-xs focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue"
-                      disabled={isSubmitting}
-                    >
-                      <option value="Visa">Visa</option>
-                      <option value="Mastercard">Mastercard</option>
-                      <option value="AMEX">AMEX</option>
-                      <option value="BAC">BAC Credomatic</option>
-                    </select>
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="cardDigits" className="text-xs font-semibold text-muted-foreground">Últimos 4 Dígitos</Label>
-                    <Input
-                      id="cardDigits"
-                      type="text"
-                      maxLength={4}
-                      placeholder="0000"
-                      value={cardDigits}
-                      onChange={(e) => setCardDigits(e.target.value.replace(/\D/g, ''))}
-                      className="h-8.5 text-sm focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue"
-                      disabled={isSubmitting}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="cardRef" className="text-xs font-semibold text-muted-foreground">Nº Referencia (Voucher)</Label>
-                    <Input
-                      id="cardRef"
-                      type="text"
-                      placeholder="Ej. 129384"
-                      value={cardRef}
-                      onChange={(e) => setCardRef(e.target.value)}
-                      className="h-8.5 text-sm focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue"
-                      disabled={isSubmitting}
-                    />
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           )}
 
           {/* PASO 2: DETALLES DE PAGO (CRÉDITO) */}
           {step === 2 && isCreditSale && (
-            <div className="flex flex-col gap-3 rounded-lg border bg-purple-500/5 border-purple-500/20 p-4 my-2">
-              <div className="flex items-start gap-2 text-purple-800">
-                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            <div className="flex flex-col gap-3 rounded-lg border-2 bg-purple-500/10 border-purple-500/30 p-4 my-2">
+              <div className="flex items-start gap-2 text-purple-900 dark:text-purple-200">
+                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-purple-600 dark:text-purple-400" />
                 <div className="flex flex-col">
-                  <span className="text-xs font-bold uppercase tracking-wider text-purple-700">Venta a Crédito</span>
-                  <p className="text-xs text-purple-600/90 mt-1">
-                    Se generará un saldo pendiente por cobrar a nombre de <strong className="text-purple-800">{clientName}</strong>.
+                  <span className="text-xs font-black uppercase tracking-wider text-purple-700 dark:text-purple-300">Venta a Crédito</span>
+                  <p className="text-xs text-purple-800 dark:text-purple-200 font-bold mt-1">
+                    Se generará un saldo pendiente por cobrar a nombre de <strong className="text-purple-950 dark:text-white underline">{clientName}</strong>.
                   </p>
                 </div>
               </div>
               {expirationDate && (
-                <div className="border-t border-purple-200 mt-2 pt-2 text-xs flex justify-between text-purple-700 font-medium">
+                <div className="border-t border-purple-300 dark:border-purple-800 mt-2 pt-2 text-xs flex justify-between text-purple-800 dark:text-purple-200 font-bold">
                   <span>Vencimiento:</span>
-                  <span className="font-bold">{expirationDate}</span>
+                  <span className="font-extrabold">{expirationDate}</span>
                 </div>
               )}
             </div>
@@ -544,14 +783,14 @@ export const ConfirmSaleModal = ({
         </div>
 
         {/* Footer del Modal */}
-        <AlertDialogFooter className="bg-muted/40 p-4 border-t flex flex-row sm:justify-between items-center select-none gap-4">
+        <AlertDialogFooter className="bg-slate-100 dark:bg-slate-900/60 p-4 border-t border-slate-350 dark:border-slate-800 flex flex-row sm:justify-between items-center select-none gap-4">
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={onCancel}
             disabled={isSubmitting}
-            className="h-9 px-4 text-xs font-semibold"
+            className="h-9 px-4 text-xs font-bold border-2 border-slate-350 dark:border-slate-700 text-slate-950 dark:text-white"
           >
             Revisar Factura
           </Button>
@@ -563,10 +802,10 @@ export const ConfirmSaleModal = ({
                 onClick={handleFinalSubmit}
                 disabled={isSubmitting || !canConfirm()}
                 className={cn(
-                  "h-9 px-5 text-xs font-bold flex items-center gap-1.5 shadow-md",
+                  "h-9 px-5 text-xs font-bold flex items-center gap-1.5 shadow-md border-2",
                   isCreditSale 
-                    ? "bg-purple-600 hover:bg-purple-700 text-white" 
-                    : "bg-blue-600 hover:bg-blue-700 text-white"
+                    ? "bg-purple-600 hover:bg-purple-700 text-white border-purple-500" 
+                    : "bg-blue-600 hover:bg-blue-700 text-white border-blue-500"
                 )}
               >
                 {isSubmitting ? (
@@ -588,7 +827,7 @@ export const ConfirmSaleModal = ({
                 type="button"
                 onClick={() => setStep(2)}
                 disabled={isSubmitting || (isCreditSale && (!clientName || clientName === 'Cliente Genérico' || clientName === 'Consumidor Final'))}
-                className="h-9 px-5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white"
+                className="h-9 px-5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white border-2 border-blue-500"
               >
                 Siguiente
               </Button>

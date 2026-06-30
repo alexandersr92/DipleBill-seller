@@ -33,10 +33,22 @@ export const invoiceActions = async ({ settings, invoice, action }: IInvoiceActi
       if (invoice.payment_metadata?.paid_usd) {
         paymentMethod += ` ($${invoice.payment_metadata.paid_usd} USD)`;
       }
-    } else if (invoice.method === 'TRANSFER') {
-      paymentMethod = `Transf. ${invoice.payment_metadata?.bank || ''}`;
-    } else if (invoice.method === 'CARD') {
-      paymentMethod = `Tarjeta ${invoice.payment_metadata?.card_brand || ''}`;
+    } else if (invoice.method === 'MULTIPLE') {
+      const parts = (invoice.payment_metadata?.payments || []).map((p: any) => {
+        if (p.method === 'CASH') {
+          let str = `Efectivo C$ ${(p.amount || 0).toFixed(2)}`;
+          if (p.paid_usd > 0) str += ` ($${p.paid_usd})`;
+          return str;
+        }
+        if (p.method === 'TRANSFER') {
+          return `${p.bank || 'Transf'} C$ ${(p.amount || 0).toFixed(2)}`;
+        }
+        if (p.method === 'CARD') {
+          return `${p.card_brand || 'Tarj'} C$ ${(p.amount || 0).toFixed(2)}`;
+        }
+        return `${p.method} C$ ${(p.amount || 0).toFixed(2)}`;
+      });
+      paymentMethod = `Múltiples (${parts.join(' + ')})`;
     } else {
       paymentMethod = invoice.method ?? 'Efectivo';
     }

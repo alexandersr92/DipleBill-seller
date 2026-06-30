@@ -170,7 +170,9 @@ const Invoice = () => {
                           ? 'Tarjeta'
                           : invoice?.method === 'CREDIT'
                             ? 'Crédito'
-                            : invoice?.method || 'Efectivo'
+                            : invoice?.method === 'MULTIPLE'
+                              ? 'Múltiple'
+                              : invoice?.method || 'Efectivo'
                   }
                 />
               </div>
@@ -183,7 +185,7 @@ const Invoice = () => {
                   <Input
                     readOnly
                     disabled
-                    className="h-10 border-gray-500 w-full"
+                    className="h-10 border-gray-500 w-full text-xs font-semibold"
                     value={
                       invoice.method === 'CASH'
                         ? `Pagó C$ ${invoice.payment_metadata.paid_nio || 0} + $${invoice.payment_metadata.paid_usd || 0} USD (Tasa ${invoice.payment_metadata.exchange_rate || 36.5}) | Vuelto: C$ ${invoice.payment_metadata.change_nio || 0}`
@@ -191,7 +193,20 @@ const Invoice = () => {
                           ? `Banco: ${invoice.payment_metadata.bank} | Ref: ${invoice.payment_metadata.reference}`
                           : invoice.method === 'CARD'
                             ? `${invoice.payment_metadata.card_brand || 'Tarjeta'} (*${invoice.payment_metadata.card_last_four || '0000'}) | Ref: ${invoice.payment_metadata.reference}`
-                            : JSON.stringify(invoice.payment_metadata)
+                            : invoice.method === 'MULTIPLE'
+                              ? (invoice.payment_metadata.payments || []).map((p: any) => {
+                                  if (p.method === 'CASH') {
+                                    return `Efectivo: C$ ${(p.amount || 0).toFixed(2)} (Recibido: C$ ${p.paid_nio || 0} + $${p.paid_usd || 0} USD, Vuelto: C$ ${p.change_nio || 0})`;
+                                  }
+                                  if (p.method === 'TRANSFER') {
+                                    return `Transf: C$ ${(p.amount || 0).toFixed(2)} (${p.bank} - Ref: ${p.reference})`;
+                                  }
+                                  if (p.method === 'CARD') {
+                                    return `Tarjeta: C$ ${(p.amount || 0).toFixed(2)} (${p.card_brand} *${p.card_last_four} - Ref: ${p.reference})`;
+                                  }
+                                  return `${p.method}: C$ ${(p.amount || 0).toFixed(2)}`;
+                                }).join(' | ')
+                              : JSON.stringify(invoice.payment_metadata)
                     }
                   />
                 </div>
