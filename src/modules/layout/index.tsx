@@ -1,75 +1,25 @@
-import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
-import { AppSidebar } from './components/AppSidebar';
-import { Separator } from '@/components/ui/separator';
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator
-} from '@/components/ui/breadcrumb';
-
-import { Link, matchPath, useLocation, useParams } from 'react-router-dom';
-import routes from '@/router/routeList';
 import { useAppSelector } from '../../store/hooks';
 import { Skeleton } from '../../components/ui/skeleton';
+import { TopBar } from './components/TopBar';
+import { BottomNav } from './components/BottomNav';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  const { pathname } = useLocation();
-  const { id } = useParams<{ id: string }>();
-
-  const currentRoute = Object.values(routes).find((route) => matchPath(route.path, pathname));
-  const isDynamicRoute = id && currentRoute?.path.includes(':id');
-  const routeFounded = isDynamicRoute ? pathname.split('/').slice(0, -1).join('/') : pathname;
-
   const isLoading = useAppSelector((state) => state.storeSlice.isLoading);
 
-  const routeModified = routeFounded.includes('edit')
-    ? routeFounded.split('/').slice(0, -1).join('/')
-    : routeFounded;
-
   return (
-    <SidebarProvider>
-      <AppSidebar variant="inset" />
-      <SidebarInset>
-        <header className="sticky top-0 flex shrink-0 items-center gap-2 border-b bg-background p-4 z-50">
-          <div className="flex items-center gap-2 px-4">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 h-4" />
-
-            {pathname !== '/' && (
-              <Breadcrumb>
-                <BreadcrumbList>
-                  <BreadcrumbItem>
-                    <BreadcrumbLink asChild>
-                      <Link to="/">Inicio</Link>
-                    </BreadcrumbLink>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator />
-
-                  {isDynamicRoute ? (
-                    <>
-                      <BreadcrumbItem>
-                        <BreadcrumbLink asChild>
-                          <Link to={routeModified ?? ''}>{currentRoute?.name}</Link>
-                        </BreadcrumbLink>
-                      </BreadcrumbItem>
-                    </>
-                  ) : (
-                    <BreadcrumbItem>
-                      <BreadcrumbPage>{currentRoute?.name}</BreadcrumbPage>
-                    </BreadcrumbItem>
-                  )}
-                </BreadcrumbList>
-              </Breadcrumb>
-            )}
+    <div className="relative min-h-screen flex flex-col bg-background text-foreground pb-[var(--bottom-nav-height)]">
+      <TopBar />
+      <main className="flex-1 w-full max-w-7xl mx-auto p-4 md:p-6 animate-in fade-in duration-300">
+        {isLoading ? (
+          <div className="space-y-4">
+            <Skeleton className="h-12 w-[250px]" />
+            <Skeleton className="h-[400px] w-full" />
           </div>
-        </header>
-        <div className="flex flex-1 flex-col gap-4 p-4">
-          {isLoading ? <Skeleton className="w-full h-screen" /> : children}
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+        ) : (
+          children
+        )}
+      </main>
+      <BottomNav />
+    </div>
   );
 }

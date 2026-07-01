@@ -43,6 +43,8 @@
     --sale-accent-soft: 214 100% 97%;
     --sale-accent-text: var(--primary);
     --sale-accent-border: var(--primary);
+    --top-bar-height: 3.5rem;
+    --bottom-nav-height: 4rem;
   }
 
   .dark {
@@ -84,6 +86,8 @@
     --sale-accent-soft: 214 100% 97%;
     --sale-accent-text: var(--primary);
     --sale-accent-border: var(--primary);
+    --top-bar-height: 3.5rem;
+    --bottom-nav-height: 4rem;
   }
 
   [data-sell-type='credito'] {
