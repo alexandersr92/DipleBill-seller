@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { setSeller, sellerLogout } from '@/modules/auth/slices/userSlice';
 import { sellerLoginService, performLogout } from '@/modules/auth/services/authService';
+import axiosInstance from '@/helpers/axiosInstance';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,19 +30,40 @@ export const PinLockOverlay = () => {
   const [isVerifying, setIsVerifying] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [isShaking, setIsShaking] = useState<boolean>(false);
+  const [loginMode, setLoginMode] = useState<string>('CODE_AND_PIN');
 
   const codeRef = useRef<HTMLInputElement>(null);
   const pinRef = useRef<HTMLInputElement>(null);
 
-  // Auto focus Code input on mount or when store is selected
+  // Fetch login mode setting on mount
+  useEffect(() => {
+    const fetchLoginModeSetting = async () => {
+      try {
+        const response = await axiosInstance.get('/v1/settings?key=seller_login_mode');
+        const records = response.data?.data || response.data || [];
+        if (records.length > 0) {
+          setLoginMode(records[0].value || 'CODE_AND_PIN');
+        }
+      } catch (e) {
+        console.error('Error fetching login mode:', e);
+      }
+    };
+    fetchLoginModeSetting();
+  }, []);
+
+  // Auto focus Code or PIN input on mount or when store is selected
   useEffect(() => {
     if (store) {
       const timer = setTimeout(() => {
-        codeRef.current?.focus();
+        if (loginMode === 'PIN_ONLY') {
+          pinRef.current?.focus();
+        } else {
+          codeRef.current?.focus();
+        }
       }, 150);
       return () => clearTimeout(timer);
     }
-  }, [store]);
+  }, [store, loginMode]);
 
   const handleStoreChange = (newStoreId: string) => {
     localStorage.setItem('currentStoreId', newStoreId);
@@ -59,7 +81,7 @@ export const PinLockOverlay = () => {
 
   const handleVerify = async (currentPin: string) => {
     if (isVerifying) return;
-    if (!code) {
+    if (loginMode !== 'PIN_ONLY' && !code) {
       setError('Por favor ingrese su código de vendedor.');
       codeRef.current?.focus();
       return;
@@ -74,7 +96,7 @@ export const PinLockOverlay = () => {
     setError(null);
 
     try {
-      const res = await sellerLoginService(storeId, code, currentPin);
+      const res = await sellerLoginService(storeId, loginMode === 'PIN_ONLY' ? '' : code, currentPin);
 
       if (res.message === 'Invalid credentials' || res.message === 'PIN o Código de vendedor incorrectos') {
         setError('PIN o Código de vendedor incorrectos.');
@@ -210,35 +232,37 @@ export const PinLockOverlay = () => {
               </div>
             )}
 
-            <div className="w-full max-w-[240px] flex flex-col gap-4 mt-6">
+             <div className="w-full max-w-[240px] flex flex-col gap-4 mt-6">
               {/* Seller Code Input */}
-              <div className="grid gap-1 w-full">
-                <Label htmlFor="code" className="text-left text-xs font-semibold text-muted-foreground">Código de Vendedor</Label>
-                <div className="relative">
-                  <UserRound className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="code"
-                    ref={codeRef}
-                    placeholder="Ej. VEND-01"
-                    type="text"
-                    autoCapitalize="characters"
-                    autoComplete="off"
-                    className="pl-9 h-9 text-sm focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-sale-accent"
-                    disabled={isVerifying}
-                    value={code}
-                    onChange={(e) => {
-                      setCode(e.target.value.toUpperCase());
-                      setError(null);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        pinRef.current?.focus();
-                      }
-                    }}
-                  />
+              {loginMode !== 'PIN_ONLY' && (
+                <div className="grid gap-1 w-full">
+                  <Label htmlFor="code" className="text-left text-xs font-semibold text-muted-foreground">Código de Vendedor</Label>
+                  <div className="relative">
+                    <UserRound className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="code"
+                      ref={codeRef}
+                      placeholder="Ej. VEND-01"
+                      type="text"
+                      autoCapitalize="characters"
+                      autoComplete="off"
+                      className="pl-9 h-9 text-sm focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-sale-accent"
+                      disabled={isVerifying}
+                      value={code}
+                      onChange={(e) => {
+                        setCode(e.target.value.toUpperCase());
+                        setError(null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          pinRef.current?.focus();
+                        }
+                      }}
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Pin Visual Representation */}
               <div className="grid gap-1 w-full">
