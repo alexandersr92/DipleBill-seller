@@ -35,9 +35,11 @@ interface IOrderSummary {
 interface IProductTableProps {
   sellType: string;
   productSearchRef?: RefObject<HTMLInputElement>;
+  headerContent?: React.ReactNode;
+  children?: React.ReactNode;
 }
 
-const ProductTable = ({ sellType, productSearchRef }: IProductTableProps) => {
+const ProductTable = ({ sellType, productSearchRef, headerContent, children }: IProductTableProps) => {
   const productsSelected = useAppSelector((state) => state.billingSlice.productsSelected);
   const dispatch = useAppDispatch();
   const quantityInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
@@ -275,250 +277,262 @@ const ProductTable = ({ sellType, productSearchRef }: IProductTableProps) => {
   }, [pendingFocusProductId, productsSelected]);
 
   return (
-    <>
-      <div className="flex justify-between items-center">
-        <div className="w-1/3">
-          <CustomSearchInputSuggetions
-            placeholder="Buscar productos"
-            tabIndex={7}
-            inputRef={productSearchRef}
-            onProductAdded={setPendingFocusProductId}
-          />
-        </div>
-        <div className="w-1/4 flex items-center justify-end">
-          <Button
-            type="button"
-            tabIndex={-1}
-            onClick={handleDeleteSelectedProducts}
-            className="bg-secondary text-foreground hover:bg-primary focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue hover:text-secondary transition-colors duration-300 ease-in-out"
-            variant={'ghost'}
-          >
-            Eliminar seleccionados
-          </Button>
+    <div className="grid grid-cols-5 gap-6 items-stretch flex-grow h-full min-h-0 overflow-hidden">
+      {/* Columna Izquierda: Entradas generales + Tabla de productos (80% ancho) */}
+      <div className="col-span-4 flex flex-col gap-4 h-full overflow-hidden min-h-0">
+        {/* Render general inputs */}
+        {headerContent}
+
+        {/* Card de la tabla de productos */}
+        <div className="flex-grow overflow-hidden flex flex-col relative rounded-md shadow-md p-4 border bg-card before:absolute before:inset-x-0 before:top-0 before:h-[3px] before:bg-sale-accent-strong before:rounded-t-md">
+          {/* Search header (Filtro / Eliminar seleccionados) */}
+          <div className="flex justify-between items-center flex-shrink-0 mb-2">
+            <div className="w-1/3">
+              <CustomSearchInputSuggetions
+                placeholder="Buscar productos"
+                tabIndex={7}
+                inputRef={productSearchRef}
+                onProductAdded={setPendingFocusProductId}
+              />
+            </div>
+            <div className="w-1/4 flex items-center justify-end">
+              <Button
+                type="button"
+                tabIndex={-1}
+                onClick={handleDeleteSelectedProducts}
+                className="bg-secondary text-foreground hover:bg-primary focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue hover:text-secondary transition-colors duration-300 ease-in-out font-bold text-xs"
+                variant={'ghost'}
+              >
+                Eliminar seleccionados
+              </Button>
+            </div>
+          </div>
+
+          {/* Contenedor con Scroll de la tabla de productos */}
+          <div className="mt-2 flex-grow overflow-y-auto border rounded-md min-h-0 bg-background/30 shadow-inner">
+            <Table>
+              <TableHeader className="sticky top-0 bg-card z-10 shadow-sm border-b">
+                <TableRow className="hover:bg-inherit">
+                  <TableHead className="w-[50px]">
+                    <Checkbox
+                      className="focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue"
+                      onClick={handleSelectAll}
+                      checked={
+                        selectProducts.length === productsSelected.length &&
+                        productsSelected.length !== 0
+                          ? true
+                          : selectProducts.length > 0
+                            ? 'indeterminate'
+                            : false
+                      }
+                    />
+                  </TableHead>
+                  <TableHead className="text-[#71717A] py-4 w-[150px]">Código de barra</TableHead>
+                  <TableHead className="text-[#71717A] py-4 w-[180px]">SKU</TableHead>
+                  <TableHead className="text-[#71717A] py-4 w-[200px]">Producto</TableHead>
+                  <TableHead className="w-[200px] text-[#71717A] text-center py-4">Cantidad</TableHead>
+                  <TableHead className="w-[150px] text-[#71717A] text-center py-4">Precio</TableHead>
+                  <TableHead className="w-[150px] text-[#71717A] text-center py-4">Subtotal</TableHead>
+                  <TableHead className="text-[#71717A] text-center py-4">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {productsSelected.map((product) => (
+                  <TableRow className="hover:bg-transparent" key={product.temp_id}>
+                    <TableCell className="w-[50px] py-4">
+                      <Checkbox
+                        className="focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue"
+                        checked={selectProducts.includes(product.temp_id ?? '')}
+                        onClick={() => handleCheckboxChange(product.temp_id ?? '')}
+                      />
+                    </TableCell>
+                    <TableCell className="font-medium py-4 text-xs">{product.barcode || '--'}</TableCell>
+                    <TableCell className="py-4 text-xs">{product.sku}</TableCell>
+                    <TableCell className="font-semibold py-4 text-xs">{product.name}</TableCell>
+                    <TableCell className="text-center py-4 w-[200px]">
+                      <div className="flex justify-center">
+                        <CustomInputNumber
+                          productId={product.temp_id ?? ''}
+                          defaultValue={product.quantity}
+                          inputRef={(node) => {
+                            quantityInputRefs.current[product.temp_id ?? ''] = node;
+                          }}
+                          onQtyChange={(newQty) =>
+                            handleInputChange(product.temp_id ?? '', 'quantity', newQty)
+                          }
+                          onEnter={() => focusPriceInput(product.temp_id ?? '')}
+                        />
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center py-4 w-[150px]">
+                      <div className="flex justify-center">
+                        <Input
+                          tabIndex={-1}
+                          type="number"
+                          min={0}
+                          step={0.01}
+                          className="h-8 w-20 text-center focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none bg-transparent"
+                          value={product.price || ''}
+                          ref={(node) => {
+                            priceInputRefs.current[product.temp_id ?? ''] = node;
+                          }}
+                          onFocus={(e) => e.target.select()}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              if (e.shiftKey) return;
+                              e.preventDefault();
+                              e.stopPropagation();
+                              focusTotalInput(product.temp_id ?? '');
+                            }
+                          }}
+                          onChange={(e) =>
+                            handleInputChange(product.temp_id ?? '', 'price', parseFloat(e.target.value) || 0)
+                          }
+                        />
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center py-4 w-[150px]">
+                      <div className="flex justify-center">
+                        <Input
+                          tabIndex={-1}
+                          type="number"
+                          min={0}
+                          step={0.01}
+                          className="h-8 w-20 text-center focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none bg-transparent"
+                          ref={(node) => {
+                            totalInputRefs.current[product.temp_id ?? ''] = node;
+                          }}
+                          value={product.total}
+                          onFocus={(e) => e.target.select()}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              if (e.shiftKey) return;
+                              e.preventDefault();
+                              e.stopPropagation();
+                              focusProductSearch();
+                            }
+                          }}
+                          onChange={(e) =>
+                            handleInputChange(product.temp_id ?? '', 'total', parseFloat(e.target.value) || 0)
+                          }
+                        />
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center py-4 flex gap-1.5 justify-center items-center">
+                      <Button
+                        type="button"
+                        tabIndex={-1}
+                        onClick={() => handleDeleteAddedProduct(product.temp_id ?? '')}
+                        variant={'ghost'}
+                        className="hover:bg-destructive hover:text-destructive-foreground text-red-500 w-8 h-8 p-0 rounded-full"
+                      >
+                        <Trash strokeWidth="1.5" className="w-5 h-5" />
+                      </Button>
+                      <Button
+                        type="button"
+                        tabIndex={-1}
+                        onClick={() => dispatch(duplicateProduct(product.temp_id ?? ''))}
+                        variant={'ghost'}
+                        className="hover:bg-blue-500 hover:text-white text-bluebg-blue-500 w-8 h-8 p-0 rounded-full"
+                      >
+                        <Copy strokeWidth="1.5" className="w-5 h-5" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Fila de productos seleccionados al final del scrollable area */}
+          <div className="flex-shrink-0 mt-2">
+            <span className="text-xs text-[#71717A] block font-medium">
+              {selectProducts.length} de {productsSelected.length} (seleccionados).
+            </span>
+          </div>
         </div>
       </div>
 
-      <div className="mt-4">
-        <Table>
-          <TableHeader>
-            <TableRow className="hover:bg-inherit">
-              <TableHead className="w-[50px]">
-                <Checkbox
-                  className="focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue"
-                  onClick={handleSelectAll}
-                  checked={
-                    selectProducts.length === productsSelected.length &&
-                    productsSelected.length !== 0
-                      ? true
-                      : selectProducts.length > 0
-                        ? 'indeterminate'
-                        : false
-                  }
-                />
-              </TableHead>
-              <TableHead className="text-[#71717A] py-4 w-[150px]">Código de barra</TableHead>
-              <TableHead className="text-[#71717A] py-4 w-[180px]">SKU</TableHead>
-              <TableHead className="text-[#71717A] py-4 w-[200px]">Producto</TableHead>
-              <TableHead className="w-[200px] text-[#71717A] text-center py-4">Cantidad</TableHead>
-              <TableHead className="w-[150px] text-[#71717A] text-center py-4">Precio</TableHead>
-              <TableHead className="w-[150px] text-[#71717A] text-center py-4">Subtotal</TableHead>
-              <TableHead className="text-[#71717A] text-center py-4">Acciones</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {productsSelected.map((product) => (
-              <TableRow className="hover:bg-transparent" key={product.temp_id}>
-                <TableCell className="py-1">
-                  <Checkbox
-                    className="focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue"
-                    checked={selectProducts.includes(product.temp_id ?? '')}
-                    onCheckedChange={() => handleCheckboxChange(product.temp_id ?? '')}
-                  />
-                </TableCell>
-                <TableCell className="py-1 text-ellipsis">{product.barcode}</TableCell>
-                <TableCell className="py-1">{product.sku}</TableCell>
-                <TableCell className="py-1">{product.name}</TableCell>
-                <TableCell className="text-center py-1">
-                  <CustomInputNumber
-                    productId={product.temp_id ?? ''}
-                    defaultValue={product.quantity}
-                    inputRef={(node) => {
-                      quantityInputRefs.current[product.temp_id ?? ''] = node;
-                    }}
-                    onQtyChange={(newQty) =>
-                      handleInputChange(product.temp_id ?? '', 'quantity', newQty)
-                    }
-                    onEnter={() => focusPriceInput(product.temp_id ?? '')}
-                  />
-                </TableCell>
-                <TableCell className="py-1">
-                  <Input
-                    type="text"
-                    ref={(node) => {
-                      priceInputRefs.current[product.temp_id ?? ''] = node;
-                    }}
-                    className="bg-background shadow-none text-center h-8 focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue"
-                    value={product.price}
-                    onFocus={(e) => e.target.select()}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        if (e.shiftKey) return;
-                        e.preventDefault();
-                        e.stopPropagation();
-                        focusTotalInput(product.temp_id ?? '');
-                      }
-                    }}
-                    onChange={(e) =>
-                      handleInputChange(
-                        product.temp_id ?? '',
-                        'price',
-                        parseFloat(e.target.value) || 0
-                      )
-                    }
-                  />
-                </TableCell>
-                <TableCell className="py-1">
-                  <Input
-                    type="text"
-                    ref={(node) => {
-                      totalInputRefs.current[product.temp_id ?? ''] = node;
-                    }}
-                    className="bg-background shadow-none text-center h-8  focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue"
-                    value={product.total}
-                    onFocus={(e) => e.target.select()}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        if (e.shiftKey) return;
-                        e.preventDefault();
-                        e.stopPropagation();
-                        focusProductSearch();
-                      }
-                    }}
-                    onChange={(e) =>
-                      handleInputChange(
-                        product.temp_id ?? '',
-                        'total',
-                        parseFloat(e.target.value) || 0
-                      )
-                    }
-                  />
-                </TableCell>
-                <TableCell className="text-center py-1">
-                  <Button
-                    type="button"
-                    onClick={() => handleDeleteAddedProduct(product.temp_id ?? '')}
-                    variant={'ghost'}
-                    className="hover:bg-red-500 hover:text-white text-red-500 w-8 h-8 p-0 rounded-full"
-                  >
-                    <Trash strokeWidth="1.5" className="w-5 h-5" />
-                  </Button>
-
-                  {product.quantity > 1 && (
-                    <Button
-                      type="button"
-                      onClick={() => dispatch(duplicateProduct(product.temp_id ?? ''))}
-                      variant={'ghost'}
-                      className="hover:bg-blue-500 hover:text-white text-bluebg-blue-500 w-8 h-8 p-0 rounded-full"
-                    >
-                      <Copy strokeWidth="1.5" className="w-5 h-5" />
-                    </Button>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-
-      <div className="flex justify-between mt-4">
-        <div className="w-4/5">
-          <span className="text-sm text-[#71717A] block">
-            {' '}
-            {selectProducts.length} de {productsSelected.length} (seleccionados).
-          </span>
-        </div>
-
-        <div className="w-2/5 [&_*]:border-none [&_tr]:hover:bg-inherit">
-          <Table>
-            <TableBody>
-              <TableRow>
-                <TableCell className="text-left font-bold w-1/2">Productos Totales </TableCell>
-                <TableCell className="text-right font-bold">{orderSummary.totalQuantity}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell className="text-left w-1/2">Tipo de venta </TableCell>
-                <TableCell className="text-right">
-                  <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-wide bg-sale-accent-soft text-sale-accent-text border border-sale-accent-border">
-                    {sellType === 'credito' ? 'Crédito' : 'Contado'}
-                  </span>
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell className="text-left w-1/2">Subtotal </TableCell>
-                <TableCell className="text-right">
-                  {currencyFormatter({ currency: 'NIO', value: orderSummary.total })}
-                </TableCell>
-              </TableRow>
-              {sellType === SELL_TYPES.CREDITO && (
+      {/* Columna Derecha: Totales y Botones (Fijo/Sticky 20% ancho, 100% alto) */}
+      <div className="col-span-1 bg-card border border-slate-200 dark:border-slate-800 p-5 rounded-lg flex flex-col justify-between h-full overflow-y-auto before:absolute before:inset-x-0 before:top-0 before:h-[3px] before:bg-sale-accent-strong before:rounded-t-md relative shadow-md">
+        <div>
+          <h3 className="text-xs font-black uppercase tracking-wider text-muted-foreground border-b pb-2 mb-4">Resumen de Venta</h3>
+          
+          <div className="[&_*]:border-none [&_tr]:hover:bg-inherit">
+            <Table>
+              <TableBody>
                 <TableRow>
-                  <TableCell className="text-left w-1/2">Abono Incial </TableCell>
+                  <TableCell className="text-left font-bold text-xs">Productos Totales </TableCell>
+                  <TableCell className="text-right font-black text-sm">{orderSummary.totalQuantity}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="text-left text-xs">Tipo de venta </TableCell>
+                  <TableCell className="text-right">
+                    <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wide bg-sale-accent-soft text-sale-accent-text border border-sale-accent-border">
+                      {sellType === 'credito' ? 'Crédito' : 'Contado'}
+                    </span>
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="text-left text-xs">Subtotal </TableCell>
+                  <TableCell className="text-right font-bold text-sm">
+                    {currencyFormatter({ currency: 'NIO', value: orderSummary.total })}
+                  </TableCell>
+                </TableRow>
+                {sellType === SELL_TYPES.CREDITO && (
+                  <TableRow>
+                    <TableCell className="text-left text-xs">Abono Inicial </TableCell>
+                    <TableCell className="text-right">
+                      <Input
+                        min={0}
+                        step={0.01}
+                        type="number"
+                        data-enter-next="#product-search"
+                        className="pr-0 focus:pr-3 h-7 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-none w-2/3 float-right shadow-none text-right focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue font-bold text-sm bg-transparent"
+                        value={orderSummary?.init_payment?.toString() ?? 0}
+                        onChange={handleInitPaymentChange}
+                      />
+                    </TableCell>
+                  </TableRow>
+                )}
+                <TableRow>
+                  <TableCell className="text-left text-xs">
+                    Descuento
+                    <span className="ml-1 text-[10px] text-muted-foreground block">(C$ o %)</span>
+                  </TableCell>
                   <TableCell className="text-right">
                     <Input
                       min={0}
                       step={0.01}
                       type="number"
                       data-enter-next="#product-search"
-                      className="pr-0 focus:pr-3 h-7 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-none w-1/2 float-right shadow-none text-right focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue"
-                      value={orderSummary?.init_payment?.toString() ?? 0}
-                      onChange={handleInitPaymentChange}
+                      className="pr-0 focus:pr-3 h-7 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-none w-2/3 float-right shadow-none text-right focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue font-bold text-sm bg-transparent"
+                      value={discountInput}
+                      onChange={handleDiscountChange}
                     />
+                    {discountError && <p className="text-[10px] text-red-500 mt-1 block">{discountError}</p>}
                   </TableCell>
                 </TableRow>
-              )}
-              <TableRow>
-                <TableCell className="text-left w-1/2">
-                  Descuento
-                  <span className="ml-2 text-sm">(C$ / {discount.percentage} %)</span>
-                </TableCell>
-                <TableCell className="text-right">
-                  <Input
-                    min={0}
-                    step={0.01}
-                    type="number"
-                    data-enter-next="#product-search"
-                    className="pr-0 focus:pr-3 h-7 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-none w-1/2 float-right shadow-none text-right focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue"
-                    value={discountInput}
-                    onChange={handleDiscountChange}
-                  />
-                  {discountError && <p className="text-xs text-red-500 mt-1">{discountError}</p>}
-                </TableCell>
-              </TableRow>
 
-              <TableRow>
-                <TableCell className="text-left w-1/2">
-                  <span className="text-lg font-bold">Total </span>
-                </TableCell>
-                <TableCell className="text-right">
-                  <span className="text-lg font-bold">
-                    {currencyFormatter({ currency: 'NIO', value: orderSummary.grandTotal })}
-                  </span>
-                </TableCell>
-              </TableRow>
-              {/* <TableRow>
-                <TableCell className="text-left w-1/2">
-                  <span className="text-lg font-bold">Saldo pendiente </span>
-                </TableCell>
-                <TableCell className="text-right">
-                  <span className="text-lg font-bold">
-                    {currencyFormatter({ currency: 'NIO', value: orderSummary.grandTotal })}
-                  </span>
-                </TableCell>
-              </TableRow> */}
-            </TableBody>
-          </Table>
+                <TableRow className="border-t-2 border-slate-200 dark:border-slate-800">
+                  <TableCell className="text-left">
+                    <span className="text-base font-black uppercase text-foreground">Total</span>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <span className="text-base font-black text-theme_blue">
+                      {currencyFormatter({ currency: 'NIO', value: orderSummary.grandTotal })}
+                    </span>
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
         </div>
+
+        {/* Botones de acción incrustados desde children */}
+        {children}
       </div>
-    </>
+    </div>
   );
 };
 

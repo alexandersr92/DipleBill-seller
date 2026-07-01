@@ -262,6 +262,111 @@ const buildInvoiceHtml = (data: InvoiceData) => {
     )
     .join('');
 
+  let paymentDetailsHtml = '';
+  if (data.paymentMethodRaw === 'CASH' && data.paymentMetadata) {
+    const paidNio = Number(data.paymentMetadata.paid_nio || 0);
+    const paidUsd = Number(data.paymentMetadata.paid_usd || 0);
+    const rate = Number(data.paymentMetadata.exchange_rate || 36.5);
+    const changeNio = Number(data.paymentMetadata.change_nio || 0);
+
+    let receivedStr = `${data.currencyType}${currencyFormatterWithoutSym(paidNio.toFixed(2), 2)}`;
+    if (paidUsd > 0) {
+      receivedStr += ` + $${paidUsd.toFixed(2)} USD`;
+      if (rate > 0) {
+        receivedStr += ` (Tasa ${rate})`;
+      }
+    }
+
+    paymentDetailsHtml = `
+      <tr class="summary-row" style="border-top: 1px dotted #000; font-weight: bold;">
+        <td class="totals-label">Recibido:</td>
+        <td class="totals-value">${receivedStr}</td>
+      </tr>
+      <tr class="summary-row">
+        <td class="totals-label">Cambio:</td>
+        <td class="totals-value">${data.currencyType}${currencyFormatterWithoutSym(changeNio.toFixed(2), 2)}</td>
+      </tr>
+    `;
+  } else if ((data.paymentMethodRaw === 'TRANSFER' || data.paymentMethodRaw === 'BACS') && data.paymentMetadata) {
+    const bank = data.paymentMetadata.bank || '';
+    const ref = data.paymentMetadata.reference || '';
+    paymentDetailsHtml = `
+      <tr class="summary-row" style="border-top: 1px dotted #000; font-weight: bold;">
+        <td class="totals-label">Banco:</td>
+        <td class="totals-value">${escapeHtml(bank)}</td>
+      </tr>
+      ${ref ? `
+      <tr class="summary-row">
+        <td class="totals-label">Referencia:</td>
+        <td class="totals-value">${escapeHtml(ref)}</td>
+      </tr>
+      ` : ''}
+    `;
+  } else if (data.paymentMethodRaw === 'CARD' && data.paymentMetadata) {
+    const brand = data.paymentMetadata.card_brand || 'Tarjeta';
+    const lastFour = data.paymentMetadata.card_last_four || '';
+    const ref = data.paymentMetadata.reference || '';
+    paymentDetailsHtml = `
+      <tr class="summary-row" style="border-top: 1px dotted #000; font-weight: bold;">
+        <td class="totals-label">Tarjeta:</td>
+        <td class="totals-value">${escapeHtml(brand)}${lastFour ? ` (*${lastFour})` : ''}</td>
+      </tr>
+      ${ref ? `
+      <tr class="summary-row">
+        <td class="totals-label">Referencia:</td>
+        <td class="totals-value">${escapeHtml(ref)}</td>
+      </tr>
+      ` : ''}
+    `;
+  } else if (data.paymentMethodRaw === 'MULTIPLE' && data.paymentMetadata && Array.isArray(data.paymentMetadata.payments)) {
+    let rowsHtml = `<tr class="summary-row" style="border-top: 1px dotted #000; font-weight: bold;"><td colspan="2" class="totals-label" style="text-align: left;">Desglose de Pago:</td></tr>`;
+    data.paymentMetadata.payments.forEach((p: any) => {
+      const amt = Number(p.amount || 0);
+      if (p.method === 'CASH') {
+        const pNio = Number(p.paid_nio || 0);
+        const pUsd = Number(p.paid_usd || 0);
+        const cNio = Number(p.change_nio || 0);
+        let recStr = `${data.currencyType}${currencyFormatterWithoutSym(pNio.toFixed(2), 2)}`;
+        if (pUsd > 0) recStr += ` + $${pUsd.toFixed(2)} USD`;
+        rowsHtml += `
+          <tr class="summary-row">
+            <td class="totals-label" style="padding-left: 2mm;">Efectivo:</td>
+            <td class="totals-value">${data.currencyType}${currencyFormatterWithoutSym(amt.toFixed(2), 2)}</td>
+          </tr>
+          <tr class="summary-row" style="font-size: 11px; opacity: 0.85;">
+            <td class="totals-label" style="padding-left: 4mm;">Recibido:</td>
+            <td class="totals-value">${recStr}</td>
+          </tr>
+          <tr class="summary-row" style="font-size: 11px; opacity: 0.85;">
+            <td class="totals-label" style="padding-left: 4mm;">Cambio:</td>
+            <td class="totals-value">${data.currencyType}${currencyFormatterWithoutSym(cNio.toFixed(2), 2)}</td>
+          </tr>
+        `;
+      } else if (p.method === 'TRANSFER') {
+        rowsHtml += `
+          <tr class="summary-row">
+            <td class="totals-label" style="padding-left: 2mm;">Transf. (${escapeHtml(p.bank || 'Banco')}):</td>
+            <td class="totals-value">${data.currencyType}${currencyFormatterWithoutSym(amt.toFixed(2), 2)}</td>
+          </tr>
+          ${p.reference ? `
+          <tr class="summary-row" style="font-size: 11px; opacity: 0.85;">
+            <td class="totals-label" style="padding-left: 4mm;">Ref:</td>
+            <td class="totals-value">${escapeHtml(p.reference)}</td>
+          </tr>
+          ` : ''}
+        `;
+      } else if (p.method === 'CARD') {
+        rowsHtml += `
+          <tr class="summary-row">
+            <td class="totals-label" style="padding-left: 2mm;">Tarj. (${escapeHtml(p.card_brand || 'Tarj')}${p.card_last_four ? ` *${p.card_last_four}` : ''}):</td>
+            <td class="totals-value">${data.currencyType}${currencyFormatterWithoutSym(amt.toFixed(2), 2)}</td>
+          </tr>
+        `;
+      }
+    });
+    paymentDetailsHtml = rowsHtml;
+  }
+
   return `<!doctype html>
   <html>
     <head>
@@ -466,6 +571,13 @@ const buildInvoiceHtml = (data: InvoiceData) => {
             <td class="meta-label-wrap" colspan="2">Cliente: ${escapeHtml(data.clientName)}</td>
           </tr>
           ${
+            data.clientCedulaRuc
+              ? `<tr>
+            <td class="meta-label-wrap" colspan="2">Cédula/RUC: ${escapeHtml(data.clientCedulaRuc)}</td>
+          </tr>`
+              : ''
+          }
+          ${
             data.sellerName
               ? `<tr>
             <td class="meta-label-wrap" colspan="2">Vendedor: ${escapeHtml(data.sellerName)}</td>
@@ -532,6 +644,7 @@ const buildInvoiceHtml = (data: InvoiceData) => {
             <td class="totals-label">Total articulos</td>
             <td class="totals-value">${data.totalItems}</td>
           </tr>
+          ${paymentDetailsHtml}
         </table>
 
         ${data.printNote ? `<div class="note">${escapeHtml(data.printNote)}</div>` : ''}
@@ -692,14 +805,18 @@ interface InvoiceItem {
 export interface InvoiceData {
   companyImage: string;
   companyName: string;
+  companyRuc?: string;
   companyAddress: string;
   companyTel: string;
   invoiceType: 'Crédito' | 'Contado' | string;
   invoiceNumber: string;
   invoiceDate: string;
   paymentMethod?: string;
+  paymentMethodRaw?: string;
+  paymentMetadata?: any;
   currencyType: string;
   clientName: string;
+  clientCedulaRuc?: string;
   sellerName?: string;
   items: InvoiceItem[];
   totalItems: number;

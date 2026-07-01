@@ -203,6 +203,7 @@ export interface IInvoiceClient {
   id?: string;
   organization_id: string;
   name: string;
+  cedula_ruc?: string | null;
   email: string;
   phone: string;
   address: string;
@@ -225,6 +226,7 @@ export interface ISingleInvoice extends IInvoiceBase {
   payment_metadata?: any;
   seller_id?: string | null;
   seller?: string | null;
+  client_cedula_ruc?: string | null;
   invoice_details: {
     id: string;
     product_id: string;

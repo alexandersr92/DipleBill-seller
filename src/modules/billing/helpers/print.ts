@@ -33,6 +33,10 @@ export const invoiceActions = async ({ settings, invoice, action }: IInvoiceActi
       if (invoice.payment_metadata?.paid_usd) {
         paymentMethod += ` ($${invoice.payment_metadata.paid_usd} USD)`;
       }
+    } else if (invoice.method === 'TRANSFER' || invoice.method === 'BACS') {
+      paymentMethod = `Transf. ${invoice.payment_metadata?.bank || ''}`;
+    } else if (invoice.method === 'CARD') {
+      paymentMethod = `Tarjeta ${invoice.payment_metadata?.card_brand || ''}`;
     } else if (invoice.method === 'MULTIPLE') {
       const parts = (invoice.payment_metadata?.payments || []).map((p: any) => {
         if (p.method === 'CASH') {
@@ -87,14 +91,18 @@ export const invoiceActions = async ({ settings, invoice, action }: IInvoiceActi
   const invoiceGenerate: InvoiceData = {
     companyImage: (companyImage as string) ?? '',
     companyName: settings.print_header ?? '',
+    companyRuc: settings.ruc ?? '',
     companyAddress: settings.address ?? '',
     companyTel: settings.phone ?? '',
     invoiceNumber: invoice.invoice_number,
     invoiceDate: invoice.invoice_date ?? '',
     paymentMethod,
+    paymentMethodRaw: invoice.method ?? undefined,
+    paymentMetadata: invoice.payment_metadata,
     currencyType: settings.store_currency,
     invoiceType: invoice.invoice_type ?? 'Contado',
     clientName: invoice.client_name ?? '',
+    clientCedulaRuc: invoice.client_cedula_ruc ?? (invoice as any).client?.cedula_ruc ?? undefined,
     sellerName: invoice.seller ?? '',
     items: products ?? [],
     totalItems: invoice.total_items ?? 0,

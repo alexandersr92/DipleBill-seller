@@ -7,6 +7,30 @@ import { CheckClientModal } from '../components/CheckClientModal';
 import { checkSimilarity, isGenericClientName } from '@/helpers/stringSimilarity';
 import { useEffect, useRef, useState } from 'react';
 import { Input } from '@/components/ui/input';
+import { Store, User, ChevronsUpDown, PaintRoller, Sun, Moon, Laptop2, LogOut } from 'lucide-react';
+import { fetchCurrentStore } from '@/modules/stores/slices/storeThunks';
+import { performLogout } from '@/modules/auth/services/authService';
+import { useTheme } from '@/components/theme-provider';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuPortal,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger
+} from '@/components/ui/AppDropdownMenu';
 
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { Button } from '@/components/ui/button';
@@ -76,8 +100,33 @@ const Billing = () => {
   const { toast } = useToast();
 
   const currentUser = useAppSelector((state) => state.userSlice);
+  const { store, stores } = useAppSelector((state) => state.storeSlice);
+  const { setTheme } = useTheme();
+
+  const handleStoreChange = (newStoreId: string) => {
+    localStorage.setItem('currentStoreId', newStoreId);
+    dispatch(fetchCurrentStore(newStoreId));
+    
+    localStorage.removeItem('seller_id');
+    localStorage.removeItem('seller_name');
+    localStorage.removeItem('seller_code');
+    dispatch(sellerLogout());
+  };
+
+  const handleSellerLogout = () => {
+    localStorage.removeItem('seller_id');
+    localStorage.removeItem('seller_name');
+    localStorage.removeItem('seller_code');
+    dispatch(sellerLogout());
+  };
+
+  const handleFullLogout = () => {
+    localStorage.clear();
+    dispatch(performLogout());
+  };
+
   const storeId =
-    useAppSelector((state) => state.storeSlice.store?.id) ||
+    store?.id ||
     localStorage.getItem('currentStoreId') ||
     '';
   const invoiceCreated = useAppSelector((state) => state.billingSlice.invoice);
@@ -554,79 +603,190 @@ const Billing = () => {
   }, [storeId, dispatch]);
 
   return (
-    <div className="relative">
+    <div className="h-[calc(100vh-var(--bottom-nav-height))] flex flex-col overflow-hidden w-full select-none bg-background">
+      {/* Barra de Navegación Local para Venta */}
+      <header className="flex-shrink-0 flex h-14 w-full items-center justify-between border-b bg-card px-6 shadow-sm z-10">
+        {/* Lado Izquierdo: Sucursal */}
+        <div className="flex items-center gap-2 max-w-[50%]">
+          {stores.length > 1 ? (
+            <div className="flex items-center gap-2">
+              <Store className="h-5 w-5 text-primary shrink-0" />
+              <Select value={store?.id || ''} onValueChange={handleStoreChange}>
+                <SelectTrigger className="h-9 w-[180px] bg-transparent border-input focus:ring-1 focus:ring-ring text-sm font-medium">
+                  <SelectValue placeholder="Seleccionar Sucursal" />
+                </SelectTrigger>
+                <SelectContent>
+                  {stores.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Store className="h-5 w-5" />
+              </div>
+              <div className="grid text-left leading-tight">
+                <span className="font-semibold text-sm truncate">{store?.name || 'Sucursal'}</span>
+                <span className="text-[11px] text-muted-foreground truncate max-w-[200px] md:max-w-xs">
+                  {store?.address || 'Punto de Venta'}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Lado Central: Titulo */}
+        <div className="hidden sm:flex items-center gap-2">
+          <span className="text-sm font-black uppercase tracking-wider text-theme_blue">Facturación POS</span>
+        </div>
+
+        {/* Lado Derecho: Usuario / Dropdown */}
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex h-10 gap-2 px-2 hover:bg-accent hover:text-accent-foreground select-none rounded-lg"
+              >
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <User className="h-4 w-4" />
+                </div>
+                <div className="hidden md:grid text-left text-xs leading-none">
+                  <span className="font-medium truncate max-w-[100px]">{currentUser.sellerName || 'Vendedor'}</span>
+                  <span className="text-[10px] text-muted-foreground truncate">
+                    {currentUser.sellerCode ? `Cód: ${currentUser.sellerCode}` : ''}
+                  </span>
+                </div>
+                <ChevronsUpDown className="h-3 w-3 text-muted-foreground shrink-0" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56 mt-1" align="end" sideOffset={4}>
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-semibold leading-none">{currentUser.sellerName || 'Vendedor'}</p>
+                  <p className="text-xs leading-none text-muted-foreground">{currentUser.email}</p>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup>
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger className="cursor-pointer">
+                    <PaintRoller className="mr-2 h-4 w-4" />
+                    <span>Tema</span>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuPortal>
+                    <DropdownMenuSubContent>
+                      <DropdownMenuItem className="cursor-pointer" onClick={() => setTheme('dark')}>
+                        <Moon className="mr-2 h-4 w-4" />
+                        <span>Oscuro</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="cursor-pointer" onClick={() => setTheme('light')}>
+                        <Sun className="mr-2 h-4 w-4" />
+                        <span>Claro</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="cursor-pointer" onClick={() => setTheme('system')}>
+                        <Laptop2 className="mr-2 h-4 w-4" />
+                        <span>Sistema</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuPortal>
+                </DropdownMenuSub>
+              </DropdownMenuGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleSellerLogout} className="cursor-pointer text-amber-500 focus:text-amber-500">
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Cambiar Vendedor</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleFullLogout} className="cursor-pointer text-destructive focus:text-destructive">
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Cerrar Sesión Admin</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </header>
+
+      {/* Formulario Principal de Facturación */}
       <form
         ref={formRef}
+        className="flex-grow flex flex-col gap-4 overflow-hidden p-4 pb-10"
         data-sell-type={sellType}
         onKeyDown={(e) => handleKeyDown({ event: e, formRef, buttonRef })}
         onSubmit={handleSubmit(onSubmit)}
       >
-        <section className="relative rounded-md shadow-md p-4 border mb-4 before:absolute before:inset-x-0 before:top-0 before:h-[3px] before:bg-sale-accent-strong before:rounded-t-md">
-          <div className="w-full md:w-2/5 text-sm">
-            <h1 className="text-2xl font-bold">Nueva factura</h1>
-            <p className="mt-1 text-muted-foreground">
-              Complete los detalles básicos de la transacción.
-            </p>
-          </div>
+        <ProductTable
+          sellType={sellType}
+          productSearchRef={productSearchRef}
+          headerContent={
+            <section className="flex-shrink-0 relative rounded-md shadow-md p-4 border mb-0 before:absolute before:inset-x-0 before:top-0 before:h-[3px] before:bg-sale-accent-strong before:rounded-t-md bg-card">
+              <div className="w-full md:w-2/5 text-sm">
+                <h1 className="text-2xl font-bold">Nueva factura</h1>
+                <p className="mt-1 text-muted-foreground">
+                  Complete los detalles básicos de la transacción.
+                </p>
+              </div>
 
-          <div className="grid grid-cols-3 gap-6 mt-6 border-t pt-4">
-            <div className="w-full">
-              <Label htmlFor="client_id">Agregar Cliente *</Label>
+              <div className="grid grid-cols-3 gap-6 mt-6 border-t pt-4">
+                <div className="w-full">
+                  <Label htmlFor="client_id">Agregar Cliente *</Label>
 
-              <Controller
-                control={control}
-                name="client_id"
-                render={({ field }) => (
-                  <SearchSelect
-                    id="client_id"
-                    triggerRef={clientTriggerRef}
-                    items={clients}
-                    selectedItem={getValues('client_name')!}
-                    onSelect={(client) => {
-                      setValue('client_id', client.id);
-                      setValue('client_name', client.name);
-                      setIsClientSelected(true);
-                    }}
-                    onAfterSelect={() => focusElement(productSearchRef.current)}
-                    placeholder="Seleccionar Cliente"
-                    searchPlaceholder="Buscar Cliente"
-                    field={field}
-                    getCallback={handleSearchClients}
-                    addRecord={addNewClient}
+                  <Controller
+                    control={control}
+                    name="client_id"
+                    render={({ field }) => (
+                      <SearchSelect
+                        id="client_id"
+                        triggerRef={clientTriggerRef}
+                        items={clients}
+                        selectedItem={getValues('client_name')!}
+                        onSelect={(client) => {
+                          setValue('client_id', client.id);
+                          setValue('client_name', client.name);
+                          setIsClientSelected(true);
+                        }}
+                        onAfterSelect={() => focusElement(productSearchRef.current)}
+                        placeholder="Seleccionar Cliente"
+                        searchPlaceholder="Buscar Cliente"
+                        field={field}
+                        getCallback={handleSearchClients}
+                        addRecord={addNewClient}
+                      />
+                    )}
                   />
-                )}
-              />
-            </div>
+                </div>
 
-            <div className="w-full">
-              <Label htmlFor="seller">Vendedor</Label>
-              <Input id="seller" readOnly disabled className="h-10 bg-muted/50 font-medium" value={currentUser.sellerName || currentUser.email || ''} />
-              <Input type="hidden" {...register('seller_id')} value={currentUser.id || ''} />
-            </div>
+                <div className="w-full">
+                  <Label htmlFor="seller">Vendedor</Label>
+                  <Input id="seller" readOnly disabled className="h-10 bg-muted/50 font-medium" value={currentUser.sellerName || currentUser.email || ''} />
+                  <Input type="hidden" {...register('seller_id')} value={currentUser.id || ''} />
+                </div>
 
-            <div className="w-full flex flex-col">
-              <Label htmlFor="invoice_note" className="text-xs font-semibold text-muted-foreground mb-1.5">
-                Detalles de la factura (Notas)
-              </Label>
-              <Textarea
-                id="invoice_note"
-                tabIndex={4}
-                placeholder="Ej. Entregar en empaque de regalo, observaciones del cliente, etc."
-                className="h-10 min-h-[40px] max-h-[100px] py-2 px-3 text-sm rounded-md border border-input bg-background shadow-sm transition-all duration-200 placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-theme_blue disabled:cursor-not-allowed disabled:opacity-50 resize-none"
-                {...invoiceNoteField}
-                ref={(node) => {
-                  invoiceNoteField.ref(node);
-                  invoiceNoteRef.current = node;
-                }}
-              />
-            </div>
-          </div>
-        </section>
-
-        <section className="relative rounded-md shadow-md p-4 border before:absolute before:inset-x-0 before:top-0 before:h-[3px] before:bg-sale-accent-strong before:rounded-t-md">
-          <ProductTable sellType={sellType} productSearchRef={productSearchRef} />
-
-          <div className="border-t pt-4 w-full flex justify-end gap-3 items-center">
+                <div className="w-full flex flex-col">
+                  <Label htmlFor="invoice_note" className="text-xs font-semibold text-muted-foreground mb-1.5">
+                    Detalles de la factura (Notas)
+                  </Label>
+                  <Textarea
+                    id="invoice_note"
+                    tabIndex={4}
+                    placeholder="Ej. Entregar en empaque de regalo, observaciones del cliente, etc."
+                    className="h-10 min-h-[40px] max-h-[100px] py-2 px-3 text-sm rounded-md border border-input bg-background shadow-sm transition-all duration-200 placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-theme_blue disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+                    {...invoiceNoteField}
+                    ref={(node) => {
+                      invoiceNoteField.ref(node);
+                      invoiceNoteRef.current = node;
+                    }}
+                  />
+                </div>
+              </div>
+            </section>
+          }
+        >
+          <div className="border-t pt-4 w-full flex flex-col gap-2.5 items-center">
             <TooltipProvider delayDuration={300}>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -635,7 +795,7 @@ const Billing = () => {
                     tabIndex={-1}
                     ref={buttonRef}
                     disabled={isSubmittingSale}
-                    className="bg-sale-accent text-sale-accent-foreground hover:bg-sale-accent/90 gap-2"
+                    className="w-full bg-sale-accent text-sale-accent-foreground hover:bg-sale-accent/90 gap-2 h-11 text-base font-black shadow-md border border-slate-350/10 dark:border-slate-800"
                   >
                     Realizar venta
                     <kbd className="hidden sm:inline-flex items-center rounded border border-sale-accent-foreground/30 bg-sale-accent-foreground/10 px-1.5 py-0.5 text-[10px] font-medium leading-none">
@@ -643,7 +803,7 @@ const Billing = () => {
                     </kbd>
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent side="top">Atajo: Shift + Enter</TooltipContent>
+                <TooltipContent side="top">Atajo: Shift + Enter / Cobrar</TooltipContent>
               </Tooltip>
             </TooltipProvider>
 
@@ -652,12 +812,12 @@ const Billing = () => {
               type="button"
               tabIndex={-1}
               variant={'outline'}
-              className="hover:bg-secondary hover:text-primary hover:border"
+              className="w-full hover:bg-secondary hover:text-primary hover:border h-10 text-sm font-bold border-2"
             >
-              Cancelar
+              Cancelar factura
             </Button>
           </div>
-        </section>
+        </ProductTable>
       </form>
 
       <ConfirmSaleModal
