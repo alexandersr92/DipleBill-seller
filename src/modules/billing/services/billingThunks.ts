@@ -1,6 +1,6 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { cancelInvoiceById, createBillingApi, getInvoices } from './billingApi';
-import { IGetInvoiceResponse, IGetSingleInvoiceResponse, IInvoices } from '../types';
+import { cancelInvoiceById, createBillingApi, getInvoices, replaceInvoiceApi } from './billingApi';
+import { IGetInvoiceResponse, IGetSingleInvoiceResponse, IInvoices, IReplaceInvoiceResponse, IInvoice } from '../types';
 import { IMetaRequestParams } from '@/modules/types';
 
 export const createBilling = createAsyncThunk<IGetSingleInvoiceResponse, IInvoices>(
@@ -43,3 +43,17 @@ export const cancelInvoice = createAsyncThunk<void, string>(
     }
   }
 );
+
+export const replaceInvoice = createAsyncThunk<IReplaceInvoiceResponse, { id: string; billing: IInvoice }>(
+  'billing/replaceInvoice',
+  async ({ id, billing }, { rejectWithValue }) => {
+    try {
+      const data = await replaceInvoiceApi(id, billing);
+      return data;
+    } catch (error) {
+      console.error('Error replacing invoice:', error);
+      return rejectWithValue(error);
+    }
+  }
+);
+

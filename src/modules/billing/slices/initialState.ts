@@ -31,7 +31,10 @@ export const initialState: IBillingProductsProductsState = {
     totalPages: 1,
     totalItems: 0,
     itemsPerPage: 10
-  }
+  },
+  isEditing: false,
+  editingInvoiceId: null,
+  editingInvoiceNumber: null
 };
 
 // export const recalculateInvoiceTotals = (state: IBillingProductsProductsState) => {

@@ -41,10 +41,10 @@ import { Controller, SubmitHandler, useForm } from 'react-hook-form';
 import { InferType } from 'yup';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { createBilling } from '../services/billingThunks';
+import { createBilling, replaceInvoice } from '../services/billingThunks';
 import { IInvoiceProduct, ISingleInvoice, SELL_TYPES, PAYMENT_METHODS } from '../types';
 import { useToast } from '@/components/hooks/use-toast';
-import { clearInvoice, resetProductsInvoice, updateInvoice, addProductsToBilling } from '../slices/billingSlice';
+import { clearInvoice, resetProductsInvoice, updateInvoice, addProductsToBilling, cancelEditingInvoice } from '../slices/billingSlice';
 import { sellerLogout } from '@/modules/auth/slices/userSlice';
 import { addClientFromInvoice, getClients } from '@/modules/clients/services/clientsThunks';
 import { handleKeyDown } from '../helpers';
@@ -132,6 +132,9 @@ const Billing = () => {
   const invoiceCreated = useAppSelector((state) => state.billingSlice.invoice);
   const clients = useAppSelector((state) => state.clientSlice.clients);
   const productsSelected = useAppSelector((state) => state.billingSlice.productsSelected);
+  const isEditing = useAppSelector((state) => state.billingSlice.isEditing);
+  const editingInvoiceId = useAppSelector((state) => state.billingSlice.editingInvoiceId);
+  const editingInvoiceNumber = useAppSelector((state) => state.billingSlice.editingInvoiceNumber);
 
   const [sellType, setSellType] = useState<string>('contado');
   const [isClientSelected, setIsClientSelected] = useState<boolean>(false);
@@ -190,6 +193,9 @@ const Billing = () => {
 
   const handleCancelInvoice = () => {
     clearForm();
+    if (isEditing) {
+      dispatch(cancelEditingInvoice());
+    }
     handlePostSaleLogout();
   };
 
@@ -219,6 +225,29 @@ const Billing = () => {
     resolver: yupResolver(billingSchema)
   });
   const invoiceNoteField = register('invoice_note');
+
+  useEffect(() => {
+    if (isEditing && invoiceCreated) {
+      setValue('client_id', invoiceCreated.client_id, { shouldValidate: true });
+      setValue('client_name', invoiceCreated.client_name, { shouldValidate: true });
+      setValue('invoice_note', invoiceCreated.invoice_note, { shouldValidate: true });
+      setValue('isCredit', invoiceCreated.isCredit, { shouldValidate: true });
+      setValue('payment_method', invoiceCreated.payment_method, { shouldValidate: true });
+      setValue('invoice_date', invoiceCreated.invoice_date, { shouldValidate: true });
+
+      if (invoiceCreated.client_id) {
+        setIsClientSelected(true);
+      } else {
+        setIsClientSelected(false);
+      }
+
+      if (invoiceCreated.isCredit) {
+        setSellType(SELL_TYPES.CREDITO);
+      } else {
+        setSellType(SELL_TYPES.CONTADO);
+      }
+    }
+  }, [isEditing, editingInvoiceId, setValue]);
 
   useEffect(() => {
     const subscription = watch((values) => {
@@ -293,6 +322,10 @@ const Billing = () => {
     const dateExp = values.invoice_expiration ? new Date(values.invoice_expiration) : new Date();
     
     const cashSessionId = localStorage.getItem('active_cash_session_id') || null;
+
+    const finalNote = isEditing
+      ? `Factura editada que reemplaza a la factura N° ${editingInvoiceNumber}. ${values.invoice_note || ''}`.trim()
+      : values.invoice_note || '';
     
     const invoice: any = {
       ...invoiceCreated,
@@ -305,6 +338,7 @@ const Billing = () => {
       payment_date: format(dateExp, 'yyyy-MM-dd'),
       seller_id: currentUser.sellerId,
       cash_session_id: cashSessionId,
+      invoice_note: finalNote,
       products: productsSelected.map((product) => ({
         ...product,
         inventory_id: product.inventory_id ?? ''
@@ -312,16 +346,32 @@ const Billing = () => {
     };
 
     try {
-      const response = await dispatch(createBilling(invoice as any)).unwrap();
-      const orderedInvoice = buildInvoiceDetailsFromSelectedProducts(
-        response.data,
-        productsSelected
-      );
+      let orderedInvoice;
+      if (isEditing) {
+        const response = await dispatch(replaceInvoice({ id: editingInvoiceId!, billing: invoice as any })).unwrap();
+        orderedInvoice = buildInvoiceDetailsFromSelectedProducts(
+          response.invoice.data,
+          productsSelected
+        );
 
-      toast({
-        title: 'Venta realizada exitosamente!',
-        variant: 'success'
-      });
+        toast({
+          title: 'Factura editada y reemplazada exitosamente!',
+          variant: 'success'
+        });
+
+        dispatch(cancelEditingInvoice());
+      } else {
+        const response = await dispatch(createBilling(invoice as any)).unwrap();
+        orderedInvoice = buildInvoiceDetailsFromSelectedProducts(
+          response.data,
+          productsSelected
+        );
+
+        toast({
+          title: 'Venta realizada exitosamente!',
+          variant: 'success'
+        });
+      }
 
       clearForm();
       setIsOpenDialogAfterInvoice(true);
@@ -339,7 +389,7 @@ const Billing = () => {
         }
       } else {
         toast({
-          title: 'Hubo un error al realizar la venta!',
+          title: isEditing ? 'Hubo un error al reemplazar la factura!' : 'Hubo un error al realizar la venta!',
           variant: 'error'
         });
       }
@@ -716,6 +766,7 @@ const Billing = () => {
         ref={formRef}
         className="flex-grow flex flex-col gap-4 overflow-hidden p-4 pb-10"
         data-sell-type={sellType}
+        data-is-editing={isEditing}
         onKeyDown={(e) => handleKeyDown({ event: e, formRef, buttonRef })}
         onSubmit={handleSubmit(onSubmit)}
       >
@@ -724,11 +775,36 @@ const Billing = () => {
           productSearchRef={productSearchRef}
           headerContent={
             <section className="flex-shrink-0 relative rounded-md shadow-md p-4 border mb-0 before:absolute before:inset-x-0 before:top-0 before:h-[3px] before:bg-sale-accent-strong before:rounded-t-md bg-card">
-              <div className="w-full md:w-2/5 text-sm">
-                <h1 className="text-2xl font-bold">Nueva factura</h1>
-                <p className="mt-1 text-muted-foreground">
-                  Complete los detalles básicos de la transacción.
-                </p>
+              <div className="flex justify-between items-start">
+                <div className="w-full md:w-3/5 text-sm">
+                  <h1 className="text-2xl font-bold">
+                    {isEditing ? `Editando Factura #${editingInvoiceNumber}` : 'Nueva factura'}
+                  </h1>
+                  <p className="mt-1 text-muted-foreground">
+                    {isEditing 
+                      ? 'Modifique los datos y guarde para anular la factura anterior y emitir una nueva.' 
+                      : 'Complete los detalles básicos de la transacción.'}
+                  </p>
+                </div>
+                {isEditing && (
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    className="border-sale-accent text-sale-accent hover:bg-sale-accent-soft"
+                    onClick={() => {
+                      dispatch(cancelEditingInvoice());
+                      clearForm();
+                      toast({
+                        title: 'Edición cancelada',
+                        description: 'Se ha regresado al modo de nueva factura.',
+                        variant: 'default'
+                      });
+                    }}
+                  >
+                    Cancelar Edición
+                  </Button>
+                )}
               </div>
 
               <div className="grid grid-cols-3 gap-6 mt-6 border-t pt-4">
@@ -797,7 +873,7 @@ const Billing = () => {
                     disabled={isSubmittingSale}
                     className="w-full bg-sale-accent text-sale-accent-foreground hover:bg-sale-accent/90 gap-2 h-11 text-base font-black shadow-md border border-slate-350/10 dark:border-slate-800"
                   >
-                    Realizar venta
+                    {isEditing ? 'Guardar y reemplazar ticket' : 'Realizar venta'}
                     <kbd className="hidden sm:inline-flex items-center rounded border border-sale-accent-foreground/30 bg-sale-accent-foreground/10 px-1.5 py-0.5 text-[10px] font-medium leading-none">
                       ⇧ Enter
                     </kbd>

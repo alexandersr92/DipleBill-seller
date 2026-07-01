@@ -78,6 +78,14 @@ module.exports = {
           soft: 'hsl(var(--sale-accent-soft))',
           text: 'hsl(var(--sale-accent-text))',
           border: 'hsl(var(--sale-accent-border))'
+        },
+        'edit-accent': {
+          DEFAULT: 'hsl(var(--edit-accent))',
+          foreground: 'hsl(var(--edit-accent-foreground))',
+          strong: 'hsl(var(--edit-accent-strong))',
+          soft: 'hsl(var(--edit-accent-soft))',
+          text: 'hsl(var(--edit-accent-text))',
+          border: 'hsl(var(--edit-accent-border))'
         }
       },
       borderRadius: {

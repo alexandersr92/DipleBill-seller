@@ -72,6 +72,11 @@ export const cancelInvoiceById = async (id: string) => {
   return response.data;
 };
 
+export const replaceInvoiceApi = async (id: string, billing: IInvoice) => {
+  const response = await axiosInstance.post(`/v1/invoices/${id}/replace`, billing);
+  return response.data;
+};
+
 export const getStoreLogoAsBase64 = async (store_id: string) => {
   const response = await axiosInstance.get(`/v1/stores/${store_id}/printLogo`);
   if (response.data) {

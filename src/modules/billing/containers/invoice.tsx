@@ -18,6 +18,8 @@ import {
 import { currencyFormatter } from '../helpers';
 import InvoiceSkeleton from '../components/InvoiceSkeleton';
 import { useToast } from '@/components/hooks/use-toast';
+import { useAppDispatch } from '@/store/hooks';
+import { startEditingInvoice } from '../slices/billingSlice';
 import { ActionButtons } from '../components/ActionButtons';
 import OwnerPasswordConfirmDialog from '@/modules/auth/components/OwnerPasswordConfirmDialog';
 
@@ -28,6 +30,7 @@ const Invoice = () => {
 
   const navigate = useNavigate();
   const { toast } = useToast();
+  const dispatch = useAppDispatch();
   const [isConfirmOpen, setIsConfirmOpen] = useState<boolean>(false);
 
   const get = async () => {
@@ -301,6 +304,23 @@ const Invoice = () => {
 
           <div className="pt-4 w-full flex justify-end gap-3 items-center">
             {invoice && <ActionButtons invoice={invoice} />}
+            {invoice && invoice.invoice_status !== 'canceled' && (
+              <Button
+                onClick={() => {
+                  dispatch(startEditingInvoice(invoice));
+                  navigate('/venta');
+                  toast({
+                    title: 'Modo edición activado',
+                    description: `Modificando factura N° ${invoice.invoice_number}`,
+                    variant: 'success'
+                  });
+                }}
+                tabIndex={-1}
+                className="bg-edit-accent hover:bg-edit-accent-strong text-edit-accent-foreground border border-transparent"
+              >
+                Editar factura
+              </Button>
+            )}
             <Button
               disabled={invoice?.invoice_status === 'canceled'}
               onClick={() => setIsConfirmOpen(true)}

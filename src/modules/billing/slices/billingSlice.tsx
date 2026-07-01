@@ -1,10 +1,12 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { createBilling, getAllInvoices } from '../services/billingThunks';
+import { createBilling, getAllInvoices, replaceInvoice } from '../services/billingThunks';
 import {
   IGetInvoiceResponse,
   IGetSingleInvoiceResponse,
   IInvoice,
-  IInvoiceProduct
+  IInvoiceProduct,
+  ISingleInvoice,
+  IReplaceInvoiceResponse
 } from '../types';
 import { initialState } from './initialState';
 
@@ -157,6 +159,79 @@ export const billingSlice = createSlice({
 
       state.isLoading = false;
       state.status = 'fulfilled';
+    },
+
+    startEditingInvoice: (state, action: PayloadAction<ISingleInvoice>) => {
+      const invoice = action.payload;
+      state.isEditing = true;
+      state.editingInvoiceId = invoice.id || null;
+      state.editingInvoiceNumber = invoice.invoice_number;
+
+      // Ordenar por sort_order para mantener el orden original
+      const details = [...invoice.invoice_details].sort(
+        (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)
+      );
+
+      // Cargar productos seleccionados
+      state.productsSelected = details.map((detail) => {
+        const price = parseFloat(detail.price?.toString() || '0');
+        const quantity = parseFloat(detail.quantity?.toString() || '0');
+        const total = parseFloat(detail.total?.toString() || '0');
+        const discount = parseFloat(detail.discount?.toString() || '0');
+        const grand_total = parseFloat(
+          detail.grand_total?.toString() || detail.total?.toString() || '0'
+        );
+
+        return {
+          id: detail.product_id,
+          product_id: detail.product_id,
+          sku: detail.sku,
+          barcode: detail.barcode || '',
+          name: detail.product_name,
+          image: '',
+          cost: 0,
+          price: price,
+          quantity: quantity,
+          min_stock: 0,
+          unit_of_measure: '',
+          categories: [],
+          tags: [],
+          inventory: [],
+          discount: discount,
+          total: total,
+          grand_total: grand_total,
+          temp_id: detail.id || generateUid(),
+          inventory_id: detail.inventory_id
+        } as unknown as IInvoiceProduct;
+      });
+
+      // Cargar campos del formulario de la factura
+      state.invoice = {
+        client_id: invoice.client_id,
+        store_id: '',
+        invoice_number: invoice.invoice_number,
+        invoice_date: invoice.invoice_date,
+        invoice_note: invoice.invoice_note || '',
+        client_name: invoice.client_name,
+        total: invoice.total_items,
+        discount: invoice.discount,
+        tax: invoice.tax,
+        grand_total: invoice.grand_total,
+        payment_method: invoice.method || 'CASH',
+        payment_date: invoice.invoice_date,
+        products: [],
+        isCredit: invoice.invoice_type === 'credit',
+        init_payment: 0,
+        seller_id: invoice.seller_id || ''
+      };
+    },
+
+    cancelEditingInvoice: (state) => {
+      state.isEditing = false;
+      state.editingInvoiceId = null;
+      state.editingInvoiceNumber = null;
+      state.productsSelected = [];
+      state.invoice = initialState.invoice;
     }
   },
   extraReducers: (builder) => {
@@ -207,6 +282,38 @@ export const billingSlice = createSlice({
         state.isLoading = false;
         state.error = 'failed';
         state.status = 'rejected';
+      })
+
+      .addCase(replaceInvoice.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+        state.status = 'pending';
+      })
+      .addCase(
+        replaceInvoice.fulfilled,
+        (state, action: PayloadAction<IReplaceInvoiceResponse>) => {
+          state.status = 'fulfilled';
+          state.isLoading = false;
+
+          const oldInvoice = state.invoices.find((inv) => inv.id === state.editingInvoiceId);
+          if (oldInvoice) {
+            oldInvoice.invoice_status = 'canceled';
+          }
+
+          const newInvoice = {
+            ...action.payload.invoice.data
+          };
+          state.invoices.push(newInvoice);
+
+          state.isEditing = false;
+          state.editingInvoiceId = null;
+          state.editingInvoiceNumber = null;
+        }
+      )
+      .addCase(replaceInvoice.rejected, (state) => {
+        state.isLoading = false;
+        state.error = 'failed';
+        state.status = 'rejected';
       });
   }
 });
@@ -220,7 +327,9 @@ export const {
   updateInvoice,
   clearInvoice,
   cancelInvoiceById,
-  duplicateProduct
+  duplicateProduct,
+  startEditingInvoice,
+  cancelEditingInvoice
 } = billingSlice.actions;
 
 export default billingSlice.reducer;

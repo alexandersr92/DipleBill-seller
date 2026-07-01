@@ -101,6 +101,9 @@ export interface IBillingProductsProductsState {
     totalItems: number;
     itemsPerPage: number;
   };
+  isEditing: boolean;
+  editingInvoiceId: string | null;
+  editingInvoiceNumber: string | null;
 }
 
 // export interface INewBilling {
@@ -233,14 +236,26 @@ export interface ISingleInvoice extends IInvoiceBase {
     product_name: string;
     inventory_id: string;
     quantity: number;
-    price: never;
+    price: number;
     total: number;
     sku: string;
+    barcode?: string | null;
+    discount?: number;
+    tax?: number;
+    grand_total?: number;
+    sort_order?: number;
   }[];
 }
 
 export interface IGetSingleInvoiceResponse {
   data: ISingleInvoice;
+}
+
+export interface IReplaceInvoiceResponse {
+  message: string;
+  invoice: {
+    data: ISingleInvoice;
+  };
 }
 
 export interface IGetInvoiceResponse {
