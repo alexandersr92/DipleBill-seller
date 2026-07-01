@@ -98,6 +98,10 @@ const routes: route = {
     path: '/compras/:id',
     name: 'Compra'
   },
+  CashControl: {
+    name: 'Control de Caja',
+    path: '/caja'
+  },
   Settings: {
     name: 'Configuraciones',
     path: '/configuracion'

@@ -7,6 +7,8 @@ import NotFound from '../modules/layout/404';
 import Billing from '@/modules/billing/containers';
 import InvoiceList from '@/modules/billing/containers/invoiceList';
 import Invoice from '@/modules/billing/containers/invoice';
+import CreditPayments from '@/modules/billing/containers/CreditPayments';
+import CashControlContainer from '@/modules/billing/containers/CashControlContainer';
 
 export const Router = () => {
   return (
@@ -53,6 +55,28 @@ export const Router = () => {
           <PrivateRoute>
             <Layout>
               <Invoice />
+            </Layout>
+          </PrivateRoute>
+        }
+      />
+
+      <Route
+        path={routes.Credits.path}
+        element={
+          <PrivateRoute>
+            <Layout>
+              <CreditPayments />
+            </Layout>
+          </PrivateRoute>
+        }
+      />
+
+      <Route
+        path={routes.CashControl.path}
+        element={
+          <PrivateRoute>
+            <Layout>
+              <CashControlContainer />
             </Layout>
           </PrivateRoute>
         }

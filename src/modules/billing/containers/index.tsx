@@ -242,6 +242,9 @@ const Billing = () => {
     setIsSubmittingSale(true);
     const values = pendingFormValues;
     const dateExp = values.invoice_expiration ? new Date(values.invoice_expiration) : new Date();
+    
+    const cashSessionId = localStorage.getItem('active_cash_session_id') || null;
+    
     const invoice: any = {
       ...invoiceCreated,
       client_id: (invoiceCreated.client_id === '--' || !invoiceCreated.client_id) ? null : invoiceCreated.client_id,
@@ -252,6 +255,7 @@ const Billing = () => {
       payment_metadata: paymentMetadata,
       payment_date: format(dateExp, 'yyyy-MM-dd'),
       seller_id: currentUser.sellerId,
+      cash_session_id: cashSessionId,
       products: productsSelected.map((product) => ({
         ...product,
         inventory_id: product.inventory_id ?? ''

@@ -3,12 +3,14 @@ import { userSlice, userLogout } from '../modules/auth/slices/userSlice';
 import { clientSlice } from '@/modules/clients/slices/clientSlice';
 import { storeSlice } from '../modules/stores/slices/storeSlice';
 import { billingSlice } from '@/modules/billing/slices/billingSlice';
+import { cashSlice } from '@/modules/billing/slices/cashSlice';
 
 const appReducer = combineReducers({
   userSlice: userSlice.reducer,
   clientSlice: clientSlice.reducer,
   storeSlice: storeSlice.reducer,
-  billingSlice: billingSlice.reducer
+  billingSlice: billingSlice.reducer,
+  cashSlice: cashSlice.reducer
 });
 
 export const resetAppState = createAction('app/resetAll');

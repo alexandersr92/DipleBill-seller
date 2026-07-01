@@ -35,6 +35,14 @@ const data = {
         {
           title: 'Facturas',
           url: '/invoices'
+        },
+        {
+          title: 'Abonos a Crédito',
+          url: '/credits'
+        },
+        {
+          title: 'Control de Caja',
+          url: '/caja'
         }
       ]
     }
