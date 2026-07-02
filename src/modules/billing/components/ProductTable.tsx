@@ -287,7 +287,7 @@ const ProductTable = ({ sellType, productSearchRef, headerContent, children }: I
         <div className="flex-grow overflow-hidden flex flex-col relative rounded-md shadow-md p-4 border bg-card before:absolute before:inset-x-0 before:top-0 before:h-[3px] before:bg-sale-accent-strong before:rounded-t-md">
           {/* Search header (Filtro / Eliminar seleccionados) */}
           <div className="flex justify-between items-center flex-shrink-0 mb-2">
-            <div className="w-1/3">
+            <div className="w-1/3 relative z-20">
               <CustomSearchInputSuggetions
                 placeholder="Buscar productos"
                 tabIndex={7}

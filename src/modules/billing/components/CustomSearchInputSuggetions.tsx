@@ -203,9 +203,8 @@ export default function CustomSearchInputSuggetions({
           aria-labelledby="suggestions-label"
           className={`${
             shouldShowResults ? 'block' : 'hidden'
-          } absolute p-2 z-10 w-full mt-1 bg-background border border-secondary rounded-md shadow-lg max-h-60 overflow-auto top-full
-            overflow-y-auto [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300
-            dark:[&::-webkit-scrollbar-track]:bg-neutral-700 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-500
+          } absolute p-1.5 z-50 w-full mt-1 bg-popover border border-border rounded-lg shadow-xl max-h-60 overflow-y-auto top-full
+            [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-muted/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30
           `}
         >
           {isLoading && (
@@ -228,22 +227,22 @@ export default function CustomSearchInputSuggetions({
                 data-result-index={index}
                 role="option"
                 aria-selected={index === activeIndex}
-                className={`p-2 cursor-pointer flex flex-col items-start rounded-sm ${
+                className={`p-2.5 cursor-pointer flex flex-col items-start rounded-md transition-colors duration-150 ${
                   product.quantity === 0
-                    ? 'text-destructive'
+                    ? 'text-destructive font-semibold'
                     : index === activeIndex
-                      ? 'text-accent-foreground'
+                      ? 'text-accent-foreground font-semibold'
                       : 'text-foreground'
-                } ${index === activeIndex ? 'bg-accent' : 'hover:bg-secondary'}`}
+                } ${index === activeIndex ? 'bg-accent' : 'hover:bg-accent/40'}`}
                 onClick={() => handleResultClick(product)}
               >
                 <div className="flex justify-between w-full">
-                  <span className="font-medium text-sm">{product.name}</span>
+                  <span className="text-sm font-bold">{product.name}</span>
                   <span className="text-xs">({product.quantity})</span>
                 </div>
                 <div className="flex justify-between w-full mt-1 text-muted-foreground">
-                  <span className="text-xs">{product.sku}</span>
-                  <span className="text-xs">{product.inventory_name}</span>
+                  <span className="text-[11px]">{product.sku}</span>
+                  <span className="text-[11px]">{product.inventory_name}</span>
                 </div>
               </li>
             ))}
