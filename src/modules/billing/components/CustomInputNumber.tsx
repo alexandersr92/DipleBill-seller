@@ -21,6 +21,7 @@ const CustomInputNumber: React.FC<CustomInputNumberProps> = ({
   onQtyChange = () => {},
   onEnter,
   inputRef,
+  productId,
   ...props
 }) => {
   const [value, setValue] = useState<number>(defaultValue);

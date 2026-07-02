@@ -32,6 +32,19 @@ const Invoice = () => {
   const { toast } = useToast();
   const dispatch = useAppDispatch();
   const [isConfirmOpen, setIsConfirmOpen] = useState<boolean>(false);
+  const [isEditConfirmOpen, setIsEditConfirmOpen] = useState<boolean>(false);
+
+  const handleConfirmEdit = async () => {
+    if (invoice) {
+      dispatch(startEditingInvoice(invoice));
+      navigate('/venta');
+      toast({
+        title: 'Modo edición activado',
+        description: `Modificando factura N° ${invoice.invoice_number}`,
+        variant: 'success'
+      });
+    }
+  };
 
   const get = async () => {
     setIsLoading(true);
@@ -306,15 +319,7 @@ const Invoice = () => {
             {invoice && <ActionButtons invoice={invoice} />}
             {invoice && invoice.invoice_status !== 'canceled' && (
               <Button
-                onClick={() => {
-                  dispatch(startEditingInvoice(invoice));
-                  navigate('/venta');
-                  toast({
-                    title: 'Modo edición activado',
-                    description: `Modificando factura N° ${invoice.invoice_number}`,
-                    variant: 'success'
-                  });
-                }}
+                onClick={() => setIsEditConfirmOpen(true)}
                 tabIndex={-1}
                 className="bg-edit-accent hover:bg-edit-accent-strong text-edit-accent-foreground border border-transparent"
               >
@@ -335,6 +340,13 @@ const Invoice = () => {
               onConfirm={cancelInvoice}
               title="Anular Factura"
               description="Se requiere la contraseña del propietario para anular esta factura."
+            />
+            <OwnerPasswordConfirmDialog
+              open={isEditConfirmOpen}
+              onOpenChange={setIsEditConfirmOpen}
+              onConfirm={handleConfirmEdit}
+              title="Editar Factura"
+              description="Se requiere la contraseña del propietario para editar esta factura."
             />
           </div>
         </section>

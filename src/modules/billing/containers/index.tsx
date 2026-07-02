@@ -350,7 +350,7 @@ const Billing = () => {
       if (isEditing) {
         const response = await dispatch(replaceInvoice({ id: editingInvoiceId!, billing: invoice as any })).unwrap();
         orderedInvoice = buildInvoiceDetailsFromSelectedProducts(
-          response.invoice.data,
+          response.invoice,
           productsSelected
         );
 
@@ -379,11 +379,21 @@ const Billing = () => {
     } catch (error: unknown) {
       if (import.meta.env.DEV) console.error(error);
       if (axios.isAxiosError(error) && error.response?.data) {
-        const { quantity_available, product_name, quantity_requested } = error.response.data;
+        const { quantity_available, product_name, quantity_requested, message } = error.response.data;
 
         if (quantity_available <= 0) {
           toast({
             title: `No hay stock del producto "${product_name}" y se solicitó ${quantity_requested}`,
+            variant: 'error'
+          });
+        } else if (message) {
+          toast({
+            title: message,
+            variant: 'error'
+          });
+        } else {
+          toast({
+            title: isEditing ? 'Hubo un error al reemplazar la factura!' : 'Hubo un error al realizar la venta!',
             variant: 'error'
           });
         }
@@ -873,7 +883,7 @@ const Billing = () => {
                     disabled={isSubmittingSale}
                     className="w-full bg-sale-accent text-sale-accent-foreground hover:bg-sale-accent/90 gap-2 h-11 text-base font-black shadow-md border border-slate-350/10 dark:border-slate-800"
                   >
-                    {isEditing ? 'Guardar y reemplazar ticket' : 'Realizar venta'}
+                    {isEditing ? 'Guardar' : 'Realizar venta'}
                     <kbd className="hidden sm:inline-flex items-center rounded border border-sale-accent-foreground/30 bg-sale-accent-foreground/10 px-1.5 py-0.5 text-[10px] font-medium leading-none">
                       ⇧ Enter
                     </kbd>

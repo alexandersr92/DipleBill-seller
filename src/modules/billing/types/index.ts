@@ -253,9 +253,7 @@ export interface IGetSingleInvoiceResponse {
 
 export interface IReplaceInvoiceResponse {
   message: string;
-  invoice: {
-    data: ISingleInvoice;
-  };
+  invoice: ISingleInvoice;
 }
 
 export interface IGetInvoiceResponse {

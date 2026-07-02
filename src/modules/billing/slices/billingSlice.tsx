@@ -301,7 +301,7 @@ export const billingSlice = createSlice({
           }
 
           const newInvoice = {
-            ...action.payload.invoice.data
+            ...action.payload.invoice
           };
           state.invoices.push(newInvoice);
 
