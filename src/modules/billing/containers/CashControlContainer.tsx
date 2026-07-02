@@ -6,7 +6,9 @@ import {
   closeCashSession, 
   fetchCashSettingsAndSession,
   ICashSession,
-  ICashTotals
+  ICashTotals,
+  updateCashTransaction,
+  deleteCashTransaction
 } from '../slices/cashSlice';
 import { useToast } from '@/components/hooks/use-toast';
 import { 
@@ -17,7 +19,9 @@ import {
   PlusCircle, 
   CheckCircle2, 
   AlertCircle,
-  Loader2
+  Loader2,
+  Pencil,
+  Trash
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -47,12 +51,44 @@ export default function CashControlContainer() {
   const [txAmount, setTxAmount] = useState('');
   const [txDescription, setTxDescription] = useState('');
   const [isSubmittingTx, setIsSubmittingTx] = useState(false);
+  const [editingTx, setEditingTx] = useState<any | null>(null);
 
   // Close session states
   const [showCloseModal, setShowCloseModal] = useState(false);
   const [actualCash, setActualCash] = useState('');
   const [closeNotes, setCloseNotes] = useState('');
   const [isSubmittingClose, setIsSubmittingClose] = useState(false);
+
+  const handleEditTxClick = (tx: any) => {
+    setEditingTx(tx);
+    setTxType(tx.type);
+    setTxAmount(tx.amount.toString());
+    setTxDescription(tx.description || '');
+    setShowTxModal(true);
+  };
+
+  const handleDeleteTxClick = async (txId: string) => {
+    if (!window.confirm('¿Estás seguro de eliminar este movimiento de ajuste?')) return;
+    try {
+      await dispatch(
+        deleteCashTransaction({
+          id: txId,
+          storeId
+        })
+      ).unwrap();
+      toast({
+        title: 'Movimiento Eliminado',
+        description: 'Se eliminó el movimiento de ajuste correctamente.',
+        className: 'bg-green-600 border-green-500 text-white'
+      });
+    } catch (err: any) {
+      toast({
+        title: 'Error al eliminar',
+        description: err || 'Ocurrió un error en el servidor.',
+        variant: 'destructive'
+      });
+    }
+  };
 
   // Load state on mount
   useEffect(() => {
@@ -62,6 +98,8 @@ export default function CashControlContainer() {
   }, [storeId, dispatch]);
 
   const handleOpenTxModal = () => {
+    setEditingTx(null);
+    setTxType('out');
     setTxAmount('');
     setTxDescription('');
     setShowTxModal(true);
@@ -92,25 +130,43 @@ export default function CashControlContainer() {
 
     setIsSubmittingTx(true);
     try {
-      await dispatch(
-        addCashTransaction({
-          cashSessionId: activeSession.id,
-          type: txType,
-          amount: amt,
-          description: txDescription.trim(),
-          storeId
-        })
-      ).unwrap();
+      if (editingTx) {
+        await dispatch(
+          updateCashTransaction({
+            id: editingTx.id,
+            type: txType,
+            amount: amt,
+            description: txDescription.trim(),
+            storeId
+          })
+        ).unwrap();
 
-      toast({
-        title: 'Movimiento Registrado',
-        description: `Se registró un ${txType === 'in' ? 'ingreso' : 'egreso'} de C$ ${amt.toFixed(2)}.`,
-        className: 'bg-green-600 border-green-500 text-white'
-      });
+        toast({
+          title: 'Movimiento Actualizado',
+          description: 'Se modificó el movimiento de ajuste correctamente.',
+          className: 'bg-green-600 border-green-500 text-white'
+        });
+      } else {
+        await dispatch(
+          addCashTransaction({
+            cashSessionId: activeSession.id,
+            type: txType,
+            amount: amt,
+            description: txDescription.trim(),
+            storeId
+          })
+        ).unwrap();
+
+        toast({
+          title: 'Movimiento Registrado',
+          description: `Se registró un ${txType === 'in' ? 'ingreso' : 'egreso'} de C$ ${amt.toFixed(2)}.`,
+          className: 'bg-green-600 border-green-500 text-white'
+        });
+      }
       setShowTxModal(false);
     } catch (err: any) {
       toast({
-        title: 'Error al registrar movimiento',
+        title: editingTx ? 'Error al actualizar' : 'Error al registrar',
         description: err || 'Ocurrió un error en el servidor.',
         variant: 'destructive'
       });
@@ -400,6 +456,74 @@ export default function CashControlContainer() {
 
             </div>
 
+            {/* SHIFT ADJUSTMENTS LIST */}
+            <div className="border-2 border-slate-350 dark:border-slate-800 rounded-xl p-4 bg-background flex flex-col gap-3">
+              <h3 className="text-xs font-black uppercase text-slate-850 dark:text-slate-200 tracking-wider">
+                Movimientos de Ajuste de este Turno
+              </h3>
+              
+              {(activeSession.cash_transactions || activeSession.cashTransactions) && 
+              ((activeSession.cash_transactions || activeSession.cashTransactions)?.length ?? 0) > 0 ? (
+                <div className="border border-slate-250 dark:border-slate-850 rounded-lg overflow-hidden">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-slate-50 dark:bg-slate-900 border-b border-slate-250 dark:border-slate-850 text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
+                        <th className="p-2.5">Tipo</th>
+                        <th className="p-2.5">Monto</th>
+                        <th className="p-2.5">Descripción / Motivo</th>
+                        <th className="p-2.5 text-center w-[90px]">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 dark:divide-slate-850">
+                      {(activeSession.cash_transactions || activeSession.cashTransactions)?.map((tx: any) => (
+                        <tr key={tx.id} className="hover:bg-slate-55/50 dark:hover:bg-slate-900/10">
+                          <td className="p-2.5 font-bold">
+                            {tx.type === 'in' ? (
+                              <span className="text-green-600 dark:text-green-400">Entrada (+)</span>
+                            ) : (
+                              <span className="text-red-500">Salida (-)</span>
+                            )}
+                          </td>
+                          <td className="p-2.5 font-extrabold text-slate-850 dark:text-white">
+                            {currencyFormatter({ currency: 'NIO', value: tx.amount })}
+                          </td>
+                          <td className="p-2.5 text-slate-600 dark:text-slate-400 max-w-[200px] truncate" title={tx.description || ''}>
+                            {tx.description || '-'}
+                          </td>
+                          <td className="p-2.5 text-center">
+                            <div className="flex justify-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEditTxClick(tx)}
+                                title="Editar movimiento"
+                                className="h-7 w-7 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-200 dark:hover:bg-slate-800"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeleteTxClick(tx.id)}
+                                title="Eliminar movimiento"
+                                className="h-7 w-7 text-slate-500 hover:text-red-500 hover:bg-slate-200 dark:hover:bg-slate-800"
+                              >
+                                <Trash className="w-3.5 h-3.5" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-slate-500 italic text-xs py-5 border border-dashed border-slate-300 dark:border-slate-850 rounded-lg text-center bg-slate-50/30 dark:bg-slate-900/5">
+                  No hay movimientos de ajuste registrados en este turno.
+                </div>
+              )}
+            </div>
+
           </div>
 
           {/* ELECTRONIC PAYMENTS AND SHIFT INFO PANEL */}
@@ -462,7 +586,7 @@ export default function CashControlContainer() {
           <div className="w-full max-w-sm bg-slate-900 border-2 border-slate-800 rounded-xl p-5 shadow-2xl relative animate-in zoom-in-95 duration-150">
             <h2 className="text-sm font-black text-white uppercase tracking-wider mb-4 flex items-center gap-1.5">
               <PlusCircle className="w-4 h-4 text-blue-500" />
-              <span>Registrar Ajuste de Caja</span>
+              <span>{editingTx ? 'Editar Ajuste de Caja' : 'Registrar Ajuste de Caja'}</span>
             </h2>
 
             <form onSubmit={handleAddTransactionSubmit} className="flex flex-col gap-4">
@@ -534,7 +658,7 @@ export default function CashControlContainer() {
                   disabled={isSubmittingTx}
                   className="h-8 text-xs font-black uppercase tracking-wider bg-blue-600 hover:bg-blue-750 text-white"
                 >
-                  {isSubmittingTx ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <span>Guardar</span>}
+                  {isSubmittingTx ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <span>{editingTx ? 'Actualizar' : 'Guardar'}</span>}
                 </Button>
               </div>
             </form>

@@ -14,6 +14,18 @@ export interface ICashSession {
   opened_at: string;
   closed_at: string | null;
   notes: string | null;
+  cash_transactions?: {
+    id: string;
+    type: 'in' | 'out';
+    amount: number;
+    description: string;
+  }[];
+  cashTransactions?: {
+    id: string;
+    type: 'in' | 'out';
+    amount: number;
+    description: string;
+  }[];
 }
 
 export interface ICashTotals {
@@ -175,6 +187,44 @@ export const addCashTransaction = createAsyncThunk(
       return response.data;
     } catch (err: any) {
       return rejectWithValue(err.response?.data?.message || 'Error al registrar movimiento');
+    }
+  }
+);
+
+export const updateCashTransaction = createAsyncThunk(
+  'cash/updateTransaction',
+  async (
+    payload: { id: string; type: 'in' | 'out'; amount: number; description: string; storeId: string },
+    { dispatch, rejectWithValue }
+  ) => {
+    try {
+      const response = await axiosInstance.put(`/v1/cash-sessions/transactions/${payload.id}`, {
+        type: payload.type,
+        amount: payload.amount,
+        description: payload.description
+      });
+      // Refresh active session and totals
+      dispatch(fetchCashSettingsAndSession(payload.storeId));
+      return response.data;
+    } catch (err: any) {
+      return rejectWithValue(err.response?.data?.message || 'Error al actualizar movimiento');
+    }
+  }
+);
+
+export const deleteCashTransaction = createAsyncThunk(
+  'cash/deleteTransaction',
+  async (
+    payload: { id: string; storeId: string },
+    { dispatch, rejectWithValue }
+  ) => {
+    try {
+      const response = await axiosInstance.delete(`/v1/cash-sessions/transactions/${payload.id}`);
+      // Refresh active session and totals
+      dispatch(fetchCashSettingsAndSession(payload.storeId));
+      return response.data;
+    } catch (err: any) {
+      return rejectWithValue(err.response?.data?.message || 'Error al eliminar movimiento');
     }
   }
 );
