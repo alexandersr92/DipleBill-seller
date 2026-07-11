@@ -21,6 +21,8 @@ const CustomInputNumber: React.FC<CustomInputNumberProps> = ({
   onQtyChange = () => {},
   onEnter,
   inputRef,
+  // productId se desestructura para que no llegue al <input> como atributo DOM
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   productId,
   ...props
 }) => {

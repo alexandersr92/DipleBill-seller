@@ -353,7 +353,7 @@ export default function CreditPayments() {
     method: string,
     metadata: any
   ) => {
-    let printWindow = window.open('', '_blank');
+    const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
     let methodStr = 'Efectivo';

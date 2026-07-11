@@ -233,7 +233,7 @@ export default function CashControlContainer() {
     reportedCash: number,
     notesText: string
   ) => {
-    let printWindow = window.open('', '_blank');
+    const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
     const expectedCash = tot.expected_cash;

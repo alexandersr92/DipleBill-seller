@@ -41,16 +41,21 @@ export const CheckClientModal = ({
           {isGeneric ? (
             <div className="space-y-3">
               <p>
-                Has ingresado un nombre genérico: <strong className="text-foreground">"{newClientName}"</strong>.
+                Has ingresado un nombre genérico:{' '}
+                <strong className="text-foreground">&quot;{newClientName}&quot;</strong>.
               </p>
               <p className="text-xs">
-                Para evitar duplicidad en la base de datos, te recomendamos seleccionar el cliente genérico ya existente (ej. <strong>"Cliente Contado"</strong>) desde el buscador.
+                Para evitar duplicidad en la base de datos, te recomendamos seleccionar el cliente
+                genérico ya existente (ej. <strong>&quot;Cliente Contado&quot;</strong>) desde el
+                buscador.
               </p>
             </div>
           ) : (
             <div className="space-y-3">
               <p>
-                Ya existen clientes registrados con nombres muy similares a <strong className="text-foreground">"{newClientName}"</strong>. Por favor, confirma si es alguno de ellos antes de crear un nuevo registro:
+                Ya existen clientes registrados con nombres muy similares a{' '}
+                <strong className="text-foreground">&quot;{newClientName}&quot;</strong>. Por favor,
+                confirma si es alguno de ellos antes de crear un nuevo registro:
               </p>
 
               {/* Lista de clientes similares */}

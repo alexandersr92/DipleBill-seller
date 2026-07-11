@@ -53,7 +53,7 @@ export default function OwnerPasswordConfirmDialog({
       } else {
         setErrorMessage('Contraseña incorrecta, intente de nuevo');
       }
-    } catch (error) {
+    } catch {
       setErrorMessage('Error al verificar la contraseña');
     } finally {
       setIsLoading(false);

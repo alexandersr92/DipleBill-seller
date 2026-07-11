@@ -84,19 +84,25 @@ export const fetchCashSettingsAndSession = createAsyncThunk(
         const modeRes = await axiosInstance.get('/v1/settings?key=cash_control_mode');
         const modeData = modeRes.data?.data || modeRes.data || [];
         if (modeData.length > 0) controlMode = modeData[0].value;
-      } catch (e) {}
+      } catch {
+        /* configuración opcional: conservar valor por defecto */
+      }
 
       try {
         const assignRes = await axiosInstance.get('/v1/settings?key=cash_assignment_mode');
         const assignData = assignRes.data?.data || assignRes.data || [];
         if (assignData.length > 0) assignmentMode = assignData[0].value;
-      } catch (e) {}
+      } catch {
+        /* configuración opcional: conservar valor por defecto */
+      }
 
       try {
         const countRes = await axiosInstance.get('/v1/settings?key=closing_count_type');
         const countData = countRes.data?.data || countRes.data || [];
         if (countData.length > 0) countType = countData[0].value;
-      } catch (e) {}
+      } catch {
+        /* configuración opcional: conservar valor por defecto */
+      }
 
       try {
         const carryRes = await axiosInstance.get('/v1/settings?key=carry_over_balance');
@@ -104,7 +110,9 @@ export const fetchCashSettingsAndSession = createAsyncThunk(
         if (carryData.length > 0) {
           carryOver = carryData[0].value === 'true' || carryData[0].value === true;
         }
-      } catch (e) {}
+      } catch {
+        /* configuración opcional: conservar valor por defecto */
+      }
 
       return {
         session: sessionRes.data?.session || null,
