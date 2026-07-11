@@ -71,8 +71,7 @@ const Filters = ({
         {customFilter?.map((filter, i) => (
           <div
             key={`${filter.selectedValue}-${i}`}
-            className="w-fit flex gap-2 items-center relative"
-          >
+            className="w-fit flex gap-2 items-center relative">
             <Select value={filter.selectedValue} onValueChange={filter.onChange}>
               <SelectTrigger className="w-[180px] min-h-[40px]">
                 <SelectValue placeholder={filter.placeholder || 'Seleccionar...'} />
@@ -93,8 +92,7 @@ const Filters = ({
             <Button
               variant="secondary"
               onClick={onClearFilters}
-              className="border-dashed border bg-transparent"
-            >
+              className="border-dashed border bg-transparent">
               <Cross2Icon className="h-4 w-4" />
               Limpiar
             </Button>

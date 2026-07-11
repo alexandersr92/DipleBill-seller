@@ -44,7 +44,13 @@ import { es } from 'date-fns/locale';
 import { createBilling, replaceInvoice } from '../services/billingThunks';
 import { IInvoiceProduct, ISingleInvoice, SELL_TYPES, PAYMENT_METHODS } from '../types';
 import { useToast } from '@/components/hooks/use-toast';
-import { clearInvoice, resetProductsInvoice, updateInvoice, addProductsToBilling, cancelEditingInvoice } from '../slices/billingSlice';
+import {
+  clearInvoice,
+  resetProductsInvoice,
+  updateInvoice,
+  addProductsToBilling,
+  cancelEditingInvoice
+} from '../slices/billingSlice';
 import { sellerLogout } from '@/modules/auth/slices/userSlice';
 import { addClientFromInvoice, getClients } from '@/modules/clients/services/clientsThunks';
 import { handleKeyDown } from '../helpers';
@@ -106,7 +112,7 @@ const Billing = () => {
   const handleStoreChange = (newStoreId: string) => {
     localStorage.setItem('currentStoreId', newStoreId);
     dispatch(fetchCurrentStore(newStoreId));
-    
+
     localStorage.removeItem('seller_id');
     localStorage.removeItem('seller_name');
     localStorage.removeItem('seller_code');
@@ -125,10 +131,7 @@ const Billing = () => {
     dispatch(performLogout());
   };
 
-  const storeId =
-    store?.id ||
-    localStorage.getItem('currentStoreId') ||
-    '';
+  const storeId = store?.id || localStorage.getItem('currentStoreId') || '';
   const invoiceCreated = useAppSelector((state) => state.billingSlice.invoice);
   const clients = useAppSelector((state) => state.clientSlice.clients);
   const productsSelected = useAppSelector((state) => state.billingSlice.productsSelected);
@@ -320,16 +323,19 @@ const Billing = () => {
     setIsSubmittingSale(true);
     const values = pendingFormValues;
     const dateExp = values.invoice_expiration ? new Date(values.invoice_expiration) : new Date();
-    
+
     const cashSessionId = localStorage.getItem('active_cash_session_id') || null;
 
     const finalNote = isEditing
       ? `Factura editada que reemplaza a la factura N° ${editingInvoiceNumber}. ${values.invoice_note || ''}`.trim()
       : values.invoice_note || '';
-    
+
     const invoice: any = {
       ...invoiceCreated,
-      client_id: (invoiceCreated.client_id === '--' || !invoiceCreated.client_id) ? null : invoiceCreated.client_id,
+      client_id:
+        invoiceCreated.client_id === '--' || !invoiceCreated.client_id
+          ? null
+          : invoiceCreated.client_id,
       invoice_date: format(new Date(), 'yyyy-MM-dd'),
       store_id: storeId!,
       isCredit: isCreditSale,
@@ -348,7 +354,9 @@ const Billing = () => {
     try {
       let orderedInvoice;
       if (isEditing) {
-        const response = await dispatch(replaceInvoice({ id: editingInvoiceId!, billing: invoice as any })).unwrap();
+        const response = await dispatch(
+          replaceInvoice({ id: editingInvoiceId!, billing: invoice as any })
+        ).unwrap();
         orderedInvoice = buildInvoiceDetailsFromSelectedProducts(
           response.invoice,
           productsSelected
@@ -362,10 +370,7 @@ const Billing = () => {
         dispatch(cancelEditingInvoice());
       } else {
         const response = await dispatch(createBilling(invoice as any)).unwrap();
-        orderedInvoice = buildInvoiceDetailsFromSelectedProducts(
-          response.data,
-          productsSelected
-        );
+        orderedInvoice = buildInvoiceDetailsFromSelectedProducts(response.data, productsSelected);
 
         toast({
           title: 'Venta realizada exitosamente!',
@@ -379,7 +384,8 @@ const Billing = () => {
     } catch (error: unknown) {
       if (import.meta.env.DEV) console.error(error);
       if (axios.isAxiosError(error) && error.response?.data) {
-        const { quantity_available, product_name, quantity_requested, message } = error.response.data;
+        const { quantity_available, product_name, quantity_requested, message } =
+          error.response.data;
 
         if (quantity_available <= 0) {
           toast({
@@ -393,13 +399,17 @@ const Billing = () => {
           });
         } else {
           toast({
-            title: isEditing ? 'Hubo un error al reemplazar la factura!' : 'Hubo un error al realizar la venta!',
+            title: isEditing
+              ? 'Hubo un error al reemplazar la factura!'
+              : 'Hubo un error al realizar la venta!',
             variant: 'error'
           });
         }
       } else {
         toast({
-          title: isEditing ? 'Hubo un error al reemplazar la factura!' : 'Hubo un error al realizar la venta!',
+          title: isEditing
+            ? 'Hubo un error al reemplazar la factura!'
+            : 'Hubo un error al realizar la venta!',
           variant: 'error'
         });
       }
@@ -445,7 +455,7 @@ const Billing = () => {
     if (!generic) {
       clients.forEach((c) => {
         const sim = checkSimilarity(name, c.name);
-        if (sim >= 0.80) {
+        if (sim >= 0.8) {
           matches.push({ id: c.id ?? '', name: c.name ?? '' });
         }
       });
@@ -474,7 +484,7 @@ const Billing = () => {
     if (resolvePendingClient) {
       resolvePendingClient.resolve(client);
     }
-    
+
     setCheckClientModalOpen(false);
     setResolvePendingClient(null);
     focusElement(productSearchRef.current);
@@ -482,7 +492,7 @@ const Billing = () => {
 
   const handleConfirmNew = async () => {
     if (!pendingClientName) return;
-    
+
     try {
       const res = await proceedWithCreateClient(pendingClientName);
       if (resolvePendingClient) {
@@ -701,7 +711,9 @@ const Billing = () => {
 
         {/* Lado Central: Titulo */}
         <div className="hidden sm:flex items-center gap-2">
-          <span className="text-sm font-black uppercase tracking-wider text-theme_blue">Facturación POS</span>
+          <span className="text-sm font-black uppercase tracking-wider text-theme_blue">
+            Facturación POS
+          </span>
         </div>
 
         {/* Lado Derecho: Usuario / Dropdown */}
@@ -711,13 +723,14 @@ const Billing = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                className="flex h-10 gap-2 px-2 hover:bg-accent hover:text-accent-foreground select-none rounded-lg"
-              >
+                className="flex h-10 gap-2 px-2 hover:bg-accent hover:text-accent-foreground select-none rounded-lg">
                 <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary">
                   <User className="h-4 w-4" />
                 </div>
                 <div className="hidden md:grid text-left text-xs leading-none">
-                  <span className="font-medium truncate max-w-[100px]">{currentUser.sellerName || 'Vendedor'}</span>
+                  <span className="font-medium truncate max-w-[100px]">
+                    {currentUser.sellerName || 'Vendedor'}
+                  </span>
                   <span className="text-[10px] text-muted-foreground truncate">
                     {currentUser.sellerCode ? `Cód: ${currentUser.sellerCode}` : ''}
                   </span>
@@ -728,7 +741,9 @@ const Billing = () => {
             <DropdownMenuContent className="w-56 mt-1" align="end" sideOffset={4}>
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-semibold leading-none">{currentUser.sellerName || 'Vendedor'}</p>
+                  <p className="text-sm font-semibold leading-none">
+                    {currentUser.sellerName || 'Vendedor'}
+                  </p>
                   <p className="text-xs leading-none text-muted-foreground">{currentUser.email}</p>
                 </div>
               </DropdownMenuLabel>
@@ -745,11 +760,15 @@ const Billing = () => {
                         <Moon className="mr-2 h-4 w-4" />
                         <span>Oscuro</span>
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="cursor-pointer" onClick={() => setTheme('light')}>
+                      <DropdownMenuItem
+                        className="cursor-pointer"
+                        onClick={() => setTheme('light')}>
                         <Sun className="mr-2 h-4 w-4" />
                         <span>Claro</span>
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="cursor-pointer" onClick={() => setTheme('system')}>
+                      <DropdownMenuItem
+                        className="cursor-pointer"
+                        onClick={() => setTheme('system')}>
                         <Laptop2 className="mr-2 h-4 w-4" />
                         <span>Sistema</span>
                       </DropdownMenuItem>
@@ -758,11 +777,15 @@ const Billing = () => {
                 </DropdownMenuSub>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleSellerLogout} className="cursor-pointer text-amber-500 focus:text-amber-500">
+              <DropdownMenuItem
+                onClick={handleSellerLogout}
+                className="cursor-pointer text-amber-500 focus:text-amber-500">
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Cambiar Vendedor</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleFullLogout} className="cursor-pointer text-destructive focus:text-destructive">
+              <DropdownMenuItem
+                onClick={handleFullLogout}
+                className="cursor-pointer text-destructive focus:text-destructive">
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Cerrar Sesión Admin</span>
               </DropdownMenuItem>
@@ -778,8 +801,7 @@ const Billing = () => {
         data-sell-type={sellType}
         data-is-editing={isEditing}
         onKeyDown={(e) => handleKeyDown({ event: e, formRef, buttonRef })}
-        onSubmit={handleSubmit(onSubmit)}
-      >
+        onSubmit={handleSubmit(onSubmit)}>
         <ProductTable
           sellType={sellType}
           productSearchRef={productSearchRef}
@@ -791,15 +813,15 @@ const Billing = () => {
                     {isEditing ? `Editando Factura #${editingInvoiceNumber}` : 'Nueva factura'}
                   </h1>
                   <p className="mt-1 text-muted-foreground">
-                    {isEditing 
-                      ? 'Modifique los datos y guarde para anular la factura anterior y emitir una nueva.' 
+                    {isEditing
+                      ? 'Modifique los datos y guarde para anular la factura anterior y emitir una nueva.'
                       : 'Complete los detalles básicos de la transacción.'}
                   </p>
                 </div>
                 {isEditing && (
-                  <Button 
-                    type="button" 
-                    variant="outline" 
+                  <Button
+                    type="button"
+                    variant="outline"
                     size="sm"
                     className="border-sale-accent text-sale-accent hover:bg-sale-accent-soft"
                     onClick={() => {
@@ -810,8 +832,7 @@ const Billing = () => {
                         description: 'Se ha regresado al modo de nueva factura.',
                         variant: 'default'
                       });
-                    }}
-                  >
+                    }}>
                     Cancelar Edición
                   </Button>
                 )}
@@ -848,12 +869,20 @@ const Billing = () => {
 
                 <div className="w-full">
                   <Label htmlFor="seller">Vendedor</Label>
-                  <Input id="seller" readOnly disabled className="h-10 bg-muted/50 font-medium" value={currentUser.sellerName || currentUser.email || ''} />
+                  <Input
+                    id="seller"
+                    readOnly
+                    disabled
+                    className="h-10 bg-muted/50 font-medium"
+                    value={currentUser.sellerName || currentUser.email || ''}
+                  />
                   <Input type="hidden" {...register('seller_id')} value={currentUser.id || ''} />
                 </div>
 
                 <div className="w-full flex flex-col">
-                  <Label htmlFor="invoice_note" className="text-xs font-semibold text-muted-foreground mb-1.5">
+                  <Label
+                    htmlFor="invoice_note"
+                    className="text-xs font-semibold text-muted-foreground mb-1.5">
                     Detalles de la factura (Notas)
                   </Label>
                   <Textarea
@@ -870,8 +899,7 @@ const Billing = () => {
                 </div>
               </div>
             </section>
-          }
-        >
+          }>
           <div className="border-t pt-4 w-full flex flex-col gap-2.5 items-center">
             <TooltipProvider delayDuration={300}>
               <Tooltip>
@@ -881,8 +909,7 @@ const Billing = () => {
                     tabIndex={-1}
                     ref={buttonRef}
                     disabled={isSubmittingSale}
-                    className="w-full bg-sale-accent text-sale-accent-foreground hover:bg-sale-accent/90 gap-2 h-11 text-base font-black shadow-md border border-slate-350/10 dark:border-slate-800"
-                  >
+                    className="w-full bg-sale-accent text-sale-accent-foreground hover:bg-sale-accent/90 gap-2 h-11 text-base font-black shadow-md border border-slate-350/10 dark:border-slate-800">
                     {isEditing ? 'Guardar' : 'Realizar venta'}
                     <kbd className="hidden sm:inline-flex items-center rounded border border-sale-accent-foreground/30 bg-sale-accent-foreground/10 px-1.5 py-0.5 text-[10px] font-medium leading-none">
                       ⇧ Enter
@@ -898,8 +925,7 @@ const Billing = () => {
               type="button"
               tabIndex={-1}
               variant={'outline'}
-              className="w-full hover:bg-secondary hover:text-primary hover:border h-10 text-sm font-bold border-2"
-            >
+              className="w-full hover:bg-secondary hover:text-primary hover:border h-10 text-sm font-bold border-2">
               Cancelar factura
             </Button>
           </div>
@@ -945,14 +971,12 @@ const Billing = () => {
           if (!open) {
             handlePostSaleLogout();
           }
-        }}
-      >
+        }}>
         <AlertDialogContent
           onOpenAutoFocus={(event) => {
             event.preventDefault();
             focusElement(printDialogButtonRef.current);
-          }}
-        >
+          }}>
           <AlertDialogHeader>
             <AlertDialogTitle className="text-center">¿Que deseas hacer?</AlertDialogTitle>
           </AlertDialogHeader>
@@ -974,23 +998,33 @@ const Billing = () => {
       {/* Barra de atajos flotante al final */}
       <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur border-t py-2 px-4 flex flex-wrap justify-center gap-x-6 gap-y-1.5 text-[11px] text-muted-foreground select-none z-40 shadow-lg">
         <div className="flex items-center gap-1.5">
-          <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[9px] font-extrabold shadow-sm">F1</kbd>
+          <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[9px] font-extrabold shadow-sm">
+            F1
+          </kbd>
           <span>Buscar Producto</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[9px] font-extrabold shadow-sm">F2</kbd>
+          <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[9px] font-extrabold shadow-sm">
+            F2
+          </kbd>
           <span>Seleccionar Cliente</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[9px] font-extrabold shadow-sm">F3</kbd>
+          <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[9px] font-extrabold shadow-sm">
+            F3
+          </kbd>
           <span>Contado / Crédito</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[9px] font-extrabold shadow-sm">F4</kbd>
+          <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[9px] font-extrabold shadow-sm">
+            F4
+          </kbd>
           <span>Pagar (Cobrar)</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[9px] font-extrabold shadow-sm">F8</kbd>
+          <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[9px] font-extrabold shadow-sm">
+            F8
+          </kbd>
           <span>Limpiar Pantalla</span>
         </div>
         <div className="h-4 w-px bg-border hidden md:block" />

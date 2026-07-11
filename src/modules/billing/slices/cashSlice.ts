@@ -73,7 +73,7 @@ export const fetchCashSettingsAndSession = createAsyncThunk(
     try {
       // 1. Fetch active session details
       const sessionRes = await axiosInstance.get(`/v1/cash-sessions/active?store_id=${storeId}`);
-      
+
       // 2. Fetch cash register settings policies (fallback to default policies if not configured)
       let controlMode: 'NONE' | 'SIMPLIFIED' | 'STRICT' = 'NONE';
       let assignmentMode: 'SHARED_STORE' | 'BY_STATION' | 'INDIVIDUAL_USER' = 'SHARED_STORE';
@@ -84,19 +84,25 @@ export const fetchCashSettingsAndSession = createAsyncThunk(
         const modeRes = await axiosInstance.get('/v1/settings?key=cash_control_mode');
         const modeData = modeRes.data?.data || modeRes.data || [];
         if (modeData.length > 0) controlMode = modeData[0].value;
-      } catch (e) {}
+      } catch {
+        /* configuración opcional: conservar valor por defecto */
+      }
 
       try {
         const assignRes = await axiosInstance.get('/v1/settings?key=cash_assignment_mode');
         const assignData = assignRes.data?.data || assignRes.data || [];
         if (assignData.length > 0) assignmentMode = assignData[0].value;
-      } catch (e) {}
+      } catch {
+        /* configuración opcional: conservar valor por defecto */
+      }
 
       try {
         const countRes = await axiosInstance.get('/v1/settings?key=closing_count_type');
         const countData = countRes.data?.data || countRes.data || [];
         if (countData.length > 0) countType = countData[0].value;
-      } catch (e) {}
+      } catch {
+        /* configuración opcional: conservar valor por defecto */
+      }
 
       try {
         const carryRes = await axiosInstance.get('/v1/settings?key=carry_over_balance');
@@ -104,7 +110,9 @@ export const fetchCashSettingsAndSession = createAsyncThunk(
         if (carryData.length > 0) {
           carryOver = carryData[0].value === 'true' || carryData[0].value === true;
         }
-      } catch (e) {}
+      } catch {
+        /* configuración opcional: conservar valor por defecto */
+      }
 
       return {
         session: sessionRes.data?.session || null,
@@ -172,7 +180,13 @@ export const closeCashSession = createAsyncThunk(
 export const addCashTransaction = createAsyncThunk(
   'cash/addTransaction',
   async (
-    payload: { cashSessionId: string; type: 'in' | 'out'; amount: number; description: string; storeId: string },
+    payload: {
+      cashSessionId: string;
+      type: 'in' | 'out';
+      amount: number;
+      description: string;
+      storeId: string;
+    },
     { dispatch, rejectWithValue }
   ) => {
     try {
@@ -194,7 +208,13 @@ export const addCashTransaction = createAsyncThunk(
 export const updateCashTransaction = createAsyncThunk(
   'cash/updateTransaction',
   async (
-    payload: { id: string; type: 'in' | 'out'; amount: number; description: string; storeId: string },
+    payload: {
+      id: string;
+      type: 'in' | 'out';
+      amount: number;
+      description: string;
+      storeId: string;
+    },
     { dispatch, rejectWithValue }
   ) => {
     try {
@@ -214,10 +234,7 @@ export const updateCashTransaction = createAsyncThunk(
 
 export const deleteCashTransaction = createAsyncThunk(
   'cash/deleteTransaction',
-  async (
-    payload: { id: string; storeId: string },
-    { dispatch, rejectWithValue }
-  ) => {
+  async (payload: { id: string; storeId: string }, { dispatch, rejectWithValue }) => {
     try {
       const response = await axiosInstance.delete(`/v1/cash-sessions/transactions/${payload.id}`);
       // Refresh active session and totals

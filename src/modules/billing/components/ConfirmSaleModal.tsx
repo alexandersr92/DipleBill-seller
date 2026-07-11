@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import axiosInstance from '@/helpers/axiosInstance';
-import { 
-  Loader2, 
-  DollarSign, 
-  Calendar, 
-  Coins, 
-  ArrowRightLeft, 
-  CreditCard, 
-  ChevronLeft, 
+import {
+  Loader2,
+  DollarSign,
+  Calendar,
+  Coins,
+  ArrowRightLeft,
+  CreditCard,
+  ChevronLeft,
   Calculator,
   AlertCircle
 } from 'lucide-react';
@@ -18,7 +18,7 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { SELL_TYPES } from '../types';
 import { currencyFormatter } from '../helpers';
- 
+
 interface ConfirmSaleModalProps {
   open: boolean;
   sellType: string;
@@ -29,7 +29,7 @@ interface ConfirmSaleModalProps {
   onCancel: () => void;
   onConfirm: (paymentMethod: string, paymentMetadata: any, isCreditSale: boolean) => void;
 }
- 
+
 export const ConfirmSaleModal = ({
   open,
   sellType,
@@ -122,14 +122,14 @@ export const ConfirmSaleModal = ({
     }
   }, [open, sellType]);
 
-
   // Cálculos de Pago
   const rawMultCashNio = parseFloat(multipleCashNio) || 0;
   const rawMultCashUsd = parseFloat(multipleCashUsd) || 0;
   const rawMultTransferAmt = parseFloat(multipleTransferAmount) || 0;
   const rawMultCardAmt = parseFloat(multipleCardAmount) || 0;
 
-  const totalPaidEquivalent = rawMultCashNio + rawMultCashUsd * exchangeRate + rawMultTransferAmt + rawMultCardAmt;
+  const totalPaidEquivalent =
+    rawMultCashNio + rawMultCashUsd * exchangeRate + rawMultTransferAmt + rawMultCardAmt;
   const changeDueNio = Math.max(totalPaidEquivalent - total, 0);
   const missingAmountNio = Math.max(total - totalPaidEquivalent, 0);
 
@@ -146,12 +146,18 @@ export const ConfirmSaleModal = ({
   };
 
   const handleFillExactTransfer = () => {
-    const remaining = Math.max(total - (rawMultCashNio + rawMultCashUsd * exchangeRate + rawMultCardAmt), 0);
+    const remaining = Math.max(
+      total - (rawMultCashNio + rawMultCashUsd * exchangeRate + rawMultCardAmt),
+      0
+    );
     setMultipleTransferAmount(remaining.toFixed(2));
   };
 
   const handleFillExactCard = () => {
-    const remaining = Math.max(total - (rawMultCashNio + rawMultCashUsd * exchangeRate + rawMultTransferAmt), 0);
+    const remaining = Math.max(
+      total - (rawMultCashNio + rawMultCashUsd * exchangeRate + rawMultTransferAmt),
+      0
+    );
     setMultipleCardAmount(remaining.toFixed(2));
   };
 
@@ -173,7 +179,8 @@ export const ConfirmSaleModal = ({
 
     // Validaciones específicas de tarjeta si tiene monto
     if (hasCard) {
-      if (!multipleCardBrand || multipleCardDigits.trim().length !== 4 || !multipleCardRef.trim()) return false;
+      if (!multipleCardBrand || multipleCardDigits.trim().length !== 4 || !multipleCardRef.trim())
+        return false;
     }
 
     // El total abonado debe cubrir el total de la factura
@@ -275,7 +282,7 @@ export const ConfirmSaleModal = ({
         e.preventDefault();
         onCancel();
       }
-      
+
       if (e.key === 'Enter' && e.ctrlKey) {
         e.preventDefault();
         if (canConfirm()) {
@@ -336,26 +343,28 @@ export const ConfirmSaleModal = ({
         if (next) return;
         if (isSubmitting) return;
         onCancel();
-      }}
-    >
+      }}>
       <AlertDialogContent
         onOpenAutoFocus={(e) => e.preventDefault()}
-        className="border-2 border-slate-400 dark:border-slate-700 max-w-lg rounded-xl overflow-hidden p-0 flex flex-col bg-background select-none shadow-2xl"
-      >
+        className="border-2 border-slate-400 dark:border-slate-700 max-w-lg rounded-xl overflow-hidden p-0 flex flex-col bg-background select-none shadow-2xl">
         {/* Banner Superior Reactivo */}
-        <div className={cn(
-          "h-2.5 px-6 transition-all duration-300",
-          isCreditSale ? "bg-purple-650" : "bg-blue-650"
-        )} />
+        <div
+          className={cn(
+            'h-2.5 px-6 transition-all duration-300',
+            isCreditSale ? 'bg-purple-650' : 'bg-blue-650'
+          )}
+        />
 
         <div className="p-6 flex flex-col gap-4">
           {/* Cabecera dinámica según el paso */}
           <div className="flex items-center justify-between border-b border-slate-300 dark:border-slate-850 pb-3">
             <div className="flex flex-col">
-              <span className="text-[11px] font-black uppercase tracking-wider text-slate-800 dark:text-slate-100">Proceso de Pago</span>
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-800 dark:text-slate-100">
+                Proceso de Pago
+              </span>
               <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
-                {step === 1 && "1. Tipo de Venta"}
-                {step === 2 && "2. Detalles de Cobro"}
+                {step === 1 && '1. Tipo de Venta'}
+                {step === 2 && '2. Detalles de Cobro'}
               </h2>
             </div>
             {step > 1 && (
@@ -365,8 +374,7 @@ export const ConfirmSaleModal = ({
                 size="sm"
                 onClick={() => setStep((prev) => prev - 1)}
                 className="h-8 text-xs flex items-center gap-1 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-900 dark:text-white font-bold border border-slate-300 dark:border-slate-700"
-                disabled={isSubmitting}
-              >
+                disabled={isSubmitting}>
                 <ChevronLeft className="w-4 h-4" />
                 Atrás
               </Button>
@@ -376,12 +384,20 @@ export const ConfirmSaleModal = ({
           {/* Información del pedido flotante - ALTO CONTRASTE */}
           <div className="flex justify-between items-center bg-slate-200 dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-800 rounded-lg p-3.5 text-sm shadow-inner select-none">
             <div className="flex flex-col">
-              <span className="text-[11px] uppercase font-black text-slate-800 dark:text-slate-100">Cliente</span>
-              <span className="font-extrabold text-slate-900 dark:text-white truncate max-w-[200px]">{clientName}</span>
+              <span className="text-[11px] uppercase font-black text-slate-800 dark:text-slate-100">
+                Cliente
+              </span>
+              <span className="font-extrabold text-slate-900 dark:text-white truncate max-w-[200px]">
+                {clientName}
+              </span>
             </div>
             <div className="flex flex-col items-end">
-              <span className="text-[11px] uppercase font-black text-slate-800 dark:text-slate-100">Total a Cobrar</span>
-              <span className="text-xl font-black text-slate-900 dark:text-white">{formattedTotal}</span>
+              <span className="text-[11px] uppercase font-black text-slate-800 dark:text-slate-100">
+                Total a Cobrar
+              </span>
+              <span className="text-xl font-black text-slate-900 dark:text-white">
+                {formattedTotal}
+              </span>
             </div>
           </div>
 
@@ -396,61 +412,80 @@ export const ConfirmSaleModal = ({
                 }}
                 disabled={isSubmitting}
                 className={cn(
-                  "p-5 rounded-xl border-2 flex flex-col items-center justify-center gap-3 transition-all",
-                  "hover:border-blue-500 hover:bg-blue-50/20 active:scale-95 group",
-                  !isCreditSale 
-                    ? "border-blue-600 bg-blue-500/10 ring-2 ring-blue-500" 
-                    : "border-slate-300 dark:border-slate-800 bg-background text-slate-800 dark:text-slate-200"
-                )}
-              >
-                <div className={cn(
-                  "w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all",
-                  !isCreditSale 
-                    ? "bg-blue-600 text-white border-blue-500" 
-                    : "bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-slate-105 border-slate-300 dark:border-slate-700"
+                  'p-5 rounded-xl border-2 flex flex-col items-center justify-center gap-3 transition-all',
+                  'hover:border-blue-500 hover:bg-blue-50/20 active:scale-95 group',
+                  !isCreditSale
+                    ? 'border-blue-600 bg-blue-500/10 ring-2 ring-blue-500'
+                    : 'border-slate-300 dark:border-slate-800 bg-background text-slate-800 dark:text-slate-200'
                 )}>
+                <div
+                  className={cn(
+                    'w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all',
+                    !isCreditSale
+                      ? 'bg-blue-600 text-white border-blue-500'
+                      : 'bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-slate-105 border-slate-300 dark:border-slate-700'
+                  )}>
                   <DollarSign className="w-6 h-6 stroke-[3px]" />
                 </div>
                 <div className="text-center">
-                  <p className="font-black text-sm text-slate-900 dark:text-white">Venta a Contado</p>
-                  <p className="text-[10px] font-bold text-slate-700 dark:text-slate-400 mt-0.5">Cobro inmediato</p>
+                  <p className="font-black text-sm text-slate-900 dark:text-white">
+                    Venta a Contado
+                  </p>
+                  <p className="text-[10px] font-bold text-slate-700 dark:text-slate-400 mt-0.5">
+                    Cobro inmediato
+                  </p>
                 </div>
               </button>
 
               <button
                 type="button"
                 onClick={() => {
-                  if (!clientName || clientName === 'Cliente Genérico' || clientName === 'Consumidor Final') {
+                  if (
+                    !clientName ||
+                    clientName === 'Cliente Genérico' ||
+                    clientName === 'Consumidor Final'
+                  ) {
                     return;
                   }
                   setIsCreditSale(true);
                   setStep(2);
                 }}
-                disabled={isSubmitting || !clientName || clientName === 'Cliente Genérico' || clientName === 'Consumidor Final'}
+                disabled={
+                  isSubmitting ||
+                  !clientName ||
+                  clientName === 'Cliente Genérico' ||
+                  clientName === 'Consumidor Final'
+                }
                 className={cn(
-                  "p-5 rounded-xl border-2 flex flex-col items-center justify-center gap-3 transition-all relative",
-                  (!clientName || clientName === 'Cliente Genérico' || clientName === 'Consumidor Final') && "opacity-50 cursor-not-allowed",
-                  "hover:border-purple-500 hover:bg-purple-50/20 active:scale-95 group",
-                  isCreditSale 
-                    ? "border-purple-600 bg-purple-500/10 ring-2 ring-purple-500" 
-                    : "border-slate-300 dark:border-slate-800 bg-background text-slate-800 dark:text-slate-200"
-                )}
-              >
-                <div className={cn(
-                  "w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all",
-                  isCreditSale 
-                    ? "bg-purple-600 text-white border-purple-500" 
-                    : "bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-slate-105 border-slate-300 dark:border-slate-700"
+                  'p-5 rounded-xl border-2 flex flex-col items-center justify-center gap-3 transition-all relative',
+                  (!clientName ||
+                    clientName === 'Cliente Genérico' ||
+                    clientName === 'Consumidor Final') &&
+                    'opacity-50 cursor-not-allowed',
+                  'hover:border-purple-500 hover:bg-purple-50/20 active:scale-95 group',
+                  isCreditSale
+                    ? 'border-purple-600 bg-purple-500/10 ring-2 ring-purple-500'
+                    : 'border-slate-300 dark:border-slate-800 bg-background text-slate-800 dark:text-slate-200'
                 )}>
+                <div
+                  className={cn(
+                    'w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all',
+                    isCreditSale
+                      ? 'bg-purple-600 text-white border-purple-500'
+                      : 'bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-slate-105 border-slate-300 dark:border-slate-700'
+                  )}>
                   <Calendar className="w-6 h-6 stroke-[3px]" />
                 </div>
                 <div className="text-center">
-                  <p className="font-black text-sm text-slate-900 dark:text-white">Venta a Crédito</p>
+                  <p className="font-black text-sm text-slate-900 dark:text-white">
+                    Venta a Crédito
+                  </p>
                   <p className="text-[10px] font-bold text-slate-700 dark:text-slate-400 mt-0.5">
-                    {(!clientName || clientName === 'Cliente Genérico' || clientName === 'Consumidor Final') 
-                      ? "Requiere cliente registrado" 
-                      : "Pago en cuotas diferidas"
-                    }
+                    {!clientName ||
+                    clientName === 'Cliente Genérico' ||
+                    clientName === 'Consumidor Final'
+                      ? 'Requiere cliente registrado'
+                      : 'Pago en cuotas diferidas'}
                   </p>
                 </div>
               </button>
@@ -466,46 +501,49 @@ export const ConfirmSaleModal = ({
                   type="button"
                   onClick={() => setPaymentMethod('CASH')}
                   className={cn(
-                    "py-1.5 text-[11px] font-black rounded-md transition-all flex items-center justify-center gap-1.5 border-2",
-                    paymentMethod === 'CASH' 
-                      ? "bg-blue-600 text-white shadow-md border-blue-500" 
-                      : "text-slate-800 dark:text-slate-200 border-transparent hover:bg-slate-300/60 dark:hover:bg-slate-800/60"
+                    'py-1.5 text-[11px] font-black rounded-md transition-all flex items-center justify-center gap-1.5 border-2',
+                    paymentMethod === 'CASH'
+                      ? 'bg-blue-600 text-white shadow-md border-blue-500'
+                      : 'text-slate-800 dark:text-slate-200 border-transparent hover:bg-slate-300/60 dark:hover:bg-slate-800/60'
                   )}
-                  disabled={isSubmitting}
-                >
+                  disabled={isSubmitting}>
                   <Coins className="w-3.5 h-3.5 stroke-[2.5px]" />
                   <span>Efectivo</span>
-                  <kbd className="hidden md:inline-block px-1 rounded bg-white/20 text-[9px] font-semibold">F2</kbd>
+                  <kbd className="hidden md:inline-block px-1 rounded bg-white/20 text-[9px] font-semibold">
+                    F2
+                  </kbd>
                 </button>
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('TRANSFER')}
                   className={cn(
-                    "py-1.5 text-[11px] font-black rounded-md transition-all flex items-center justify-center gap-1.5 border-2",
-                    paymentMethod === 'TRANSFER' 
-                      ? "bg-blue-600 text-white shadow-md border-blue-500" 
-                      : "text-slate-800 dark:text-slate-200 border-transparent hover:bg-slate-300/60 dark:hover:bg-slate-800/60"
+                    'py-1.5 text-[11px] font-black rounded-md transition-all flex items-center justify-center gap-1.5 border-2',
+                    paymentMethod === 'TRANSFER'
+                      ? 'bg-blue-600 text-white shadow-md border-blue-500'
+                      : 'text-slate-800 dark:text-slate-200 border-transparent hover:bg-slate-300/60 dark:hover:bg-slate-800/60'
                   )}
-                  disabled={isSubmitting}
-                >
+                  disabled={isSubmitting}>
                   <ArrowRightLeft className="w-3.5 h-3.5 stroke-[2.5px]" />
                   <span>Transf.</span>
-                  <kbd className="hidden md:inline-block px-1 rounded bg-white/20 text-[9px] font-semibold">F3</kbd>
+                  <kbd className="hidden md:inline-block px-1 rounded bg-white/20 text-[9px] font-semibold">
+                    F3
+                  </kbd>
                 </button>
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('CARD')}
                   className={cn(
-                    "py-1.5 text-[11px] font-black rounded-md transition-all flex items-center justify-center gap-1.5 border-2",
-                    paymentMethod === 'CARD' 
-                      ? "bg-blue-600 text-white shadow-md border-blue-500" 
-                      : "text-slate-800 dark:text-slate-200 border-transparent hover:bg-slate-300/60 dark:hover:bg-slate-800/60"
+                    'py-1.5 text-[11px] font-black rounded-md transition-all flex items-center justify-center gap-1.5 border-2',
+                    paymentMethod === 'CARD'
+                      ? 'bg-blue-600 text-white shadow-md border-blue-500'
+                      : 'text-slate-800 dark:text-slate-200 border-transparent hover:bg-slate-300/60 dark:hover:bg-slate-800/60'
                   )}
-                  disabled={isSubmitting}
-                >
+                  disabled={isSubmitting}>
                   <CreditCard className="w-3.5 h-3.5 stroke-[2.5px]" />
                   <span>Tarjeta</span>
-                  <kbd className="hidden md:inline-block px-1 rounded bg-white/20 text-[9px] font-semibold">F4</kbd>
+                  <kbd className="hidden md:inline-block px-1 rounded bg-white/20 text-[9px] font-semibold">
+                    F4
+                  </kbd>
                 </button>
               </div>
 
@@ -523,17 +561,22 @@ export const ConfirmSaleModal = ({
                         type="button"
                         onClick={handleFillExactCash}
                         disabled={isSubmitting}
-                        className="text-[10px] bg-blue-650 hover:bg-blue-700 text-white font-extrabold px-2.5 py-1 rounded border border-blue-500 transition-all uppercase tracking-wider shadow-sm flex items-center gap-1.5"
-                      >
+                        className="text-[10px] bg-blue-650 hover:bg-blue-700 text-white font-extrabold px-2.5 py-1 rounded border border-blue-500 transition-all uppercase tracking-wider shadow-sm flex items-center gap-1.5">
                         <span>Pagar Restante</span>
                         <kbd className="px-1 rounded bg-white/20 text-[9px] font-semibold">F8</kbd>
                       </button>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="flex flex-col gap-1">
-                        <Label htmlFor="multCashNio" className="text-[11px] font-bold text-slate-800 dark:text-slate-100">Córdobas (C$)</Label>
+                        <Label
+                          htmlFor="multCashNio"
+                          className="text-[11px] font-bold text-slate-800 dark:text-slate-100">
+                          Córdobas (C$)
+                        </Label>
                         <div className="relative">
-                          <span className="absolute left-2.5 top-1.5 text-xs font-black text-slate-600 dark:text-slate-400">C$</span>
+                          <span className="absolute left-2.5 top-1.5 text-xs font-black text-slate-600 dark:text-slate-400">
+                            C$
+                          </span>
                           <Input
                             ref={cashNioRef}
                             id="multCashNio"
@@ -549,9 +592,15 @@ export const ConfirmSaleModal = ({
                         </div>
                       </div>
                       <div className="flex flex-col gap-1">
-                        <Label htmlFor="multCashUsd" className="text-[11px] font-bold text-slate-800 dark:text-slate-100">Dólares ($)</Label>
+                        <Label
+                          htmlFor="multCashUsd"
+                          className="text-[11px] font-bold text-slate-800 dark:text-slate-100">
+                          Dólares ($)
+                        </Label>
                         <div className="relative">
-                          <span className="absolute left-2.5 top-1.5 text-xs font-black text-slate-600 dark:text-slate-400">$</span>
+                          <span className="absolute left-2.5 top-1.5 text-xs font-black text-slate-600 dark:text-slate-400">
+                            $
+                          </span>
                           <Input
                             id="multCashUsd"
                             type="number"
@@ -581,23 +630,25 @@ export const ConfirmSaleModal = ({
                         type="button"
                         onClick={handleFillExactTransfer}
                         disabled={isSubmitting}
-                        className="text-[10px] bg-blue-650 hover:bg-blue-700 text-white font-extrabold px-2.5 py-1 rounded border border-blue-500 transition-all uppercase tracking-wider shadow-sm flex items-center gap-1.5"
-                      >
+                        className="text-[10px] bg-blue-650 hover:bg-blue-700 text-white font-extrabold px-2.5 py-1 rounded border border-blue-500 transition-all uppercase tracking-wider shadow-sm flex items-center gap-1.5">
                         <span>Copiar Restante</span>
                         <kbd className="px-1 rounded bg-white/20 text-[9px] font-semibold">F8</kbd>
                       </button>
                     </div>
                     <div className="grid grid-cols-2 gap-3 mb-2">
                       <div className="flex flex-col gap-1">
-                        <Label htmlFor="multTransBank" className="text-[11px] font-bold text-slate-800 dark:text-slate-100">Banco</Label>
+                        <Label
+                          htmlFor="multTransBank"
+                          className="text-[11px] font-bold text-slate-800 dark:text-slate-100">
+                          Banco
+                        </Label>
                         <select
                           ref={transBankRef}
                           id="multTransBank"
                           value={multipleTransferBank}
                           onChange={(e) => setMultipleTransferBank(e.target.value)}
                           className="h-8 text-xs rounded-md border border-slate-400 dark:border-slate-600 bg-background px-2 font-bold text-slate-900 dark:text-white"
-                          disabled={isSubmitting}
-                        >
+                          disabled={isSubmitting}>
                           <option value="">Seleccione...</option>
                           <option value="BAC">BAC</option>
                           <option value="BANPRO">BANPRO</option>
@@ -607,7 +658,11 @@ export const ConfirmSaleModal = ({
                         </select>
                       </div>
                       <div className="flex flex-col gap-1">
-                        <Label htmlFor="multTransRef" className="text-[11px] font-bold text-slate-800 dark:text-slate-100">Referencia</Label>
+                        <Label
+                          htmlFor="multTransRef"
+                          className="text-[11px] font-bold text-slate-800 dark:text-slate-100">
+                          Referencia
+                        </Label>
                         <Input
                           id="multTransRef"
                           type="text"
@@ -620,9 +675,15 @@ export const ConfirmSaleModal = ({
                       </div>
                     </div>
                     <div className="flex flex-col gap-1">
-                      <Label htmlFor="multTransAmt" className="text-[11px] font-bold text-slate-800 dark:text-slate-100">Monto Transferencia (C$)</Label>
+                      <Label
+                        htmlFor="multTransAmt"
+                        className="text-[11px] font-bold text-slate-800 dark:text-slate-100">
+                        Monto Transferencia (C$)
+                      </Label>
                       <div className="relative">
-                        <span className="absolute left-2.5 top-1.5 text-xs font-black text-slate-600 dark:text-slate-400">C$</span>
+                        <span className="absolute left-2.5 top-1.5 text-xs font-black text-slate-600 dark:text-slate-400">
+                          C$
+                        </span>
                         <Input
                           id="multTransAmt"
                           type="number"
@@ -651,23 +712,25 @@ export const ConfirmSaleModal = ({
                         type="button"
                         onClick={handleFillExactCard}
                         disabled={isSubmitting}
-                        className="text-[10px] bg-blue-650 hover:bg-blue-700 text-white font-extrabold px-2.5 py-1 rounded border border-blue-500 transition-all uppercase tracking-wider shadow-sm flex items-center gap-1.5"
-                      >
+                        className="text-[10px] bg-blue-650 hover:bg-blue-700 text-white font-extrabold px-2.5 py-1 rounded border border-blue-500 transition-all uppercase tracking-wider shadow-sm flex items-center gap-1.5">
                         <span>Pagar Restante</span>
                         <kbd className="px-1 rounded bg-white/20 text-[9px] font-semibold">F8</kbd>
                       </button>
                     </div>
                     <div className="grid grid-cols-3 gap-2 mb-2">
                       <div className="flex flex-col gap-1">
-                        <Label htmlFor="multCardBrand" className="text-[11px] font-bold text-slate-800 dark:text-slate-100">Franquicia</Label>
+                        <Label
+                          htmlFor="multCardBrand"
+                          className="text-[11px] font-bold text-slate-800 dark:text-slate-100">
+                          Franquicia
+                        </Label>
                         <select
                           ref={cardBrandRef}
                           id="multCardBrand"
                           value={multipleCardBrand}
                           onChange={(e) => setMultipleCardBrand(e.target.value)}
                           className="h-8 text-[11px] rounded-md border border-slate-400 dark:border-slate-600 bg-background px-1 font-bold text-slate-900 dark:text-white"
-                          disabled={isSubmitting}
-                        >
+                          disabled={isSubmitting}>
                           <option value="Visa">Visa</option>
                           <option value="Mastercard">Mastercard</option>
                           <option value="AMEX">AMEX</option>
@@ -675,7 +738,11 @@ export const ConfirmSaleModal = ({
                         </select>
                       </div>
                       <div className="flex flex-col gap-1">
-                        <Label htmlFor="multCardDigits" className="text-[11px] font-bold text-slate-800 dark:text-slate-100">Últimos 4</Label>
+                        <Label
+                          htmlFor="multCardDigits"
+                          className="text-[11px] font-bold text-slate-800 dark:text-slate-100">
+                          Últimos 4
+                        </Label>
                         <Input
                           id="multCardDigits"
                           type="text"
@@ -688,7 +755,11 @@ export const ConfirmSaleModal = ({
                         />
                       </div>
                       <div className="flex flex-col gap-1">
-                        <Label htmlFor="multCardRef" className="text-[11px] font-bold text-slate-800 dark:text-slate-100">Voucher</Label>
+                        <Label
+                          htmlFor="multCardRef"
+                          className="text-[11px] font-bold text-slate-800 dark:text-slate-100">
+                          Voucher
+                        </Label>
                         <Input
                           id="multCardRef"
                           type="text"
@@ -701,9 +772,15 @@ export const ConfirmSaleModal = ({
                       </div>
                     </div>
                     <div className="flex flex-col gap-1">
-                      <Label htmlFor="multCardAmt" className="text-[11px] font-bold text-slate-800 dark:text-slate-100">Monto Tarjeta (C$)</Label>
+                      <Label
+                        htmlFor="multCardAmt"
+                        className="text-[11px] font-bold text-slate-800 dark:text-slate-100">
+                        Monto Tarjeta (C$)
+                      </Label>
                       <div className="relative">
-                        <span className="absolute left-2.5 top-1.5 text-xs font-black text-slate-600 dark:text-slate-400">C$</span>
+                        <span className="absolute left-2.5 top-1.5 text-xs font-black text-slate-600 dark:text-slate-400">
+                          C$
+                        </span>
                         <Input
                           id="multCardAmt"
                           type="number"
@@ -733,15 +810,18 @@ export const ConfirmSaleModal = ({
               </div>
 
               {/* Panel de Vuelto / Saldo Faltante - ALTO CONTRASTE Y GLOBAL */}
-              <div className={cn(
-                "rounded-xl border-2 p-3.5 flex flex-col items-center justify-center text-center transition-all duration-300 shadow-inner",
-                totalPaidEquivalent >= total - 0.01
-                  ? "bg-emerald-100 dark:bg-emerald-950/40 border-emerald-500 text-emerald-800 dark:text-emerald-250"
-                  : "bg-amber-100 dark:bg-amber-950/40 border-amber-500 text-amber-800 dark:text-amber-255"
-              )}>
+              <div
+                className={cn(
+                  'rounded-xl border-2 p-3.5 flex flex-col items-center justify-center text-center transition-all duration-300 shadow-inner',
+                  totalPaidEquivalent >= total - 0.01
+                    ? 'bg-emerald-100 dark:bg-emerald-950/40 border-emerald-500 text-emerald-800 dark:text-emerald-250'
+                    : 'bg-amber-100 dark:bg-amber-950/40 border-amber-500 text-amber-800 dark:text-amber-255'
+                )}>
                 {totalPaidEquivalent >= total - 0.01 ? (
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-[10px] uppercase font-black tracking-wider opacity-75">Cambio a entregar (Vuelto)</span>
+                    <span className="text-[10px] uppercase font-black tracking-wider opacity-75">
+                      Cambio a entregar (Vuelto)
+                    </span>
                     <span className="text-xl font-black">{formattedChange}</span>
                     <p className="text-[10px] font-bold opacity-80 mt-0.5">
                       Total Ingresado (Global): {formattedPaid}
@@ -749,7 +829,9 @@ export const ConfirmSaleModal = ({
                   </div>
                 ) : (
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-[10px] uppercase font-black tracking-wider opacity-75">Monto faltante</span>
+                    <span className="text-[10px] uppercase font-black tracking-wider opacity-75">
+                      Monto faltante
+                    </span>
                     <span className="text-xl font-black">{formattedMissing}</span>
                     <p className="text-[10px] font-bold opacity-80 mt-0.5">
                       Total Ingresado (Global): {formattedPaid}
@@ -766,9 +848,15 @@ export const ConfirmSaleModal = ({
               <div className="flex items-start gap-2 text-purple-900 dark:text-purple-200">
                 <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-purple-600 dark:text-purple-400" />
                 <div className="flex flex-col">
-                  <span className="text-xs font-black uppercase tracking-wider text-purple-700 dark:text-purple-300">Venta a Crédito</span>
+                  <span className="text-xs font-black uppercase tracking-wider text-purple-700 dark:text-purple-300">
+                    Venta a Crédito
+                  </span>
                   <p className="text-xs text-purple-800 dark:text-purple-200 font-bold mt-1">
-                    Se generará un saldo pendiente por cobrar a nombre de <strong className="text-purple-950 dark:text-white underline">{clientName}</strong>.
+                    Se generará un saldo pendiente por cobrar a nombre de{' '}
+                    <strong className="text-purple-950 dark:text-white underline">
+                      {clientName}
+                    </strong>
+                    .
                   </p>
                 </div>
               </div>
@@ -790,8 +878,7 @@ export const ConfirmSaleModal = ({
             size="sm"
             onClick={onCancel}
             disabled={isSubmitting}
-            className="h-9 px-4 text-xs font-bold border-2 border-slate-350 dark:border-slate-700 text-slate-950 dark:text-white"
-          >
+            className="h-9 px-4 text-xs font-bold border-2 border-slate-350 dark:border-slate-700 text-slate-950 dark:text-white">
             Revisar Factura
           </Button>
 
@@ -802,12 +889,11 @@ export const ConfirmSaleModal = ({
                 onClick={handleFinalSubmit}
                 disabled={isSubmitting || !canConfirm()}
                 className={cn(
-                  "h-9 px-5 text-xs font-bold flex items-center gap-1.5 shadow-md border-2",
-                  isCreditSale 
-                    ? "bg-purple-600 hover:bg-purple-700 text-white border-purple-500" 
-                    : "bg-blue-600 hover:bg-blue-700 text-white border-blue-500"
-                )}
-              >
+                  'h-9 px-5 text-xs font-bold flex items-center gap-1.5 shadow-md border-2',
+                  isCreditSale
+                    ? 'bg-purple-600 hover:bg-purple-700 text-white border-purple-500'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white border-blue-500'
+                )}>
                 {isSubmitting ? (
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -816,19 +902,26 @@ export const ConfirmSaleModal = ({
                 ) : (
                   <>
                     <span>Confirmar y Cobrar</span>
-                    <kbd className="hidden sm:inline-block px-1 ml-1.5 rounded bg-white/20 text-[9px] font-semibold">Ctrl + Enter</kbd>
+                    <kbd className="hidden sm:inline-block px-1 ml-1.5 rounded bg-white/20 text-[9px] font-semibold">
+                      Ctrl + Enter
+                    </kbd>
                   </>
                 )}
               </Button>
             )}
-            
+
             {step === 1 && (
               <Button
                 type="button"
                 onClick={() => setStep(2)}
-                disabled={isSubmitting || (isCreditSale && (!clientName || clientName === 'Cliente Genérico' || clientName === 'Consumidor Final'))}
-                className="h-9 px-5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white border-2 border-blue-500"
-              >
+                disabled={
+                  isSubmitting ||
+                  (isCreditSale &&
+                    (!clientName ||
+                      clientName === 'Cliente Genérico' ||
+                      clientName === 'Consumidor Final'))
+                }
+                className="h-9 px-5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white border-2 border-blue-500">
                 Siguiente
               </Button>
             )}

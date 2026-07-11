@@ -14,13 +14,17 @@ interface IPrivateRouteProps {
 export default function PrivateRoute({ children }: IPrivateRouteProps) {
   const dispatch = useAppDispatch();
   const isValidated = useValidateToken();
-  
+
   const { store } = useAppSelector((state) => state.storeSlice);
   const storeId = store?.id || '';
-  
+
   const { isSellerAuthenticated } = useAppSelector((state) => state.userSlice);
-  
-  const { isOpen, controlMode, isLoading: isCashLoading } = useAppSelector((state) => state.cashSlice);
+
+  const {
+    isOpen,
+    controlMode,
+    isLoading: isCashLoading
+  } = useAppSelector((state) => state.cashSlice);
 
   useEffect(() => {
     if (isSellerAuthenticated && storeId) {

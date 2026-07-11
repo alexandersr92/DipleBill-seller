@@ -11,9 +11,12 @@ import { sellerLogout } from '@/modules/auth/slices/userSlice';
 export function CashSessionOverlay() {
   const dispatch = useAppDispatch();
   const { toast } = useToast();
-  
+
   const { store } = useAppSelector((state) => state.storeSlice);
-  const sellerName = useAppSelector((state) => state.userSlice.sellerName) || localStorage.getItem('seller_name') || 'Vendedor';
+  const sellerName =
+    useAppSelector((state) => state.userSlice.sellerName) ||
+    localStorage.getItem('seller_name') ||
+    'Vendedor';
 
   const [openingBalance, setOpeningBalance] = useState<string>('0.00');
   const [cashRegisterName, setCashRegisterName] = useState<string>('');
@@ -71,7 +74,6 @@ export function CashSessionOverlay() {
   return (
     <div className="fixed inset-0 bg-slate-950/95 backdrop-blur-md flex items-center justify-center z-[9999] select-none p-4">
       <div className="w-full max-w-md bg-slate-900 border-2 border-slate-800 rounded-xl p-6 shadow-2xl relative overflow-hidden animate-in zoom-in-95 duration-200">
-        
         {/* Decorative elements */}
         <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 w-24 h-24 bg-purple-500/5 rounded-full blur-2xl pointer-events-none"></div>
@@ -80,7 +82,9 @@ export function CashSessionOverlay() {
           <div className="p-3 bg-blue-950/40 rounded-full border border-blue-800 text-blue-500 mb-1">
             <Coins className="w-8 h-8 animate-pulse" />
           </div>
-          <h1 className="text-lg font-black tracking-tight text-white uppercase">Apertura de Caja</h1>
+          <h1 className="text-lg font-black tracking-tight text-white uppercase">
+            Apertura de Caja
+          </h1>
           <p className="text-xs font-semibold text-slate-400">
             Se requiere registrar el fondo inicial para iniciar la facturación
           </p>
@@ -92,7 +96,9 @@ export function CashSessionOverlay() {
             <span className="flex items-center gap-1">
               <Store className="w-3.5 h-3.5" /> Sucursal:
             </span>
-            <span className="text-white truncate max-w-[200px]">{store?.name || 'Cargando...'}</span>
+            <span className="text-white truncate max-w-[200px]">
+              {store?.name || 'Cargando...'}
+            </span>
           </div>
           <div className="flex justify-between items-center text-slate-400 font-bold">
             <span className="flex items-center gap-1">
@@ -149,8 +155,7 @@ export function CashSessionOverlay() {
             <Button
               type="submit"
               disabled={isOpening}
-              className="w-full font-black uppercase text-xs tracking-wider bg-blue-600 hover:bg-blue-750 text-white py-5 shadow-lg shadow-blue-500/10"
-            >
+              className="w-full font-black uppercase text-xs tracking-wider bg-blue-600 hover:bg-blue-750 text-white py-5 shadow-lg shadow-blue-500/10">
               {isOpening ? (
                 <>
                   <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
@@ -165,8 +170,7 @@ export function CashSessionOverlay() {
               type="button"
               onClick={handleLogoutSeller}
               className="text-xs font-bold text-slate-500 hover:text-slate-350 hover:underline flex items-center justify-center gap-1 py-2"
-              disabled={isOpening}
-            >
+              disabled={isOpening}>
               <LogOut className="w-3.5 h-3.5" />
               <span>Cerrar Sesión del Vendedor</span>
             </button>

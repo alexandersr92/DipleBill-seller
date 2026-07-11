@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { 
-  addCashTransaction, 
-  closeCashSession, 
+import {
+  addCashTransaction,
+  closeCashSession,
   fetchCashSettingsAndSession,
   ICashSession,
   ICashTotals,
@@ -11,13 +11,13 @@ import {
   deleteCashTransaction
 } from '../slices/cashSlice';
 import { useToast } from '@/components/hooks/use-toast';
-import { 
-  Coins, 
-  ArrowUpRight, 
-  ArrowDownRight, 
-  Clock, 
-  PlusCircle, 
-  CheckCircle2, 
+import {
+  Coins,
+  ArrowUpRight,
+  ArrowDownRight,
+  Clock,
+  PlusCircle,
+  CheckCircle2,
   AlertCircle,
   Loader2,
   Pencil,
@@ -35,15 +35,14 @@ export default function CashControlContainer() {
   const { store } = useAppSelector((state) => state.storeSlice);
   const storeId = store?.id || '';
 
-  const { 
-    activeSession, 
-    isOpen, 
-    totals, 
-    countType, 
-    isLoading 
-  } = useAppSelector((state) => state.cashSlice);
+  const { activeSession, isOpen, totals, countType, isLoading } = useAppSelector(
+    (state) => state.cashSlice
+  );
 
-  const sellerName = useAppSelector((state) => state.userSlice.sellerName) || localStorage.getItem('seller_name') || 'Cajero';
+  const sellerName =
+    useAppSelector((state) => state.userSlice.sellerName) ||
+    localStorage.getItem('seller_name') ||
+    'Cajero';
 
   // Manual transaction states
   const [showTxModal, setShowTxModal] = useState(false);
@@ -233,16 +232,17 @@ export default function CashControlContainer() {
     reportedCash: number,
     notesText: string
   ) => {
-    let printWindow = window.open('', '_blank');
+    const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
     const expectedCash = tot.expected_cash;
     const diff = reportedCash - expectedCash;
-    const diffText = diff === 0 
-      ? 'CUADRADO' 
-      : diff > 0 
-        ? `SOBRANTE (+C$ ${diff.toFixed(2)})` 
-        : `FALTANTE (-C$ ${Math.abs(diff).toFixed(2)})`;
+    const diffText =
+      diff === 0
+        ? 'CUADRADO'
+        : diff > 0
+          ? `SOBRANTE (+C$ ${diff.toFixed(2)})`
+          : `FALTANTE (-C$ ${Math.abs(diff).toFixed(2)})`;
 
     const htmlContent = `
       <html>
@@ -302,11 +302,15 @@ export default function CashControlContainer() {
             <tr class="bold"><td>Total Tarjeta:</td><td class="right">C$ ${tot.total_card.toFixed(2)}</td></tr>
           </table>
 
-          ${notesText ? `
+          ${
+            notesText
+              ? `
             <div class="hr"></div>
             <div>Notas del Turno:</div>
             <div>${notesText}</div>
-          ` : ''}
+          `
+              : ''
+          }
           <div class="hr"></div>
           <div class="center bold" style="margin-top: 30px;">Firma del Cajero</div>
           <div style="margin-top: 40px; border-top: 1px solid #000; width: 70%; margin-left: auto; margin-right: auto;"></div>
@@ -348,15 +352,13 @@ export default function CashControlContainer() {
           <div className="flex gap-2">
             <Button
               onClick={handleOpenTxModal}
-              className="h-8 text-xs font-extrabold uppercase bg-slate-200 hover:bg-slate-350 text-slate-800 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 flex items-center gap-1"
-            >
+              className="h-8 text-xs font-extrabold uppercase bg-slate-200 hover:bg-slate-350 text-slate-800 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 flex items-center gap-1">
               <PlusCircle className="w-3.5 h-3.5" />
               <span>Ajuste de Efectivo</span>
             </Button>
             <Button
               onClick={handleOpenCloseModal}
-              className="h-8 text-xs font-extrabold uppercase bg-red-600 hover:bg-red-700 text-white flex items-center gap-1"
-            >
+              className="h-8 text-xs font-extrabold uppercase bg-red-600 hover:bg-red-700 text-white flex items-center gap-1">
               <CheckCircle2 className="w-3.5 h-3.5" />
               <span>Cerrar Turno</span>
             </Button>
@@ -367,17 +369,18 @@ export default function CashControlContainer() {
       {!isOpen || !activeSession ? (
         <div className="border border-dashed border-slate-300 dark:border-slate-800 rounded-lg p-12 text-center flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900/10">
           <AlertCircle className="w-10 h-10 text-slate-400 mb-3" />
-          <h3 className="text-base font-extrabold text-slate-900 dark:text-white mb-1">Caja Cerrada</h3>
+          <h3 className="text-base font-extrabold text-slate-900 dark:text-white mb-1">
+            Caja Cerrada
+          </h3>
           <p className="text-xs text-slate-500 max-w-md">
-            No hay turnos activos registrados para tu usuario en esta sucursal. Abre la caja ingresando un fondo inicial para facturar.
+            No hay turnos activos registrados para tu usuario en esta sucursal. Abre la caja
+            ingresando un fondo inicial para facturar.
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-in fade-in-50 duration-200">
-          
           {/* STATS OVERVIEW */}
           <div className="md:col-span-2 flex flex-col gap-4">
-            
             {/* CASH IN DRAWER PROMINENT CARD */}
             <div className="border-2 border-slate-350 dark:border-slate-800 rounded-xl p-5 bg-gradient-to-br from-slate-900 to-slate-950 text-white relative overflow-hidden shadow-md flex items-center justify-between">
               <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl pointer-events-none"></div>
@@ -387,10 +390,13 @@ export default function CashControlContainer() {
                     Caja Abierta
                   </span>
                   <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5" /> Desde: {new Date(activeSession.opened_at).toLocaleTimeString()}
+                    <Clock className="w-3.5 h-3.5" /> Desde:{' '}
+                    {new Date(activeSession.opened_at).toLocaleTimeString()}
                   </span>
                 </div>
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Efectivo Esperado en Gaveta</h3>
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Efectivo Esperado en Gaveta
+                </h3>
                 <p className="text-3xl font-black text-white tracking-tight mt-1">
                   {currencyFormatter({ currency: 'NIO', value: totals?.expected_cash || 0 })}
                 </p>
@@ -405,12 +411,13 @@ export default function CashControlContainer() {
               <h3 className="text-xs font-black uppercase text-slate-800 dark:text-slate-200 tracking-wider">
                 Desglose Acumulado del Turno
               </h3>
-              
+
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3.5">
-                
                 {/* FONDO INICIAL */}
                 <div className="border border-slate-250 dark:border-slate-850 p-3 rounded-lg bg-slate-50/50 dark:bg-slate-900/10">
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fondo Inicial</p>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                    Fondo Inicial
+                  </p>
                   <p className="text-sm font-black text-slate-800 dark:text-slate-100 mt-0.5">
                     {currencyFormatter({ currency: 'NIO', value: activeSession.opening_balance })}
                   </p>
@@ -418,7 +425,9 @@ export default function CashControlContainer() {
 
                 {/* VENTAS DIRECTAS EFECTIVO */}
                 <div className="border border-slate-250 dark:border-slate-850 p-3 rounded-lg bg-slate-50/50 dark:bg-slate-900/10">
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Ventas Directas (Efe)</p>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                    Ventas Directas (Efe)
+                  </p>
                   <p className="text-sm font-black text-slate-800 dark:text-slate-100 mt-0.5">
                     {currencyFormatter({ currency: 'NIO', value: totals?.invoice_cash || 0 })}
                   </p>
@@ -426,7 +435,9 @@ export default function CashControlContainer() {
 
                 {/* ABONOS CRÉDITO EFECTIVO */}
                 <div className="border border-slate-250 dark:border-slate-850 p-3 rounded-lg bg-slate-50/50 dark:bg-slate-900/10">
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Abonos Crédito (Efe)</p>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                    Abonos Crédito (Efe)
+                  </p>
                   <p className="text-sm font-black text-slate-800 dark:text-slate-100 mt-0.5">
                     {currencyFormatter({ currency: 'NIO', value: totals?.credit_cash || 0 })}
                   </p>
@@ -451,9 +462,7 @@ export default function CashControlContainer() {
                     {currencyFormatter({ currency: 'NIO', value: totals?.manual_out || 0 })}
                   </p>
                 </div>
-
               </div>
-
             </div>
 
             {/* SHIFT ADJUSTMENTS LIST */}
@@ -461,9 +470,10 @@ export default function CashControlContainer() {
               <h3 className="text-xs font-black uppercase text-slate-850 dark:text-slate-200 tracking-wider">
                 Movimientos de Ajuste de este Turno
               </h3>
-              
-              {(activeSession.cash_transactions || activeSession.cashTransactions) && 
-              ((activeSession.cash_transactions || activeSession.cashTransactions)?.length ?? 0) > 0 ? (
+
+              {(activeSession.cash_transactions || activeSession.cashTransactions) &&
+              ((activeSession.cash_transactions || activeSession.cashTransactions)?.length ?? 0) >
+                0 ? (
                 <div className="border border-slate-250 dark:border-slate-850 rounded-lg overflow-hidden">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
@@ -475,45 +485,51 @@ export default function CashControlContainer() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200 dark:divide-slate-850">
-                      {(activeSession.cash_transactions || activeSession.cashTransactions)?.map((tx: any) => (
-                        <tr key={tx.id} className="hover:bg-slate-55/50 dark:hover:bg-slate-900/10">
-                          <td className="p-2.5 font-bold">
-                            {tx.type === 'in' ? (
-                              <span className="text-green-600 dark:text-green-400">Entrada (+)</span>
-                            ) : (
-                              <span className="text-red-500">Salida (-)</span>
-                            )}
-                          </td>
-                          <td className="p-2.5 font-extrabold text-slate-850 dark:text-white">
-                            {currencyFormatter({ currency: 'NIO', value: tx.amount })}
-                          </td>
-                          <td className="p-2.5 text-slate-600 dark:text-slate-400 max-w-[200px] truncate" title={tx.description || ''}>
-                            {tx.description || '-'}
-                          </td>
-                          <td className="p-2.5 text-center">
-                            <div className="flex justify-center gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleEditTxClick(tx)}
-                                title="Editar movimiento"
-                                className="h-7 w-7 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-200 dark:hover:bg-slate-800"
-                              >
-                                <Pencil className="w-3.5 h-3.5" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDeleteTxClick(tx.id)}
-                                title="Eliminar movimiento"
-                                className="h-7 w-7 text-slate-500 hover:text-red-500 hover:bg-slate-200 dark:hover:bg-slate-800"
-                              >
-                                <Trash className="w-3.5 h-3.5" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                      {(activeSession.cash_transactions || activeSession.cashTransactions)?.map(
+                        (tx: any) => (
+                          <tr
+                            key={tx.id}
+                            className="hover:bg-slate-55/50 dark:hover:bg-slate-900/10">
+                            <td className="p-2.5 font-bold">
+                              {tx.type === 'in' ? (
+                                <span className="text-green-600 dark:text-green-400">
+                                  Entrada (+)
+                                </span>
+                              ) : (
+                                <span className="text-red-500">Salida (-)</span>
+                              )}
+                            </td>
+                            <td className="p-2.5 font-extrabold text-slate-850 dark:text-white">
+                              {currencyFormatter({ currency: 'NIO', value: tx.amount })}
+                            </td>
+                            <td
+                              className="p-2.5 text-slate-600 dark:text-slate-400 max-w-[200px] truncate"
+                              title={tx.description || ''}>
+                              {tx.description || '-'}
+                            </td>
+                            <td className="p-2.5 text-center">
+                              <div className="flex justify-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleEditTxClick(tx)}
+                                  title="Editar movimiento"
+                                  className="h-7 w-7 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-200 dark:hover:bg-slate-800">
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleDeleteTxClick(tx.id)}
+                                  title="Eliminar movimiento"
+                                  className="h-7 w-7 text-slate-500 hover:text-red-500 hover:bg-slate-200 dark:hover:bg-slate-800">
+                                  <Trash className="w-3.5 h-3.5" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -523,13 +539,11 @@ export default function CashControlContainer() {
                 </div>
               )}
             </div>
-
           </div>
 
           {/* ELECTRONIC PAYMENTS AND SHIFT INFO PANEL */}
           <div className="flex flex-col gap-4">
             <div className="border-2 border-slate-350 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-950/20 flex flex-col gap-4 h-full justify-between">
-              
               <div className="flex flex-col gap-3.5">
                 <h3 className="text-xs font-black uppercase text-slate-800 dark:text-slate-200 tracking-wider">
                   Detalles del Turno
@@ -538,11 +552,15 @@ export default function CashControlContainer() {
                 <div className="flex flex-col gap-2 text-xs">
                   <div className="flex justify-between items-center text-slate-500 font-bold">
                     <span>Caja física:</span>
-                    <span className="text-slate-850 dark:text-slate-100 font-extrabold">{activeSession.cash_register_name || 'General'}</span>
+                    <span className="text-slate-850 dark:text-slate-100 font-extrabold">
+                      {activeSession.cash_register_name || 'General'}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center text-slate-500 font-bold">
                     <span>Cajero de turno:</span>
-                    <span className="text-slate-850 dark:text-slate-100 font-extrabold">{sellerName}</span>
+                    <span className="text-slate-850 dark:text-slate-100 font-extrabold">
+                      {sellerName}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center text-slate-500 font-bold">
                     <span>Apertura:</span>
@@ -573,10 +591,8 @@ export default function CashControlContainer() {
                   </div>
                 </div>
               </div>
-
             </div>
           </div>
-
         </div>
       )}
 
@@ -597,29 +613,35 @@ export default function CashControlContainer() {
                     type="button"
                     onClick={() => setTxType('out')}
                     className={cn(
-                      "py-1.5 text-xs font-bold rounded transition-all",
-                      txType === 'out' ? "bg-red-650 text-white" : "text-slate-400 hover:text-slate-200"
-                    )}
-                  >
+                      'py-1.5 text-xs font-bold rounded transition-all',
+                      txType === 'out'
+                        ? 'bg-red-650 text-white'
+                        : 'text-slate-400 hover:text-slate-200'
+                    )}>
                     Egreso (Gasto)
                   </button>
                   <button
                     type="button"
                     onClick={() => setTxType('in')}
                     className={cn(
-                      "py-1.5 text-xs font-bold rounded transition-all",
-                      txType === 'in' ? "bg-green-650 text-white" : "text-slate-400 hover:text-slate-200"
-                    )}
-                  >
+                      'py-1.5 text-xs font-bold rounded transition-all',
+                      txType === 'in'
+                        ? 'bg-green-650 text-white'
+                        : 'text-slate-400 hover:text-slate-200'
+                    )}>
                     Ingreso (Cambio)
                   </button>
                 </div>
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="txAmount" className="text-xs font-bold text-slate-350">Monto (C$)</Label>
+                <Label htmlFor="txAmount" className="text-xs font-bold text-slate-350">
+                  Monto (C$)
+                </Label>
                 <div className="relative">
-                  <span className="absolute left-2.5 top-1.5 text-xs font-black text-slate-500">C$</span>
+                  <span className="absolute left-2.5 top-1.5 text-xs font-black text-slate-500">
+                    C$
+                  </span>
                   <Input
                     id="txAmount"
                     type="number"
@@ -633,7 +655,9 @@ export default function CashControlContainer() {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="txDesc" className="text-xs font-bold text-slate-350">Descripción / Motivo</Label>
+                <Label htmlFor="txDesc" className="text-xs font-bold text-slate-350">
+                  Descripción / Motivo
+                </Label>
                 <Input
                   id="txDesc"
                   type="text"
@@ -649,16 +673,18 @@ export default function CashControlContainer() {
                   type="button"
                   onClick={() => setShowTxModal(false)}
                   variant="outline"
-                  className="h-8 text-xs font-bold uppercase border-slate-700 hover:bg-slate-800 text-slate-300"
-                >
+                  className="h-8 text-xs font-bold uppercase border-slate-700 hover:bg-slate-800 text-slate-300">
                   Cancelar
                 </Button>
                 <Button
                   type="submit"
                   disabled={isSubmittingTx}
-                  className="h-8 text-xs font-black uppercase tracking-wider bg-blue-600 hover:bg-blue-750 text-white"
-                >
-                  {isSubmittingTx ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <span>{editingTx ? 'Actualizar' : 'Guardar'}</span>}
+                  className="h-8 text-xs font-black uppercase tracking-wider bg-blue-600 hover:bg-blue-750 text-white">
+                  {isSubmittingTx ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <span>{editingTx ? 'Actualizar' : 'Guardar'}</span>
+                  )}
                 </Button>
               </div>
             </form>
@@ -676,7 +702,6 @@ export default function CashControlContainer() {
             </h2>
 
             <form onSubmit={handleCloseSessionSubmit} className="flex flex-col gap-4">
-              
               {/* GUIDED MODE INFO */}
               {countType === 'GUIDED' && (
                 <div className="border border-blue-900/50 rounded bg-blue-950/20 p-2.5 flex flex-col gap-0.5 text-xs text-slate-300 font-bold">
@@ -692,7 +717,9 @@ export default function CashControlContainer() {
                   Efectivo Real Contado en Gaveta (C$)
                 </Label>
                 <div className="relative">
-                  <span className="absolute left-2.5 top-1.5 text-xs font-black text-slate-500">C$</span>
+                  <span className="absolute left-2.5 top-1.5 text-xs font-black text-slate-500">
+                    C$
+                  </span>
                   <Input
                     id="actualCash"
                     type="number"
@@ -724,15 +751,13 @@ export default function CashControlContainer() {
                   type="button"
                   onClick={() => setShowCloseModal(false)}
                   variant="outline"
-                  className="h-8 text-xs font-bold uppercase border-slate-700 hover:bg-slate-800 text-slate-300"
-                >
+                  className="h-8 text-xs font-bold uppercase border-slate-700 hover:bg-slate-800 text-slate-300">
                   Cancelar
                 </Button>
                 <Button
                   type="submit"
                   disabled={isSubmittingClose}
-                  className="h-8 text-xs font-black uppercase tracking-wider bg-red-600 hover:bg-red-750 text-white"
-                >
+                  className="h-8 text-xs font-black uppercase tracking-wider bg-red-600 hover:bg-red-750 text-white">
                   {isSubmittingClose ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   ) : (

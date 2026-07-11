@@ -167,7 +167,12 @@ const Invoice = () => {
                 <label className="text-sm mb-1" htmlFor="">
                   Vendedor
                 </label>
-                <Input readOnly disabled className="h-10 border-gray-500" value={invoice?.seller || ''} />
+                <Input
+                  readOnly
+                  disabled
+                  className="h-10 border-gray-500"
+                  value={invoice?.seller || ''}
+                />
               </div>
               <div className="w-full">
                 <label className="text-sm mb-1" htmlFor="">
@@ -195,9 +200,7 @@ const Invoice = () => {
 
               {invoice?.payment_metadata && (
                 <div className="w-full xl:col-span-1 sm:col-span-2 flex gap-2 flex-wrap items-start flex-col">
-                  <label className="text-sm mb-1">
-                    Detalles del Pago
-                  </label>
+                  <label className="text-sm mb-1">Detalles del Pago</label>
                   <Input
                     readOnly
                     disabled
@@ -210,18 +213,20 @@ const Invoice = () => {
                           : invoice.method === 'CARD'
                             ? `${invoice.payment_metadata.card_brand || 'Tarjeta'} (*${invoice.payment_metadata.card_last_four || '0000'}) | Ref: ${invoice.payment_metadata.reference}`
                             : invoice.method === 'MULTIPLE'
-                              ? (invoice.payment_metadata.payments || []).map((p: any) => {
-                                  if (p.method === 'CASH') {
-                                    return `Efectivo: C$ ${(p.amount || 0).toFixed(2)} (Recibido: C$ ${p.paid_nio || 0} + $${p.paid_usd || 0} USD, Vuelto: C$ ${p.change_nio || 0})`;
-                                  }
-                                  if (p.method === 'TRANSFER') {
-                                    return `Transf: C$ ${(p.amount || 0).toFixed(2)} (${p.bank} - Ref: ${p.reference})`;
-                                  }
-                                  if (p.method === 'CARD') {
-                                    return `Tarjeta: C$ ${(p.amount || 0).toFixed(2)} (${p.card_brand} *${p.card_last_four} - Ref: ${p.reference})`;
-                                  }
-                                  return `${p.method}: C$ ${(p.amount || 0).toFixed(2)}`;
-                                }).join(' | ')
+                              ? (invoice.payment_metadata.payments || [])
+                                  .map((p: any) => {
+                                    if (p.method === 'CASH') {
+                                      return `Efectivo: C$ ${(p.amount || 0).toFixed(2)} (Recibido: C$ ${p.paid_nio || 0} + $${p.paid_usd || 0} USD, Vuelto: C$ ${p.change_nio || 0})`;
+                                    }
+                                    if (p.method === 'TRANSFER') {
+                                      return `Transf: C$ ${(p.amount || 0).toFixed(2)} (${p.bank} - Ref: ${p.reference})`;
+                                    }
+                                    if (p.method === 'CARD') {
+                                      return `Tarjeta: C$ ${(p.amount || 0).toFixed(2)} (${p.card_brand} *${p.card_last_four} - Ref: ${p.reference})`;
+                                    }
+                                    return `${p.method}: C$ ${(p.amount || 0).toFixed(2)}`;
+                                  })
+                                  .join(' | ')
                               : JSON.stringify(invoice.payment_metadata)
                     }
                   />
@@ -321,8 +326,7 @@ const Invoice = () => {
               <Button
                 onClick={() => setIsEditConfirmOpen(true)}
                 tabIndex={-1}
-                className="bg-edit-accent hover:bg-edit-accent-strong text-edit-accent-foreground border border-transparent"
-              >
+                className="bg-edit-accent hover:bg-edit-accent-strong text-edit-accent-foreground border border-transparent">
                 Editar factura
               </Button>
             )}
@@ -330,8 +334,7 @@ const Invoice = () => {
               disabled={invoice?.invoice_status === 'canceled'}
               onClick={() => setIsConfirmOpen(true)}
               tabIndex={-1}
-              className="bg-theme_blue hover:bg-[#f4f4f5] hover:text-black border border-transparent hover:border-gray-500"
-            >
+              className="bg-theme_blue hover:bg-[#f4f4f5] hover:text-black border border-transparent hover:border-gray-500">
               Anular factura
             </Button>
             <OwnerPasswordConfirmDialog
