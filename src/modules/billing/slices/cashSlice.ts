@@ -73,7 +73,7 @@ export const fetchCashSettingsAndSession = createAsyncThunk(
     try {
       // 1. Fetch active session details
       const sessionRes = await axiosInstance.get(`/v1/cash-sessions/active?store_id=${storeId}`);
-      
+
       // 2. Fetch cash register settings policies (fallback to default policies if not configured)
       let controlMode: 'NONE' | 'SIMPLIFIED' | 'STRICT' = 'NONE';
       let assignmentMode: 'SHARED_STORE' | 'BY_STATION' | 'INDIVIDUAL_USER' = 'SHARED_STORE';
@@ -180,7 +180,13 @@ export const closeCashSession = createAsyncThunk(
 export const addCashTransaction = createAsyncThunk(
   'cash/addTransaction',
   async (
-    payload: { cashSessionId: string; type: 'in' | 'out'; amount: number; description: string; storeId: string },
+    payload: {
+      cashSessionId: string;
+      type: 'in' | 'out';
+      amount: number;
+      description: string;
+      storeId: string;
+    },
     { dispatch, rejectWithValue }
   ) => {
     try {
@@ -202,7 +208,13 @@ export const addCashTransaction = createAsyncThunk(
 export const updateCashTransaction = createAsyncThunk(
   'cash/updateTransaction',
   async (
-    payload: { id: string; type: 'in' | 'out'; amount: number; description: string; storeId: string },
+    payload: {
+      id: string;
+      type: 'in' | 'out';
+      amount: number;
+      description: string;
+      storeId: string;
+    },
     { dispatch, rejectWithValue }
   ) => {
     try {
@@ -222,10 +234,7 @@ export const updateCashTransaction = createAsyncThunk(
 
 export const deleteCashTransaction = createAsyncThunk(
   'cash/deleteTransaction',
-  async (
-    payload: { id: string; storeId: string },
-    { dispatch, rejectWithValue }
-  ) => {
+  async (payload: { id: string; storeId: string }, { dispatch, rejectWithValue }) => {
     try {
       const response = await axiosInstance.delete(`/v1/cash-sessions/transactions/${payload.id}`);
       // Refresh active session and totals

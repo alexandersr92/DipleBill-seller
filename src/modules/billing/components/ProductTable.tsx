@@ -39,7 +39,12 @@ interface IProductTableProps {
   children?: React.ReactNode;
 }
 
-const ProductTable = ({ sellType, productSearchRef, headerContent, children }: IProductTableProps) => {
+const ProductTable = ({
+  sellType,
+  productSearchRef,
+  headerContent,
+  children
+}: IProductTableProps) => {
   const productsSelected = useAppSelector((state) => state.billingSlice.productsSelected);
   const dispatch = useAppDispatch();
   const quantityInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
@@ -301,8 +306,7 @@ const ProductTable = ({ sellType, productSearchRef, headerContent, children }: I
                 tabIndex={-1}
                 onClick={handleDeleteSelectedProducts}
                 className="bg-secondary text-foreground hover:bg-primary focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue hover:text-secondary transition-colors duration-300 ease-in-out font-bold text-xs"
-                variant={'ghost'}
-              >
+                variant={'ghost'}>
                 Eliminar seleccionados
               </Button>
             </div>
@@ -330,9 +334,15 @@ const ProductTable = ({ sellType, productSearchRef, headerContent, children }: I
                   <TableHead className="text-[#71717A] py-4 w-[150px]">Código de barra</TableHead>
                   <TableHead className="text-[#71717A] py-4 w-[180px]">SKU</TableHead>
                   <TableHead className="text-[#71717A] py-4 w-[200px]">Producto</TableHead>
-                  <TableHead className="w-[200px] text-[#71717A] text-center py-4">Cantidad</TableHead>
-                  <TableHead className="w-[150px] text-[#71717A] text-center py-4">Precio</TableHead>
-                  <TableHead className="w-[150px] text-[#71717A] text-center py-4">Subtotal</TableHead>
+                  <TableHead className="w-[200px] text-[#71717A] text-center py-4">
+                    Cantidad
+                  </TableHead>
+                  <TableHead className="w-[150px] text-[#71717A] text-center py-4">
+                    Precio
+                  </TableHead>
+                  <TableHead className="w-[150px] text-[#71717A] text-center py-4">
+                    Subtotal
+                  </TableHead>
                   <TableHead className="text-[#71717A] text-center py-4">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
@@ -346,7 +356,9 @@ const ProductTable = ({ sellType, productSearchRef, headerContent, children }: I
                         onClick={() => handleCheckboxChange(product.temp_id ?? '')}
                       />
                     </TableCell>
-                    <TableCell className="font-medium py-4 text-xs">{product.barcode || '--'}</TableCell>
+                    <TableCell className="font-medium py-4 text-xs">
+                      {product.barcode || '--'}
+                    </TableCell>
                     <TableCell className="py-4 text-xs">{product.sku}</TableCell>
                     <TableCell className="font-semibold py-4 text-xs">{product.name}</TableCell>
                     <TableCell className="text-center py-4 w-[200px]">
@@ -386,7 +398,11 @@ const ProductTable = ({ sellType, productSearchRef, headerContent, children }: I
                             }
                           }}
                           onChange={(e) =>
-                            handleInputChange(product.temp_id ?? '', 'price', parseFloat(e.target.value) || 0)
+                            handleInputChange(
+                              product.temp_id ?? '',
+                              'price',
+                              parseFloat(e.target.value) || 0
+                            )
                           }
                         />
                       </div>
@@ -413,7 +429,11 @@ const ProductTable = ({ sellType, productSearchRef, headerContent, children }: I
                             }
                           }}
                           onChange={(e) =>
-                            handleInputChange(product.temp_id ?? '', 'total', parseFloat(e.target.value) || 0)
+                            handleInputChange(
+                              product.temp_id ?? '',
+                              'total',
+                              parseFloat(e.target.value) || 0
+                            )
                           }
                         />
                       </div>
@@ -424,8 +444,7 @@ const ProductTable = ({ sellType, productSearchRef, headerContent, children }: I
                         tabIndex={-1}
                         onClick={() => handleDeleteAddedProduct(product.temp_id ?? '')}
                         variant={'ghost'}
-                        className="hover:bg-destructive hover:text-destructive-foreground text-red-500 w-8 h-8 p-0 rounded-full"
-                      >
+                        className="hover:bg-destructive hover:text-destructive-foreground text-red-500 w-8 h-8 p-0 rounded-full">
                         <Trash strokeWidth="1.5" className="w-5 h-5" />
                       </Button>
                       <Button
@@ -433,8 +452,7 @@ const ProductTable = ({ sellType, productSearchRef, headerContent, children }: I
                         tabIndex={-1}
                         onClick={() => dispatch(duplicateProduct(product.temp_id ?? ''))}
                         variant={'ghost'}
-                        className="hover:bg-blue-500 hover:text-white text-bluebg-blue-500 w-8 h-8 p-0 rounded-full"
-                      >
+                        className="hover:bg-blue-500 hover:text-white text-bluebg-blue-500 w-8 h-8 p-0 rounded-full">
                         <Copy strokeWidth="1.5" className="w-5 h-5" />
                       </Button>
                     </TableCell>
@@ -456,14 +474,18 @@ const ProductTable = ({ sellType, productSearchRef, headerContent, children }: I
       {/* Columna Derecha: Totales y Botones (Fijo/Sticky 20% ancho, 100% alto) */}
       <div className="col-span-1 bg-card border border-slate-200 dark:border-slate-800 p-5 rounded-lg flex flex-col justify-between h-full overflow-y-auto before:absolute before:inset-x-0 before:top-0 before:h-[3px] before:bg-sale-accent-strong before:rounded-t-md relative shadow-md">
         <div>
-          <h3 className="text-xs font-black uppercase tracking-wider text-muted-foreground border-b pb-2 mb-4">Resumen de Venta</h3>
-          
+          <h3 className="text-xs font-black uppercase tracking-wider text-muted-foreground border-b pb-2 mb-4">
+            Resumen de Venta
+          </h3>
+
           <div className="[&_*]:border-none [&_tr]:hover:bg-inherit">
             <Table>
               <TableBody>
                 <TableRow>
                   <TableCell className="text-left font-bold text-xs">Productos Totales </TableCell>
-                  <TableCell className="text-right font-black text-sm">{orderSummary.totalQuantity}</TableCell>
+                  <TableCell className="text-right font-black text-sm">
+                    {orderSummary.totalQuantity}
+                  </TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell className="text-left text-xs">Tipo de venta </TableCell>
@@ -510,7 +532,9 @@ const ProductTable = ({ sellType, productSearchRef, headerContent, children }: I
                       value={discountInput}
                       onChange={handleDiscountChange}
                     />
-                    {discountError && <p className="text-[10px] text-red-500 mt-1 block">{discountError}</p>}
+                    {discountError && (
+                      <p className="text-[10px] text-red-500 mt-1 block">{discountError}</p>
+                    )}
                   </TableCell>
                 </TableRow>
 

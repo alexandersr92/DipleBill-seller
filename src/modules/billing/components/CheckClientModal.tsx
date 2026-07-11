@@ -1,5 +1,11 @@
 import { AlertTriangle, UserCheck, UserPlus, X } from 'lucide-react';
-import { AlertDialog, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -23,13 +29,20 @@ export const CheckClientModal = ({
   onConfirmNew
 }: CheckClientModalProps) => {
   return (
-    <AlertDialog open={open} onOpenChange={(next) => { if (!next) onCancel(); }}>
+    <AlertDialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) onCancel();
+      }}>
       <AlertDialogContent className="border border-border sm:max-w-md p-6 overflow-hidden">
         <AlertDialogHeader className="relative flex flex-col items-center text-center">
-          <div className={cn(
-            "flex h-12 w-12 items-center justify-center rounded-full mb-3",
-            isGeneric ? "bg-amber-100 text-amber-600 dark:bg-amber-950/40 dark:text-amber-500" : "bg-blue-100 text-theme_blue dark:bg-blue-950/40 dark:text-blue-400"
-          )}>
+          <div
+            className={cn(
+              'flex h-12 w-12 items-center justify-center rounded-full mb-3',
+              isGeneric
+                ? 'bg-amber-100 text-amber-600 dark:bg-amber-950/40 dark:text-amber-500'
+                : 'bg-blue-100 text-theme_blue dark:bg-blue-950/40 dark:text-blue-400'
+            )}>
             <AlertTriangle className="h-6 w-6" />
           </div>
           <AlertDialogTitle className="text-lg font-bold text-foreground">
@@ -65,11 +78,12 @@ export const CheckClientModal = ({
                     key={client.id}
                     type="button"
                     onClick={() => onSelectExisting(client)}
-                    className="w-full flex items-center justify-between p-3 rounded-lg border border-border bg-card hover:bg-muted/50 transition-all text-left group active:scale-[0.99] focus:outline-none focus:ring-1 focus:ring-ring"
-                  >
+                    className="w-full flex items-center justify-between p-3 rounded-lg border border-border bg-card hover:bg-muted/50 transition-all text-left group active:scale-[0.99] focus:outline-none focus:ring-1 focus:ring-ring">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <UserCheck className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-theme_blue transition-colors" />
-                      <span className="font-medium text-xs text-foreground truncate">{client.name}</span>
+                      <span className="font-medium text-xs text-foreground truncate">
+                        {client.name}
+                      </span>
                     </div>
                     <span className="text-[10px] font-semibold text-theme_blue opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                       Seleccionar
@@ -86,8 +100,7 @@ export const CheckClientModal = ({
             type="button"
             variant="outline"
             onClick={onCancel}
-            className="w-full sm:w-auto h-9 text-xs"
-          >
+            className="w-full sm:w-auto h-9 text-xs">
             <X className="mr-1.5 h-3.5 w-3.5" />
             Cancelar y corregir
           </Button>
@@ -97,8 +110,7 @@ export const CheckClientModal = ({
               type="button"
               variant="secondary"
               onClick={onConfirmNew}
-              className="w-full sm:w-auto h-9 text-xs flex items-center gap-1.5"
-            >
+              className="w-full sm:w-auto h-9 text-xs flex items-center gap-1.5">
               <UserPlus className="h-3.5 w-3.5" />
               Crear como nuevo
             </Button>

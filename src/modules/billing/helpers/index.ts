@@ -287,7 +287,10 @@ const buildInvoiceHtml = (data: InvoiceData) => {
         <td class="totals-value">${data.currencyType}${currencyFormatterWithoutSym(changeNio.toFixed(2), 2)}</td>
       </tr>
     `;
-  } else if ((data.paymentMethodRaw === 'TRANSFER' || data.paymentMethodRaw === 'BACS') && data.paymentMetadata) {
+  } else if (
+    (data.paymentMethodRaw === 'TRANSFER' || data.paymentMethodRaw === 'BACS') &&
+    data.paymentMetadata
+  ) {
     const bank = data.paymentMetadata.bank || '';
     const ref = data.paymentMetadata.reference || '';
     paymentDetailsHtml = `
@@ -295,12 +298,16 @@ const buildInvoiceHtml = (data: InvoiceData) => {
         <td class="totals-label">Banco:</td>
         <td class="totals-value">${escapeHtml(bank)}</td>
       </tr>
-      ${ref ? `
+      ${
+        ref
+          ? `
       <tr class="summary-row">
         <td class="totals-label">Referencia:</td>
         <td class="totals-value">${escapeHtml(ref)}</td>
       </tr>
-      ` : ''}
+      `
+          : ''
+      }
     `;
   } else if (data.paymentMethodRaw === 'CARD' && data.paymentMetadata) {
     const brand = data.paymentMetadata.card_brand || 'Tarjeta';
@@ -311,14 +318,22 @@ const buildInvoiceHtml = (data: InvoiceData) => {
         <td class="totals-label">Tarjeta:</td>
         <td class="totals-value">${escapeHtml(brand)}${lastFour ? ` (*${lastFour})` : ''}</td>
       </tr>
-      ${ref ? `
+      ${
+        ref
+          ? `
       <tr class="summary-row">
         <td class="totals-label">Referencia:</td>
         <td class="totals-value">${escapeHtml(ref)}</td>
       </tr>
-      ` : ''}
+      `
+          : ''
+      }
     `;
-  } else if (data.paymentMethodRaw === 'MULTIPLE' && data.paymentMetadata && Array.isArray(data.paymentMetadata.payments)) {
+  } else if (
+    data.paymentMethodRaw === 'MULTIPLE' &&
+    data.paymentMetadata &&
+    Array.isArray(data.paymentMetadata.payments)
+  ) {
     let rowsHtml = `<tr class="summary-row" style="border-top: 1px dotted #000; font-weight: bold;"><td colspan="2" class="totals-label" style="text-align: left;">Desglose de Pago:</td></tr>`;
     data.paymentMetadata.payments.forEach((p: any) => {
       const amt = Number(p.amount || 0);
@@ -348,12 +363,16 @@ const buildInvoiceHtml = (data: InvoiceData) => {
             <td class="totals-label" style="padding-left: 2mm;">Transf. (${escapeHtml(p.bank || 'Banco')}):</td>
             <td class="totals-value">${data.currencyType}${currencyFormatterWithoutSym(amt.toFixed(2), 2)}</td>
           </tr>
-          ${p.reference ? `
+          ${
+            p.reference
+              ? `
           <tr class="summary-row" style="font-size: 11px; opacity: 0.85;">
             <td class="totals-label" style="padding-left: 4mm;">Ref:</td>
             <td class="totals-value">${escapeHtml(p.reference)}</td>
           </tr>
-          ` : ''}
+          `
+              : ''
+          }
         `;
       } else if (p.method === 'CARD') {
         rowsHtml += `

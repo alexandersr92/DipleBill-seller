@@ -104,15 +104,13 @@ const CustomInputNumber: React.FC<CustomInputNumberProps> = ({
             ? 'hover:bg-background opacity-40 cursor-not-allowed'
             : 'hover:bg-secondary hover:border-primary'
         } bg-background w-1/3 flex items-center justify-center border border-input rounded-s-sm p-[0.9rem] focus:outline-none`}
-        aria-label="Decrement value"
-      >
+        aria-label="Decrement value">
         <svg
           className="w-2 h-2 text-primary"
           aria-hidden="true"
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
-          viewBox="0 0 18 2"
-        >
+          viewBox="0 0 18 2">
           <path
             stroke="currentColor"
             strokeLinecap="round"
@@ -140,15 +138,13 @@ const CustomInputNumber: React.FC<CustomInputNumberProps> = ({
         type="button"
         onClick={handleIncrement}
         className="bg-background hover:bg-secondary border border-input p-[0.9rem] hover:border-primary w-1/3 flex items-center justify-center rounded-e-sm focus:outline-none"
-        aria-label="Increment value"
-      >
+        aria-label="Increment value">
         <svg
           className="w-2 h-2 text-primary"
           aria-hidden="true"
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
-          viewBox="0 0 18 18"
-        >
+          viewBox="0 0 18 18">
           <path
             stroke="currentColor"
             strokeLinecap="round"
