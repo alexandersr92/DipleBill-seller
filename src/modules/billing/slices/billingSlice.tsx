@@ -29,13 +29,21 @@ export const billingSlice = createSlice({
         existProduct.quantity += 1;
         existProduct.total = existProduct.quantity * (existProduct.price || 0);
       } else {
+        const rawPrice = action.payload.price ?? 0;
+        const rawTotal = action.payload.total ?? 0;
+        const rawDiscount = action.payload.discount ?? 0;
+
+        const cleanPrice = isNaN(parseFloat(rawPrice.toString())) ? 0 : parseFloat(rawPrice.toString());
+        const cleanTotal = isNaN(parseFloat(rawTotal.toString())) ? 0 : parseFloat(rawTotal.toString());
+        const cleanDiscount = isNaN(parseFloat(rawDiscount.toString())) ? 0 : parseFloat(rawDiscount.toString());
+
         state.productsSelected.push({
           ...action.payload,
-          price: parseFloat(action.payload.price.toString()),
+          price: cleanPrice,
           quantity: action.payload.quantity ? 1 : 0,
-          total: parseFloat(action.payload.total.toString()),
-          grand_total: parseFloat(action.payload.total.toString()),
-          discount: parseFloat(action.payload.discount.toString()),
+          total: cleanTotal,
+          grand_total: cleanTotal,
+          discount: cleanDiscount,
           temp_id: generateUid()
         });
       }

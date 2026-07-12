@@ -7,6 +7,7 @@ import { addProductsToBilling } from '../slices/billingSlice';
 import { getBillingProductsApi } from '../services/billingApi';
 import axios from 'axios';
 import { debounce } from 'lodash';
+import { useToast } from '@/components/hooks/use-toast';
 
 interface ISearchInputProps {
   tabIndex?: number;
@@ -21,6 +22,7 @@ export default function CustomSearchInputSuggetions({
   inputRef,
   onProductAdded
 }: ISearchInputProps) {
+  const { toast } = useToast();
   const storeId =
     useAppSelector((state) => state.storeSlice.store?.id) ||
     localStorage.getItem('currentStoreId') ||
@@ -35,13 +37,15 @@ export default function CustomSearchInputSuggetions({
   const [activeIndex, setActiveIndex] = useState(-1);
 
   const addProductToInvoice = (product: IInvoiceProduct) => {
+    const cleanPrice = product.price ? parseFloat(product.price.toString()) : 0;
     dispatch(
       addProductsToBilling({
         ...product,
+        price: cleanPrice,
         quantity: 1,
-        total: product.price,
+        total: cleanPrice,
         tax: 0,
-        grand_total: product.price,
+        grand_total: cleanPrice,
         discount: 0
       })
     );
@@ -84,6 +88,14 @@ export default function CustomSearchInputSuggetions({
         exactMatch ?? (activeIndex >= 0 ? results[activeIndex] : undefined) ?? results[0];
 
       if (product) {
+        const hasNoPrice = product.price === null || product.price === undefined || String(product.price) === '' || isNaN(Number(product.price));
+        if (hasNoPrice) {
+          toast({
+            title: `El producto "${product.name}" no tiene precio configurado en el inventario "${product.inventory_name}" y no se puede facturar.`,
+            variant: 'error'
+          });
+          return;
+        }
         addProductToInvoice(product);
       }
     } else if (event.key === 'Escape') {
@@ -95,6 +107,14 @@ export default function CustomSearchInputSuggetions({
   };
 
   const handleResultClick = (product: IInvoiceProduct) => {
+    const hasNoPrice = product.price === null || product.price === undefined || String(product.price) === '' || isNaN(Number(product.price));
+    if (hasNoPrice) {
+      toast({
+        title: `El producto "${product.name}" no tiene precio configurado en el inventario "${product.inventory_name}" y no se puede facturar.`,
+        variant: 'error'
+      });
+      return;
+    }
     addProductToInvoice(product);
   };
 
@@ -220,32 +240,44 @@ export default function CustomSearchInputSuggetions({
           )}
 
           {hasVisibleResults &&
-            results.map((product, index) => (
-              <li
-                key={product.id}
-                id={`search-result-${product.id}`}
-                data-result-index={index}
-                role="option"
-                aria-selected={index === activeIndex}
-                className={`p-2.5 cursor-pointer flex flex-col items-start rounded-md transition-colors duration-150 ${
-                  product.quantity === 0
-                    ? 'text-destructive font-semibold'
-                    : index === activeIndex
-                      ? 'text-accent-foreground font-semibold'
-                      : 'text-foreground'
-                } ${index === activeIndex ? 'bg-accent' : 'hover:bg-accent/40'}`}
-                onClick={() => handleResultClick(product)}
-              >
-                <div className="flex justify-between w-full">
-                  <span className="text-sm font-bold">{product.name}</span>
-                  <span className="text-xs">({product.quantity})</span>
-                </div>
-                <div className="flex justify-between w-full mt-1 text-muted-foreground">
-                  <span className="text-[11px]">{product.sku}</span>
-                  <span className="text-[11px]">{product.inventory_name}</span>
-                </div>
-              </li>
-            ))}
+            results.map((product, index) => {
+              const hasNoPrice = product.price === null || product.price === undefined || String(product.price) === '' || isNaN(Number(product.price));
+              return (
+                <li
+                  key={product.id}
+                  id={`search-result-${product.id}`}
+                  data-result-index={index}
+                  role="option"
+                  aria-selected={index === activeIndex}
+                  className={`p-2.5 flex flex-col items-start rounded-md transition-colors duration-150 ${
+                    hasNoPrice
+                      ? 'opacity-60 cursor-not-allowed bg-transparent'
+                      : product.quantity === 0
+                        ? 'text-destructive font-semibold cursor-pointer'
+                        : index === activeIndex
+                          ? 'text-accent-foreground font-semibold cursor-pointer'
+                          : 'text-foreground cursor-pointer'
+                  } ${!hasNoPrice && index === activeIndex ? 'bg-accent' : !hasNoPrice ? 'hover:bg-accent/40' : ''}`}
+                  onClick={() => handleResultClick(product)}
+                >
+                  <div className="flex justify-between w-full">
+                    <span className="text-sm font-bold">{product.name}</span>
+                    <div className="flex items-center gap-2">
+                      {hasNoPrice && (
+                        <span className="text-[10px] bg-destructive/15 text-destructive border border-destructive/20 px-1.5 py-0.5 rounded font-bold">
+                          Sin Precio
+                        </span>
+                      )}
+                      <span className="text-xs">({product.quantity})</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between w-full mt-1 text-muted-foreground">
+                    <span className="text-[11px]">{product.sku}</span>
+                    <span className="text-[11px]">{product.inventory_name}</span>
+                  </div>
+                </li>
+              );
+            })}
         </ul>
       </div>
     </div>
