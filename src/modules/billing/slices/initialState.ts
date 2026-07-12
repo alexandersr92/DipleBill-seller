@@ -1,4 +1,4 @@
-import { IBillingProductsProductsState } from '../types';
+import { IBillingProductsProductsState } from '@diplebill/core';
 
 export const initialState: IBillingProductsProductsState = {
   products: [],

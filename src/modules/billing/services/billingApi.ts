@@ -1,6 +1,6 @@
 import axiosInstance from '@/helpers/axiosInstance';
-import { IInvoice } from '../types';
-import { IMetaRequestParams } from '@/modules/types';
+import { IInvoice } from '@diplebill/core';
+import { IMetaRequestParams } from '@diplebill/core';
 
 export const getBillingProductsApi = async ({
   search = '',

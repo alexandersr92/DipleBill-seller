@@ -1,6 +1,6 @@
 import { downloadInvoiceAsPDF, InvoiceData, handleInvoicePrintHtml } from '.';
 import { getStoreLogoAsBase64 } from '../services/billingApi';
-import { ISingleInvoice } from '../types';
+import { ISingleInvoice } from '@diplebill/core';
 
 interface IInvoiceActions {
   settings: {

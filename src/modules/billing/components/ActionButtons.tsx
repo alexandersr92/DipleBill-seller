@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { ButtonProps } from '@/components/ui/button';
 import { Printer, Loader2 } from 'lucide-react';
-import { ISingleInvoice } from '../types';
+import { ISingleInvoice } from '@diplebill/core';
 import { useAppSelector } from '@/store/hooks';
 import { invoiceActions } from '../helpers/print';
 import { useState } from 'react';

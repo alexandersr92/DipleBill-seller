@@ -6,8 +6,8 @@ import {
   IInvoices,
   IReplaceInvoiceResponse,
   IInvoice
-} from '../types';
-import { IMetaRequestParams } from '@/modules/types';
+} from '@diplebill/core';
+import { IMetaRequestParams } from '@diplebill/core';
 
 export const createBilling = createAsyncThunk<IGetSingleInvoiceResponse, IInvoices>(
   'billing/createBilling',

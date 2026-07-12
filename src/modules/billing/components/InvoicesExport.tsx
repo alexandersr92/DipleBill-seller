@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Icons } from '../../../components/ui/icons';
-import { ISingleInvoice } from '../types';
+import { ISingleInvoice } from '@diplebill/core';
 
 interface IInvoiceExportProps {
   data?: ISingleInvoice[];

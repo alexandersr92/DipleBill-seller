@@ -3,7 +3,7 @@ import { AppDispatch, store } from '@/store/store';
 import axiosInstance from '@/helpers/axiosInstance';
 import { clearStoredSession, getStoredToken } from '@/helpers/authSession';
 import { userLogout } from '../slices/userSlice';
-import type { IRegisterForm } from '../types';
+import type { IRegisterForm } from '@diplebill/core';
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 

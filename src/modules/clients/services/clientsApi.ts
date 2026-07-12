@@ -1,5 +1,5 @@
 import axiosInstance from '@/helpers/axiosInstance';
-import { ISingleClient, IUpdatedClient } from '../types';
+import { ISingleClient, IUpdatedClient } from '@diplebill/core';
 import { getClientsParams } from '../slices/client.types';
 
 export const getClientsApi = async (params: getClientsParams) => {

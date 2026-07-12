@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { StoreForm } from '../types/store.types';
+import { StoreForm } from '@diplebill/core';
 import axiosInstance from '../../../helpers/axiosInstance';
 import { getStoredToken, handleUnauthorizedSession } from '@/helpers/authSession';
 

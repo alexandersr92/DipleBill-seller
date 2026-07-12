@@ -13,7 +13,7 @@ import { calculateTotalDiscount, currencyFormatter } from '../helpers';
 import { Copy, Trash } from 'lucide-react';
 import CustomInputNumber from './CustomInputNumber';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { IInvoiceProduct, SELL_TYPES } from '../types';
+import { IInvoiceProduct, SELL_TYPES } from '@diplebill/core';
 import CustomSearchInputSuggetions from './CustomSearchInputSuggetions';
 import {
   deleteSelectedProduct,

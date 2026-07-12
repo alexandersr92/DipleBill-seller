@@ -1,4 +1,4 @@
-import { ISingleClient } from '../types';
+import { ISingleClient } from '@diplebill/core';
 
 export interface IClientState {
   clients: ISingleClient[];

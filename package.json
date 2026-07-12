@@ -23,6 +23,7 @@
     ]
   },
   "dependencies": {
+    "@diplebill/core": "github:alexandersr92/diplebill-core",
     "@hookform/resolvers": "3.9.0",
     "@radix-ui/react-alert-dialog": "1.1.1",
     "@radix-ui/react-checkbox": "1.1.1",

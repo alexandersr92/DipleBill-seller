@@ -4,7 +4,7 @@ import { Textarea } from '@/components/ui/textarea';
 import ProductTable from '../components/ProductTable';
 import { ConfirmSaleModal } from '../components/ConfirmSaleModal';
 import { CheckClientModal } from '../components/CheckClientModal';
-import { checkSimilarity, isGenericClientName } from '@/helpers/stringSimilarity';
+import { checkSimilarity, isGenericClientName } from '@diplebill/core';
 import { useEffect, useRef, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Store, User, ChevronsUpDown, PaintRoller, Sun, Moon, Laptop2, LogOut } from 'lucide-react';
@@ -42,7 +42,7 @@ import { InferType } from 'yup';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { createBilling, replaceInvoice } from '../services/billingThunks';
-import { IInvoiceProduct, ISingleInvoice, SELL_TYPES, PAYMENT_METHODS } from '../types';
+import { IInvoiceProduct, ISingleInvoice, SELL_TYPES, PAYMENT_METHODS } from '@diplebill/core';
 import { useToast } from '@/components/hooks/use-toast';
 import {
   clearInvoice,

@@ -5,7 +5,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import Filters from '@/components/ui/Filters';
 import { useGenericFilters } from '@/components/hooks/useFilters';
 import { getAllInvoices } from '../services/billingThunks';
-import { IMetaRequestParams } from '@/modules/types';
+import { IMetaRequestParams } from '@diplebill/core';
 import { OnChangeFn, SortingState } from '@tanstack/react-table';
 import InvoicesExport from '../components/InvoicesExport';
 

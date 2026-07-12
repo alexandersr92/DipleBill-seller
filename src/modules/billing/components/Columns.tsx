@@ -1,5 +1,5 @@
 import { ColumnDef } from '@tanstack/react-table';
-import { ISingleInvoice, PAYMENT_METHODS } from '../types';
+import { ISingleInvoice, PAYMENT_METHODS } from '@diplebill/core';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Link } from 'react-router-dom';

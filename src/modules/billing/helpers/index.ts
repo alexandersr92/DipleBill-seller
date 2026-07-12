@@ -1,17 +1,9 @@
 import html2pdf from 'html2pdf.js';
 
-export interface CurrencyFormat {
-  currency: string;
-  value: number;
-}
-export function currencyFormatter({ currency, value }: CurrencyFormat) {
-  const formatter = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    minimumFractionDigits: 2,
-    currency
-  });
-  return formatter.format(value).replace('NIO', 'C$');
-}
+import { currencyFormatter, currencyFormatterWithoutSym, calculateTotalDiscount, CurrencyFormat } from '@diplebill/core';
+export { currencyFormatter, currencyFormatterWithoutSym, calculateTotalDiscount };
+export type { CurrencyFormat };
+
 
 export type IInvoiceStatus = 'paid' | 'cancelled' | 'pending' | 'canceled' | 'unknown';
 
@@ -146,21 +138,7 @@ export const handleKeyDown = ({ event, formRef, buttonRef }: HandleProps) => {
   focusElement(nextElement);
 };
 
-export function currencyFormatterWithoutSym(
-  value: string,
-  decimalPlaces: number = 2,
-  locale: string = 'en-US'
-): string {
-  if (!value) return '';
 
-  const cleanedValue = value.replace(/[^0-9.]/g, '');
-  const parts = cleanedValue.split('.');
-  const integerPart = parts[0].replace(/^0+(?!$)/, '') || '0';
-  const decimalPart = parts[1] ? `.${parts[1].slice(0, decimalPlaces)}` : '';
-
-  const formattedInteger = parseInt(integerPart, 10).toLocaleString(locale);
-  return `${formattedInteger}${decimalPart}`;
-}
 
 export function generateInvoiceNumber(currentNumber: number) {
   const prefix = 'INV-';
@@ -169,31 +147,7 @@ export function generateInvoiceNumber(currentNumber: number) {
   return `${prefix}${paddedNumber}`;
 }
 
-export const calculateTotalDiscount = (
-  input: string,
-  subtotal: number
-): { percentage: number; fixed: number; discount: number } => {
-  let discount = 0;
-  const result = { percentage: 0, fixed: 0 };
 
-  if (input.endsWith('%')) {
-    const percentage = parseFloat(input.slice(0, -1));
-    if (!isNaN(percentage) && percentage <= 100) {
-      discount = (percentage / 100) * subtotal;
-      result.percentage = percentage;
-    }
-  } else {
-    const fixedDiscount = parseFloat(input);
-    if (!isNaN(fixedDiscount)) {
-      discount = fixedDiscount;
-      result.fixed = fixedDiscount;
-      const percentageFromFixed = (fixedDiscount / subtotal) * 100;
-      result.percentage = parseFloat(percentageFromFixed.toFixed(2));
-    }
-  }
-  const discountRounded = Math.round(discount * 100) / 100;
-  return { ...result, discount: discountRounded };
-};
 
 const formatDateAndHours = () => {
   const now = new Date();

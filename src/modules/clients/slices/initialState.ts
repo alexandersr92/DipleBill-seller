@@ -1,4 +1,4 @@
-import { ISingleClient } from '../types';
+import { ISingleClient } from '@diplebill/core';
 import { IClientState } from './client.types';
 
 export const initialState: IClientState = {

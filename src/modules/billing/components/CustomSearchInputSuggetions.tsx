@@ -2,7 +2,7 @@ import { Loader2Icon, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { ChangeEvent, KeyboardEvent, RefObject, useEffect, useRef, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { IInvoiceProduct } from '../types';
+import { IInvoiceProduct } from '@diplebill/core';
 import { addProductsToBilling } from '../slices/billingSlice';
 import { getBillingProductsApi } from '../services/billingApi';
 import axios from 'axios';

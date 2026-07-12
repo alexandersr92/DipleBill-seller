@@ -7,7 +7,7 @@ import {
   IInvoiceProduct,
   ISingleInvoice,
   IReplaceInvoiceResponse
-} from '../types';
+} from '@diplebill/core';
 import { initialState } from './initialState';
 
 const generateUid = () => `${Date.now()}-${Math.floor(Math.random() * 1000000)}`;

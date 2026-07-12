@@ -15,7 +15,7 @@ import {
   TGetClientByIdParams,
   getClientsParams
 } from '../slices/client.types';
-import { ISingleClient, IUpdatedClient } from '../types';
+import { ISingleClient, IUpdatedClient } from '@diplebill/core';
 
 export const getClients = createAsyncThunk<IGetClientsResponse, getClientsParams>(
   'clients/getClients',

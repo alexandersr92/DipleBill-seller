@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Params, useParams, useNavigate } from 'react-router';
 import { useEffect, useState } from 'react';
-import { ISingleInvoice, SELL_TYPES } from '../types';
+import { ISingleInvoice, SELL_TYPES } from '@diplebill/core';
 import { cancelInvoiceById, getInvoiceById } from '../services/billingApi';
 import {
   Table,

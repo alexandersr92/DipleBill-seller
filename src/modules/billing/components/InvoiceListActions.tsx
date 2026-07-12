@@ -13,7 +13,7 @@ import { cancelInvoiceById } from '../slices/billingSlice';
 import { useToast } from '@/components/hooks/use-toast';
 import { invoiceActions } from '../helpers/print';
 import { useState } from 'react';
-import { ISingleInvoice } from '../types';
+import { ISingleInvoice } from '@diplebill/core';
 import { getInvoiceById } from '../services/billingApi';
 import OwnerPasswordConfirmDialog from '@/modules/auth/components/OwnerPasswordConfirmDialog';
 
