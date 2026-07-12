@@ -96,9 +96,16 @@ export const PinLockOverlay = () => {
     setError(null);
 
     try {
-      const res = await sellerLoginService(storeId, loginMode === 'PIN_ONLY' ? '' : code, currentPin);
+      const res = await sellerLoginService(
+        storeId,
+        loginMode === 'PIN_ONLY' ? '' : code,
+        currentPin
+      );
 
-      if (res.message === 'Invalid credentials' || res.message === 'PIN o Código de vendedor incorrectos') {
+      if (
+        res.message === 'Invalid credentials' ||
+        res.message === 'PIN o Código de vendedor incorrectos'
+      ) {
         setError('PIN o Código de vendedor incorrectos.');
         setIsShaking(true);
         setPin('');
@@ -167,17 +174,18 @@ export const PinLockOverlay = () => {
 
   return (
     <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-md flex items-center justify-center p-4 select-none animate-in fade-in duration-200">
-      <div 
+      <div
         className={cn(
-          "w-full max-w-sm rounded-xl border bg-card text-card-foreground shadow-2xl p-6 flex flex-col items-center justify-center relative animate-in zoom-in-95 duration-200",
-          "before:absolute before:inset-x-0 before:top-0 before:h-[3px] before:bg-sale-accent-strong before:rounded-t-xl"
-        )}
-      >
+          'w-full max-w-sm rounded-xl border bg-card text-card-foreground shadow-2xl p-6 flex flex-col items-center justify-center relative animate-in zoom-in-95 duration-200',
+          'before:absolute before:inset-x-0 before:top-0 before:h-[3px] before:bg-sale-accent-strong before:rounded-t-xl'
+        )}>
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-sale-accent-soft text-sale-accent-text border border-sale-accent-border mb-4 animate-bounce">
           <Lock className="h-6 w-6 animate-pulse" />
         </div>
 
-        <h2 className="text-xl font-bold tracking-tight text-foreground text-center">Punto de Venta Protegido</h2>
+        <h2 className="text-xl font-bold tracking-tight text-foreground text-center">
+          Punto de Venta Protegido
+        </h2>
         <p className="text-xs text-muted-foreground mt-1 text-center">
           Por favor ingresa tus credenciales de vendedor para desbloquear la pantalla.
         </p>
@@ -185,7 +193,9 @@ export const PinLockOverlay = () => {
         {!store ? (
           <div className="w-full max-w-[240px] flex flex-col gap-4 mt-6">
             <div className="grid gap-1.5 w-full">
-              <Label className="text-left text-xs font-semibold text-muted-foreground">Seleccionar Sucursal</Label>
+              <Label className="text-left text-xs font-semibold text-muted-foreground">
+                Seleccionar Sucursal
+              </Label>
               <Select value="" onValueChange={handleStoreChange}>
                 <SelectTrigger className="h-9 w-full bg-transparent border-border text-foreground focus:ring-0 focus:ring-offset-0">
                   <SelectValue placeholder="Seleccionar Sucursal" />
@@ -208,7 +218,9 @@ export const PinLockOverlay = () => {
             {/* Si hay múltiples sucursales, permitimos cambiarla en el mismo Lock screen */}
             {stores.length > 1 && (
               <div className="w-full max-w-[240px] flex flex-col gap-1.5 mt-4">
-                <Label className="text-left text-xs font-semibold text-muted-foreground">Sucursal</Label>
+                <Label className="text-left text-xs font-semibold text-muted-foreground">
+                  Sucursal
+                </Label>
                 <Select value={store.id} onValueChange={handleStoreChange}>
                   <SelectTrigger className="h-9 w-full bg-transparent border-border text-foreground focus:ring-0 focus:ring-offset-0">
                     <SelectValue placeholder="Seleccionar Sucursal" />
@@ -232,11 +244,15 @@ export const PinLockOverlay = () => {
               </div>
             )}
 
-             <div className="w-full max-w-[240px] flex flex-col gap-4 mt-6">
+            <div className="w-full max-w-[240px] flex flex-col gap-4 mt-6">
               {/* Seller Code Input */}
               {loginMode !== 'PIN_ONLY' && (
                 <div className="grid gap-1 w-full">
-                  <Label htmlFor="code" className="text-left text-xs font-semibold text-muted-foreground">Código de Vendedor</Label>
+                  <Label
+                    htmlFor="code"
+                    className="text-left text-xs font-semibold text-muted-foreground">
+                    Código de Vendedor
+                  </Label>
                   <div className="relative">
                     <UserRound className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -266,16 +282,17 @@ export const PinLockOverlay = () => {
 
               {/* Pin Visual Representation */}
               <div className="grid gap-1 w-full">
-                <Label className="text-left text-xs font-semibold text-muted-foreground">PIN de Seguridad</Label>
-                <div 
+                <Label className="text-left text-xs font-semibold text-muted-foreground">
+                  PIN de Seguridad
+                </Label>
+                <div
                   className={cn(
-                    "flex justify-center items-center gap-3.5 h-9 px-3 rounded-md bg-muted/30 border transition-all duration-200 w-full cursor-pointer relative",
-                    isShaking && "animate-shake border-destructive/50 bg-destructive/5",
-                    error && !isShaking && "border-destructive/30",
-                    "focus-within:ring-1 focus-within:ring-sale-accent/40 focus-within:border-sale-accent"
+                    'flex justify-center items-center gap-3.5 h-9 px-3 rounded-md bg-muted/30 border transition-all duration-200 w-full cursor-pointer relative',
+                    isShaking && 'animate-shake border-destructive/50 bg-destructive/5',
+                    error && !isShaking && 'border-destructive/30',
+                    'focus-within:ring-1 focus-within:ring-sale-accent/40 focus-within:border-sale-accent'
                   )}
-                  onClick={() => pinRef.current?.focus()}
-                >
+                  onClick={() => pinRef.current?.focus()}>
                   <input
                     ref={pinRef}
                     type="password"
@@ -297,13 +314,15 @@ export const PinLockOverlay = () => {
                     maxLength={10}
                   />
                   {pin.length === 0 ? (
-                    <span className="text-muted-foreground/40 text-xs tracking-wider">Ingresar PIN</span>
+                    <span className="text-muted-foreground/40 text-xs tracking-wider">
+                      Ingresar PIN
+                    </span>
                   ) : (
                     <div className="flex gap-2">
                       {pin.split('').map((_, i) => (
-                        <div 
-                          key={i} 
-                          className="w-2.5 h-2.5 rounded-full bg-sale-accent animate-in zoom-in-75 duration-150" 
+                        <div
+                          key={i}
+                          className="w-2.5 h-2.5 rounded-full bg-sale-accent animate-in zoom-in-75 duration-150"
                         />
                       ))}
                     </div>
@@ -327,13 +346,12 @@ export const PinLockOverlay = () => {
                   disabled={isVerifying}
                   onClick={() => handleKeypadPress(key)}
                   className={cn(
-                    "h-10 rounded-lg border text-base font-semibold flex items-center justify-center transition-all",
-                    "active:scale-95 disabled:opacity-50 disabled:pointer-events-none select-none",
-                    key === 'C' || key === '⌫' 
-                      ? "bg-muted hover:bg-muted/80 text-muted-foreground border-transparent text-sm" 
-                      : "bg-background hover:bg-muted border-border hover:border-muted-foreground/20"
-                  )}
-                >
+                    'h-10 rounded-lg border text-base font-semibold flex items-center justify-center transition-all',
+                    'active:scale-95 disabled:opacity-50 disabled:pointer-events-none select-none',
+                    key === 'C' || key === '⌫'
+                      ? 'bg-muted hover:bg-muted/80 text-muted-foreground border-transparent text-sm'
+                      : 'bg-background hover:bg-muted border-border hover:border-muted-foreground/20'
+                  )}>
                   {key}
                 </button>
               ))}
@@ -343,17 +361,14 @@ export const PinLockOverlay = () => {
               type="button"
               disabled={isVerifying || pin.length < 4 || !code}
               onClick={() => handleVerify(pin)}
-              className="w-full max-w-[240px] h-10 bg-sale-accent text-sale-accent-foreground hover:bg-sale-accent/90 font-medium rounded-lg mt-5 shadow-md transition-all flex items-center justify-center gap-2"
-            >
+              className="w-full max-w-[240px] h-10 bg-sale-accent text-sale-accent-foreground hover:bg-sale-accent/90 font-medium rounded-lg mt-5 shadow-md transition-all flex items-center justify-center gap-2">
               {isVerifying ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Validando...
                 </>
               ) : (
-                <>
-                  Desbloquear Pantalla
-                </>
+                <>Desbloquear Pantalla</>
               )}
             </Button>
           </>
@@ -362,8 +377,7 @@ export const PinLockOverlay = () => {
         <button
           type="button"
           onClick={handleAdminLogout}
-          className="mt-6 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors font-medium cursor-pointer"
-        >
+          className="mt-6 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors font-medium cursor-pointer">
           <LogOut className="h-3.5 w-3.5" />
           <span>Cerrar sesión de administrador</span>
         </button>

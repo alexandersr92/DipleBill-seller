@@ -45,8 +45,7 @@ export function DataTablePagination<TData>({
               onPaginationChange
                 ? onPaginationChange(1, Number(value))
                 : table.setPageSize(Number(value));
-            }}
-          >
+            }}>
             <SelectTrigger className="h-8 w-[70px]">
               <SelectValue
                 placeholder={
@@ -76,8 +75,7 @@ export function DataTablePagination<TData>({
                 ? onPaginationChange(1, pagination.itemsPerPage)
                 : table.setPageIndex(0)
             }
-            disabled={pagination ? pagination.currentPage === 1 : !table.getCanPreviousPage()}
-          >
+            disabled={pagination ? pagination.currentPage === 1 : !table.getCanPreviousPage()}>
             <span className="sr-only">Ir a la primera página</span>
             <DoubleArrowLeftIcon className="h-4 w-4" />
           </Button>
@@ -89,8 +87,7 @@ export function DataTablePagination<TData>({
                 ? onPaginationChange(pagination.currentPage - 1, pagination.itemsPerPage)
                 : table.previousPage()
             }
-            disabled={pagination ? pagination.currentPage === 1 : !table.getCanPreviousPage()}
-          >
+            disabled={pagination ? pagination.currentPage === 1 : !table.getCanPreviousPage()}>
             <span className="sr-only">Ir a la página anterior</span>
             <ChevronLeftIcon className="h-4 w-4" />
           </Button>
@@ -106,8 +103,7 @@ export function DataTablePagination<TData>({
               pagination
                 ? pagination.currentPage === pagination.totalPages
                 : !table.getCanNextPage()
-            }
-          >
+            }>
             <span className="sr-only">Ir a la página siguiente</span>
             <ChevronRightIcon className="h-4 w-4" />
           </Button>
@@ -123,8 +119,7 @@ export function DataTablePagination<TData>({
               pagination
                 ? pagination.currentPage === pagination.totalPages
                 : !table.getCanNextPage()
-            }
-          >
+            }>
             <span className="sr-only">Ir a la última página</span>
             <DoubleArrowRightIcon className="h-4 w-4" />
           </Button>

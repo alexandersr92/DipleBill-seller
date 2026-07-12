@@ -45,14 +45,12 @@ export function BottomNav() {
               item.isActive
                 ? 'text-primary scale-105'
                 : 'text-muted-foreground hover:text-foreground active:scale-95'
-            )}
-          >
+            )}>
             <div
               className={cn(
                 'relative flex items-center justify-center px-5 py-1.5 rounded-full mb-1 transition-colors duration-200',
                 item.isActive ? 'bg-primary/10' : 'bg-transparent'
-              )}
-            >
+              )}>
               <Icon className="h-5 w-5" />
               {item.isActive && (
                 <span className="absolute inset-0 rounded-full border border-primary/20 animate-pulse-once-accent" />

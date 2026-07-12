@@ -35,7 +35,7 @@ export function TopBar() {
   const handleStoreChange = (storeId: string) => {
     localStorage.setItem('currentStoreId', storeId);
     dispatch(fetchCurrentStore(storeId));
-    
+
     // Al cambiar de sucursal, cerramos sesión del vendedor actual por seguridad
     localStorage.removeItem('seller_id');
     localStorage.removeItem('seller_name');
@@ -97,13 +97,14 @@ export function TopBar() {
             <Button
               variant="ghost"
               size="sm"
-              className="flex h-10 gap-2 px-2 hover:bg-accent hover:text-accent-foreground select-none rounded-lg"
-            >
+              className="flex h-10 gap-2 px-2 hover:bg-accent hover:text-accent-foreground select-none rounded-lg">
               <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <User className="h-4 w-4" />
               </div>
               <div className="hidden md:grid text-left text-xs leading-none">
-                <span className="font-medium truncate max-w-[100px]">{user.sellerName || 'Vendedor'}</span>
+                <span className="font-medium truncate max-w-[100px]">
+                  {user.sellerName || 'Vendedor'}
+                </span>
                 <span className="text-[10px] text-muted-foreground truncate">
                   {user.sellerCode ? `Cód: ${user.sellerCode}` : ''}
                 </span>
@@ -114,7 +115,9 @@ export function TopBar() {
           <DropdownMenuContent className="w-56 mt-1" align="end" sideOffset={4}>
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-semibold leading-none">{user.sellerName || 'Vendedor'}</p>
+                <p className="text-sm font-semibold leading-none">
+                  {user.sellerName || 'Vendedor'}
+                </p>
                 <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
               </div>
             </DropdownMenuLabel>
@@ -144,11 +147,15 @@ export function TopBar() {
               </DropdownMenuSub>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleSellerLogout} className="cursor-pointer text-amber-500 focus:text-amber-500">
+            <DropdownMenuItem
+              onClick={handleSellerLogout}
+              className="cursor-pointer text-amber-500 focus:text-amber-500">
               <LogOut className="mr-2 h-4 w-4" />
               <span>Cambiar Vendedor</span>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleFullLogout} className="cursor-pointer text-destructive focus:text-destructive">
+            <DropdownMenuItem
+              onClick={handleFullLogout}
+              className="cursor-pointer text-destructive focus:text-destructive">
               <LogOut className="mr-2 h-4 w-4" />
               <span>Cerrar Sesión Admin</span>
             </DropdownMenuItem>

@@ -53,7 +53,7 @@ export default function OwnerPasswordConfirmDialog({
       } else {
         setErrorMessage('Contraseña incorrecta, intente de nuevo');
       }
-    } catch (error) {
+    } catch {
       setErrorMessage('Error al verificar la contraseña');
     } finally {
       setIsLoading(false);
@@ -72,8 +72,7 @@ export default function OwnerPasswordConfirmDialog({
       onOpenChange={(val) => {
         if (!val) handleClose();
         else onOpenChange(val);
-      }}
-    >
+      }}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
@@ -107,8 +106,7 @@ export default function OwnerPasswordConfirmDialog({
             <Button
               type="submit"
               disabled={isLoading}
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
-            >
+              className="bg-primary text-primary-foreground hover:bg-primary/90">
               {isLoading ? (
                 <>
                   <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />

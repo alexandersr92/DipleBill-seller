@@ -49,8 +49,7 @@ export function CalendarRangePicker({
             className={cn(
               'w-[260px] justify-start text-left font-normal capitalize',
               !selectedDate?.from && 'text-muted-foreground'
-            )}
-          >
+            )}>
             <CalendarIcon className="mr-2 h-4 w-4" />
             {selectedDate?.from ? (
               selectedDate.to ? (

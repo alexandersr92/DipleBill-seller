@@ -225,8 +225,7 @@ export default function CustomSearchInputSuggetions({
             shouldShowResults ? 'block' : 'hidden'
           } absolute p-1.5 z-50 w-full mt-1 bg-popover border border-border rounded-lg shadow-xl max-h-60 overflow-y-auto top-full
             [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-muted/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30
-          `}
-        >
+          `}>
           {isLoading && (
             <div className="py-4">
               <Loader2Icon className="animate-spin mx-auto text-theme_blue" />
