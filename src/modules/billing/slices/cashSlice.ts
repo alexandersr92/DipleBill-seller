@@ -1,5 +1,8 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import axiosInstance from '@/helpers/axiosInstance';
+import { db } from '@/lib/db';
+import { v4 as uuidv4 } from 'uuid';
+import { downloadCache } from '../services/offlineSyncService';
 
 export interface ICashSession {
   id: string;
@@ -57,6 +60,7 @@ interface ICashState {
   assignmentMode: 'SHARED_STORE' | 'BY_STATION' | 'INDIVIDUAL_USER';
   countType: 'BLIND' | 'GUIDED';
   carryOver: boolean;
+  allowOfflineSales: boolean;
   isLoading: boolean;
   error: string | null;
 }
@@ -69,6 +73,7 @@ const initialState: ICashState = {
   assignmentMode: 'SHARED_STORE',
   countType: 'GUIDED',
   carryOver: false,
+  allowOfflineSales: true,
   isLoading: false,
   error: null
 };
@@ -86,6 +91,7 @@ export const fetchCashSettingsAndSession = createAsyncThunk(
       let assignmentMode: 'SHARED_STORE' | 'BY_STATION' | 'INDIVIDUAL_USER' = 'SHARED_STORE';
       let countType: 'BLIND' | 'GUIDED' = 'GUIDED';
       let carryOver = false;
+      let allowOfflineSales = true;
 
       try {
         const modeRes = await axiosInstance.get('/v1/settings?key=cash_control_mode');
@@ -121,6 +127,21 @@ export const fetchCashSettingsAndSession = createAsyncThunk(
         /* configuración opcional: conservar valor por defecto */
       }
 
+      try {
+        const offlineRes = await axiosInstance.get('/v1/settings?key=allow_offline_sales');
+        const offlineData = offlineRes.data?.data || offlineRes.data || [];
+        if (offlineData.length > 0) {
+          allowOfflineSales = offlineData[0].value === 'true' || offlineData[0].value === true;
+        }
+      } catch {
+        /* configuración opcional: conservar valor por defecto */
+      }
+
+      if (allowOfflineSales && navigator.onLine) {
+        // Ejecutar en segundo plano sin bloquear el thunk
+        downloadCache(storeId).catch(console.error);
+      }
+
       return {
         session: sessionRes.data?.session || null,
         isOpen: sessionRes.data?.is_open || false,
@@ -128,7 +149,8 @@ export const fetchCashSettingsAndSession = createAsyncThunk(
         controlMode,
         assignmentMode,
         countType,
-        carryOver
+        carryOver,
+        allowOfflineSales
       };
     } catch (err: any) {
       return rejectWithValue(err.response?.data?.message || 'Error al cargar caja');
@@ -168,6 +190,19 @@ export const closeCashSession = createAsyncThunk(
     { dispatch, rejectWithValue }
   ) => {
     try {
+      if (!navigator.onLine) {
+        await db.sync_queue.add({
+           id: uuidv4(),
+           action: 'CLOSE_CASH_SESSION',
+           payload,
+           status: 'pending',
+           created_at: Date.now()
+        });
+        localStorage.removeItem('active_cash_session_id');
+        dispatch(clearCashState());
+        return { message: 'Cierre de caja guardado offline' };
+      }
+
       const response = await axiosInstance.post('/v1/cash-sessions/close', {
         cash_session_id: payload.cashSessionId,
         actual_cash: payload.actualCash,
@@ -288,6 +323,7 @@ export const cashSlice = createSlice({
         state.assignmentMode = action.payload.assignmentMode;
         state.countType = action.payload.countType;
         state.carryOver = action.payload.carryOver;
+        state.allowOfflineSales = action.payload.allowOfflineSales;
         state.isLoading = false;
         state.error = null;
 

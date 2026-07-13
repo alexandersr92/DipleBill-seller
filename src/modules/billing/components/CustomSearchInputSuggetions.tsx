@@ -7,6 +7,7 @@ import { addProductsToBilling } from '../slices/billingSlice';
 import { getBillingProductsApi } from '../services/billingApi';
 import axios from 'axios';
 import { debounce } from 'lodash';
+import { db } from '@/lib/db';
 
 interface ISearchInputProps {
   tabIndex?: number;
@@ -109,6 +110,37 @@ export default function CustomSearchInputSuggetions({
       }
 
       try {
+        if (!navigator.onLine) {
+          const normalized = value.toLowerCase();
+          const localProducts = await db.products
+            .filter(p => !!(
+              p.name.toLowerCase().includes(normalized) || 
+              (p.code && String(p.code).toLowerCase().includes(normalized)) ||
+              (p.barcode && String(p.barcode).toLowerCase().includes(normalized))
+            ))
+            .limit(20)
+            .toArray();
+
+          const mappedResults = localProducts.map(p => {
+            const raw = (p.raw_data || {}) as any;
+            return {
+              ...raw,
+              id: p.id,
+              product_id: p.id,
+              name: p.name,
+              sku: p.code || '',
+              barcode: p.barcode || '',
+              quantity: p.quantity || 0,
+              price: Number(p.price) || 0,
+              inventory_name: 'Local'
+            };
+          });
+          
+          setResults(mappedResults as any as IInvoiceProduct[]);
+          setIsLoading(false);
+          return;
+        }
+
         const [nameResponse, skuResponse] = await Promise.all([
           getBillingProductsApi({
             search: value,
