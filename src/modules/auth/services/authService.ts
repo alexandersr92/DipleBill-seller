@@ -35,6 +35,10 @@ async function login(email: string, password: string): Promise<any> {
   try {
     const response = await axios.post(`${apiBaseUrl}/v1/login`, { email, password, device_name });
 
+    if (response.data?.user) {
+      localStorage.setItem('cached_user', JSON.stringify(response.data.user));
+    }
+
     return response.data;
   } catch (error: any) {
     if (axios.isAxiosError(error)) {
@@ -91,6 +95,7 @@ async function validateToken(token: string): Promise<ValidateTokenResult> {
     });
 
     if (res.data.valid && res.data.user) {
+      localStorage.setItem('cached_user', JSON.stringify(res.data.user));
       return {
         valid: true,
         user: res.data.user
@@ -101,7 +106,17 @@ async function validateToken(token: string): Promise<ValidateTokenResult> {
       valid: false,
       user: null
     };
-  } catch {
+  } catch (error: any) {
+    if (!navigator.onLine || error?.code === 'ERR_NETWORK') {
+      const cached = localStorage.getItem('cached_user');
+      if (cached) {
+        return {
+          valid: true,
+          user: JSON.parse(cached)
+        };
+      }
+    }
+
     return {
       valid: false,
       user: null

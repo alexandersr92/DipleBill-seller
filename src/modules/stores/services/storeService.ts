@@ -34,8 +34,13 @@ async function updateStore(data: StoreForm, storeId: string): Promise<any> {
 export async function getAllStores(): Promise<any> {
   try {
     const response = await axiosInstance.get('/v1/stores');
+    localStorage.setItem('cached_stores', JSON.stringify(response.data.data));
     return response.data.data;
-  } catch (error: unknown) {
+  } catch (error: any) {
+    if (!navigator.onLine || error?.code === 'ERR_NETWORK') {
+      const cached = localStorage.getItem('cached_stores');
+      if (cached) return JSON.parse(cached);
+    }
     if (axios.isAxiosError(error)) {
       if (error.response?.status === 409 && error.response?.data?.message) {
         return { error: error.response.data.message };
@@ -48,8 +53,13 @@ export async function getAllStores(): Promise<any> {
 async function getStoreById(storeId: string, signal?: AbortSignal): Promise<any> {
   try {
     const response = await axiosInstance.get(`/v1/stores/${storeId}`, { signal });
+    localStorage.setItem(`cached_store_${storeId}`, JSON.stringify(response.data));
     return response.data;
-  } catch (error: unknown) {
+  } catch (error: any) {
+    if (!navigator.onLine || error?.code === 'ERR_NETWORK') {
+      const cached = localStorage.getItem(`cached_store_${storeId}`);
+      if (cached) return JSON.parse(cached);
+    }
     if (axios.isAxiosError(error)) {
       if (error.response?.status === 409 && error.response?.data?.message) {
         return { error: error.response.data.message };

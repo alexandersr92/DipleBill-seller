@@ -18,6 +18,7 @@ export const clearStoredSession = () => {
   localStorage.removeItem(TOKEN_STORAGE_KEY);
   localStorage.removeItem(LEGACY_SELLER_STORAGE_KEY);
   localStorage.removeItem(CURRENT_STORE_STORAGE_KEY);
+  localStorage.removeItem('cached_user');
 };
 
 export const handleUnauthorizedSession = () => {
