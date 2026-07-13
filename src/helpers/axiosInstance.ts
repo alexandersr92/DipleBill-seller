@@ -44,6 +44,15 @@ axiosInstance.interceptors.response.use(
       return Promise.reject(error);
     }
 
+    if (error.response?.status === 402 && error.response?.data?.error_code === 'LICENSE_EXPIRED') {
+      window.dispatchEvent(
+        new CustomEvent('LICENSE_EXPIRED', {
+          detail: { message: error.response.data.support_message }
+        })
+      );
+      return Promise.reject(error);
+    }
+
     return Promise.reject(error);
   }
 );
