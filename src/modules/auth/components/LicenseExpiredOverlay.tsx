@@ -1,6 +1,6 @@
 import { AlertTriangle, LogOut } from 'lucide-react';
 import { useAppDispatch } from '@/store/hooks';
-import { userLogout } from '@/store/store';
+import { userLogout } from '@/modules/auth/slices/userSlice';
 import { useNavigate } from 'react-router';
 
 interface Props {

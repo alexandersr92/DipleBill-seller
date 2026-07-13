@@ -1,4 +1,6 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
+import { db } from '@/lib/db';
+import { v4 as uuidv4 } from 'uuid';
 import { cancelInvoiceById, createBillingApi, getInvoices, replaceInvoiceApi } from './billingApi';
 import {
   IGetInvoiceResponse,
@@ -13,6 +15,44 @@ export const createBilling = createAsyncThunk<IGetSingleInvoiceResponse, IInvoic
   'billing/createBilling',
   async (billing, { rejectWithValue }) => {
     try {
+      if (!navigator.onLine) {
+        const fakeId = uuidv4();
+        
+        const newInvoice = {
+           ...billing,
+           id: fakeId,
+           invoice_number: `OFF-${fakeId.substring(0, 6).toUpperCase()}`
+        };
+
+        await db.sync_queue.add({
+           id: uuidv4(),
+           action: 'CREATE_INVOICE',
+           payload: newInvoice,
+           status: 'pending',
+           created_at: Date.now()
+        });
+
+        // Reduce stock in local Dexie cache
+        if (billing.products && Array.isArray(billing.products)) {
+           await db.transaction('rw', db.products, async () => {
+              for (const item of billing.products) {
+                 const prodId = (item as any).product_id;
+                 if (!prodId) continue;
+                 const localProd = await db.products.get(prodId);
+                 if (localProd && typeof localProd.quantity === 'number') {
+                     localProd.quantity = Math.max(0, localProd.quantity - ((item as any).quantity || 1));
+                     await db.products.put(localProd);
+                 }
+              }
+           });
+        }
+
+        return {
+           data: newInvoice,
+           message: 'Factura guardada offline'
+        } as unknown as IGetSingleInvoiceResponse;
+      }
+
       const data = await createBillingApi(billing);
       return data;
     } catch (error) {

@@ -4,6 +4,7 @@ import { fetchCurrentStore } from '@/modules/stores/slices/storeThunks';
 import { sellerLogout } from '@/modules/auth/slices/userSlice';
 import { performLogout } from '@/modules/auth/services/authService';
 import { useTheme } from '@/components/theme-provider';
+import { OfflineIndicator } from './OfflineIndicator';
 import {
   Select,
   SelectContent,
@@ -90,8 +91,9 @@ export function TopBar() {
         )}
       </div>
 
-      {/* Lado Derecho: Usuario */}
+      {/* Lado Derecho: Usuario y Offline */}
       <div className="flex items-center gap-2">
+        <OfflineIndicator />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
