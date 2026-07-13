@@ -211,8 +211,8 @@ export const ConfirmSaleModal = ({
           payments.push({
             method: 'CASH',
             amount: cashNeto,
-            paid_nio: rawMultCashNio,
-            paid_usd: rawMultCashUsd,
+            paid_in_nio: rawMultCashNio,
+            paid_in_usd: rawMultCashUsd,
             exchange_rate: exchangeRate,
             change_nio: changeDueNio
           });
@@ -260,8 +260,8 @@ export const ConfirmSaleModal = ({
         // Solo Efectivo
         finalMethod = 'CASH';
         metadata = {
-          paid_nio: rawMultCashNio,
-          paid_usd: rawMultCashUsd,
+          paid_in_nio: rawMultCashNio,
+          paid_in_usd: rawMultCashUsd,
           exchange_rate: exchangeRate,
           change_nio: changeDueNio
         };

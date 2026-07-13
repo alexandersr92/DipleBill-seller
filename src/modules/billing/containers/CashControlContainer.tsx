@@ -27,6 +27,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { currencyFormatter } from '../helpers';
+import { getExpenseCategoriesApi, createExpenseCategoryApi } from '../services/expenseCategoryService';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Checkbox } from '@/components/ui/checkbox';
+import { CaretSortIcon } from '@radix-ui/react-icons';
 
 export default function CashControlContainer() {
   const dispatch = useAppDispatch();
@@ -48,20 +53,28 @@ export default function CashControlContainer() {
   const [showTxModal, setShowTxModal] = useState(false);
   const [txType, setTxType] = useState<'in' | 'out'>('out');
   const [txAmount, setTxAmount] = useState('');
+  const [txCurrency, setTxCurrency] = useState<'NIO' | 'USD'>('NIO');
+  const [txCategoryId, setTxCategoryId] = useState<string | null>(null);
   const [txDescription, setTxDescription] = useState('');
   const [isSubmittingTx, setIsSubmittingTx] = useState(false);
   const [editingTx, setEditingTx] = useState<any | null>(null);
+  const [expenseCategories, setExpenseCategories] = useState<{ id: string; name: string }[]>([]);
+  const [categorySearchTerm, setCategorySearchTerm] = useState('');
 
   // Close session states
   const [showCloseModal, setShowCloseModal] = useState(false);
   const [actualCash, setActualCash] = useState('');
+  const [actualUsd, setActualUsd] = useState('');
   const [closeNotes, setCloseNotes] = useState('');
   const [isSubmittingClose, setIsSubmittingClose] = useState(false);
+  const exchangeRate = parseFloat(localStorage.getItem('usd_exchange_rate') || '0');
 
   const handleEditTxClick = (tx: any) => {
     setEditingTx(tx);
     setTxType(tx.type);
     setTxAmount(tx.amount.toString());
+    setTxCurrency(tx.currency || 'NIO');
+    setTxCategoryId(tx.expense_category_id || null);
     setTxDescription(tx.description || '');
     setShowTxModal(true);
   };
@@ -94,12 +107,21 @@ export default function CashControlContainer() {
     if (storeId) {
       dispatch(fetchCashSettingsAndSession(storeId));
     }
+    
+    // Fetch categories
+    getExpenseCategoriesApi().then((res) => {
+      setExpenseCategories(res.data || []);
+    }).catch(err => {
+      console.error('Error fetching categories:', err);
+    });
   }, [storeId, dispatch]);
 
   const handleOpenTxModal = () => {
     setEditingTx(null);
     setTxType('out');
     setTxAmount('');
+    setTxCurrency('NIO');
+    setTxCategoryId(null);
     setTxDescription('');
     setShowTxModal(true);
   };
@@ -135,6 +157,8 @@ export default function CashControlContainer() {
             id: editingTx.id,
             type: txType,
             amount: amt,
+            currency: txCurrency,
+            expense_category_id: txType === 'out' ? txCategoryId : null,
             description: txDescription.trim(),
             storeId
           })
@@ -151,6 +175,8 @@ export default function CashControlContainer() {
             cashSessionId: activeSession.id,
             type: txType,
             amount: amt,
+            currency: txCurrency,
+            expense_category_id: txType === 'out' ? txCategoryId : null,
             description: txDescription.trim(),
             storeId
           })
@@ -158,7 +184,7 @@ export default function CashControlContainer() {
 
         toast({
           title: 'Movimiento Registrado',
-          description: `Se registró un ${txType === 'in' ? 'ingreso' : 'egreso'} de C$ ${amt.toFixed(2)}.`,
+          description: `Se registró un ${txType === 'in' ? 'ingreso' : 'egreso'} de ${txCurrency} ${amt.toFixed(2)}.`,
           className: 'bg-green-600 border-green-500 text-white'
         });
       }
@@ -176,6 +202,7 @@ export default function CashControlContainer() {
 
   const handleOpenCloseModal = () => {
     setActualCash('');
+    setActualUsd('');
     setCloseNotes('');
     setShowCloseModal(true);
   };
@@ -196,10 +223,13 @@ export default function CashControlContainer() {
 
     setIsSubmittingClose(true);
     try {
+      const usdVal = parseFloat(actualUsd) || 0;
       await dispatch(
         closeCashSession({
           cashSessionId: activeSession.id,
           actualCash: cashVal,
+          actualUsd: usdVal,
+          usdExchangeRate: exchangeRate > 0 ? exchangeRate : undefined,
           notes: closeNotes.trim() || undefined,
           storeId
         })
@@ -354,7 +384,7 @@ export default function CashControlContainer() {
               onClick={handleOpenTxModal}
               className="h-8 text-xs font-extrabold uppercase bg-slate-200 hover:bg-slate-350 text-slate-800 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 flex items-center gap-1">
               <PlusCircle className="w-3.5 h-3.5" />
-              <span>Ajuste de Efectivo</span>
+              <span>Registrar Ajuste / Gasto</span>
             </Button>
             <Button
               onClick={handleOpenCloseModal}
@@ -500,11 +530,16 @@ export default function CashControlContainer() {
                               )}
                             </td>
                             <td className="p-2.5 font-extrabold text-slate-850 dark:text-white">
-                              {currencyFormatter({ currency: 'NIO', value: tx.amount })}
+                              {currencyFormatter({ currency: tx.currency || 'NIO', value: tx.amount })}
                             </td>
                             <td
                               className="p-2.5 text-slate-600 dark:text-slate-400 max-w-[200px] truncate"
                               title={tx.description || ''}>
+                              {tx.expense_category_id ? (
+                                <span className="font-bold text-xs uppercase bg-slate-200 dark:bg-slate-800 px-1 rounded mr-1">
+                                  {expenseCategories.find((c) => c.id === tx.expense_category_id)?.name || 'Categoría'}
+                                </span>
+                              ) : null}
                               {tx.description || '-'}
                             </td>
                             <td className="p-2.5 text-center">
@@ -602,7 +637,7 @@ export default function CashControlContainer() {
           <div className="w-full max-w-sm bg-slate-900 border-2 border-slate-800 rounded-xl p-5 shadow-2xl relative animate-in zoom-in-95 duration-150">
             <h2 className="text-sm font-black text-white uppercase tracking-wider mb-4 flex items-center gap-1.5">
               <PlusCircle className="w-4 h-4 text-blue-500" />
-              <span>{editingTx ? 'Editar Ajuste de Caja' : 'Registrar Ajuste de Caja'}</span>
+              <span>{editingTx ? 'Editar Movimiento' : 'Registrar Ajuste / Gasto'}</span>
             </h2>
 
             <form onSubmit={handleAddTransactionSubmit} className="flex flex-col gap-4">
@@ -636,23 +671,105 @@ export default function CashControlContainer() {
 
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="txAmount" className="text-xs font-bold text-slate-350">
-                  Monto (C$)
+                  Monto y Moneda
                 </Label>
-                <div className="relative">
-                  <span className="absolute left-2.5 top-1.5 text-xs font-black text-slate-500">
-                    C$
-                  </span>
-                  <Input
-                    id="txAmount"
-                    type="number"
-                    step="any"
-                    value={txAmount}
-                    onChange={(e) => setTxAmount(e.target.value)}
-                    placeholder="0.00"
-                    className="pl-8 h-8 text-sm font-bold border-slate-700 bg-slate-950 text-white animate-in"
-                  />
+                <div className="flex gap-2">
+                  <select
+                    value={txCurrency}
+                    onChange={(e) => setTxCurrency(e.target.value as 'NIO' | 'USD')}
+                    className="h-8 text-xs font-bold border border-slate-700 bg-slate-950 text-white rounded px-2 w-24">
+                    <option value="NIO">NIO (C$)</option>
+                    <option value="USD">USD ($)</option>
+                  </select>
+                  <div className="relative flex-1">
+                    <span className="absolute left-2.5 top-1.5 text-xs font-black text-slate-500">
+                      {txCurrency === 'NIO' ? 'C$' : '$'}
+                    </span>
+                    <Input
+                      id="txAmount"
+                      type="number"
+                      step="any"
+                      value={txAmount}
+                      onChange={(e) => setTxAmount(e.target.value)}
+                      placeholder="0.00"
+                      className="pl-8 h-8 text-sm font-bold border-slate-700 bg-slate-950 text-white animate-in"
+                    />
+                  </div>
                 </div>
               </div>
+
+              {txType === 'out' && (
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-xs font-bold text-slate-350">Categoría de Gasto</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className={cn(
+                          'w-full justify-between h-8 text-xs border-slate-700 bg-slate-950 text-white',
+                          !txCategoryId && 'text-slate-400'
+                        )}
+                      >
+                        {txCategoryId
+                          ? expenseCategories.find((c) => c.id === txCategoryId)?.name
+                          : 'Seleccionar categoría...'}
+                        <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                      <Command>
+                        <CommandInput
+                          placeholder="Buscar o crear..."
+                          className="h-8 text-xs"
+                          value={categorySearchTerm}
+                          onValueChange={setCategorySearchTerm}
+                        />
+                        <CommandList>
+                          <CommandEmpty>
+                            <Button
+                              variant="ghost"
+                              className="w-full justify-start text-xs h-8"
+                              onClick={async () => {
+                                if (categorySearchTerm) {
+                                  try {
+                                    const newCategory = await createExpenseCategoryApi(categorySearchTerm);
+                                    setExpenseCategories([...expenseCategories, newCategory.data]);
+                                    setTxCategoryId(newCategory.data.id);
+                                    setCategorySearchTerm('');
+                                    toast({ title: 'Categoría creada', variant: 'success' });
+                                  } catch (error) {
+                                    toast({ title: 'Error al crear la categoría', variant: 'destructive' });
+                                  }
+                                }
+                              }}
+                            >
+                              + Crear &quot;{categorySearchTerm}&quot;
+                            </Button>
+                          </CommandEmpty>
+                          <CommandGroup>
+                            {expenseCategories.map((category) => (
+                              <CommandItem
+                                key={category.id}
+                                onSelect={() => setTxCategoryId(category.id)}
+                                className="text-xs"
+                              >
+                                <div className="flex items-center">
+                                  <Checkbox
+                                    checked={txCategoryId === category.id}
+                                    className="mr-2"
+                                  />
+                                  {category.name}
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              )}
 
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="txDesc" className="text-xs font-bold text-slate-350">
@@ -726,6 +843,29 @@ export default function CashControlContainer() {
                     step="any"
                     value={actualCash}
                     onChange={(e) => setActualCash(e.target.value)}
+                    placeholder="0.00"
+                    className="pl-8 h-8 text-sm font-bold border-slate-700 bg-slate-950 text-white"
+                  />
+                </div>
+              </div>
+              
+              <div className="flex flex-col gap-1.5">
+                <div className="flex justify-between items-center">
+                  <Label htmlFor="actualUsd" className="text-xs font-bold text-slate-350">
+                    Dólares Físicos en Gaveta (USD)
+                  </Label>
+                  <span className="text-[10px] text-slate-500">TC: {exchangeRate > 0 ? exchangeRate : 'No configurada'}</span>
+                </div>
+                <div className="relative">
+                  <span className="absolute left-2.5 top-1.5 text-xs font-black text-slate-500">
+                    $
+                  </span>
+                  <Input
+                    id="actualUsd"
+                    type="number"
+                    step="any"
+                    value={actualUsd}
+                    onChange={(e) => setActualUsd(e.target.value)}
                     placeholder="0.00"
                     className="pl-8 h-8 text-sm font-bold border-slate-700 bg-slate-950 text-white"
                   />

@@ -14,16 +14,23 @@ export interface ICashSession {
   opened_at: string;
   closed_at: string | null;
   notes: string | null;
+  actual_usd?: number;
+  expected_usd?: number;
+  usd_exchange_rate?: number;
   cash_transactions?: {
     id: string;
     type: 'in' | 'out';
     amount: number;
+    currency?: 'NIO' | 'USD';
+    expense_category_id?: string | null;
     description: string;
   }[];
   cashTransactions?: {
     id: string;
     type: 'in' | 'out';
     amount: number;
+    currency?: 'NIO' | 'USD';
+    expense_category_id?: string | null;
     description: string;
   }[];
 }
@@ -157,13 +164,15 @@ export const openCashSession = createAsyncThunk(
 export const closeCashSession = createAsyncThunk(
   'cash/closeSession',
   async (
-    payload: { cashSessionId: string; actualCash: number; notes?: string; storeId: string },
+    payload: { cashSessionId: string; actualCash: number; actualUsd?: number; usdExchangeRate?: number; notes?: string; storeId: string },
     { dispatch, rejectWithValue }
   ) => {
     try {
       const response = await axiosInstance.post('/v1/cash-sessions/close', {
         cash_session_id: payload.cashSessionId,
         actual_cash: payload.actualCash,
+        actual_usd: payload.actualUsd,
+        usd_exchange_rate: payload.usdExchangeRate,
         notes: payload.notes
       });
       // Remove session ID from local storage
@@ -184,6 +193,8 @@ export const addCashTransaction = createAsyncThunk(
       cashSessionId: string;
       type: 'in' | 'out';
       amount: number;
+      currency?: 'NIO' | 'USD';
+      expense_category_id?: string | null;
       description: string;
       storeId: string;
     },
@@ -194,6 +205,8 @@ export const addCashTransaction = createAsyncThunk(
         cash_session_id: payload.cashSessionId,
         type: payload.type,
         amount: payload.amount,
+        currency: payload.currency,
+        expense_category_id: payload.expense_category_id,
         description: payload.description
       });
       // Refresh active session and totals
@@ -212,6 +225,8 @@ export const updateCashTransaction = createAsyncThunk(
       id: string;
       type: 'in' | 'out';
       amount: number;
+      currency?: 'NIO' | 'USD';
+      expense_category_id?: string | null;
       description: string;
       storeId: string;
     },
@@ -221,6 +236,8 @@ export const updateCashTransaction = createAsyncThunk(
       const response = await axiosInstance.put(`/v1/cash-sessions/transactions/${payload.id}`, {
         type: payload.type,
         amount: payload.amount,
+        currency: payload.currency,
+        expense_category_id: payload.expense_category_id,
         description: payload.description
       });
       // Refresh active session and totals
