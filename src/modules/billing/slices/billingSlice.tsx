@@ -73,6 +73,13 @@ export const billingSlice = createSlice({
       state.productsSelected = [];
     },
 
+    loadProductsToBilling: (state, action: PayloadAction<IInvoiceProduct[]>) => {
+      state.productsSelected = action.payload.map((p) => ({
+        ...p,
+        temp_id: generateUid()
+      }));
+    },
+
     updateProductField: (
       state,
       action: PayloadAction<{ id: string; field: keyof IInvoiceProduct; value: number }>
@@ -323,6 +330,7 @@ export const {
   deleteSelectedProduct,
   deleteSelectedProducts,
   resetProductsInvoice,
+  loadProductsToBilling,
   updateProductField,
   updateInvoice,
   clearInvoice,

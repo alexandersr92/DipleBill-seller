@@ -177,8 +177,11 @@ const buildInvoiceHtml = (data: InvoiceData) => {
   const discountPercentage =
     subtotal > 0 && discount > 0 ? Math.round((discount / subtotal) * 100) : null;
   const [currentPrintedDate, currentPrintedTime] = formatDateAndHours().split(' ');
-  const normalizedInvoiceType = data.invoiceType.toLowerCase();
-  const saleLabel = normalizedInvoiceType === 'cash' ? 'Venta Contado' : 'Venta Credito';
+  const normalizedInvoiceType = String(data.invoiceType ?? '').toLowerCase();
+  const isProforma = normalizedInvoiceType === 'proforma' || data.paymentMethodRaw === 'PROFORMA';
+  const saleLabel = isProforma
+    ? 'PROFORMA / COTIZACIÓN'
+    : (normalizedInvoiceType === 'cash' ? 'Venta Contado' : 'Venta Credito');
   const typography = {
     baseSize: '14px',
     smallSize: '14px',
@@ -217,9 +220,11 @@ const buildInvoiceHtml = (data: InvoiceData) => {
     .join('');
 
   let paymentDetailsHtml = '';
-  if (data.paymentMethodRaw === 'CASH' && data.paymentMetadata) {
-    const paidNio = Number(data.paymentMetadata.paid_nio || 0);
-    const paidUsd = Number(data.paymentMetadata.paid_usd || 0);
+  if (isProforma) {
+    paymentDetailsHtml = '';
+  } else if (data.paymentMethodRaw === 'CASH' && data.paymentMetadata) {
+    const paidNio = Number(data.paymentMetadata.paid_nio ?? data.paymentMetadata.paid_in_nio ?? 0);
+    const paidUsd = Number(data.paymentMetadata.paid_usd ?? data.paymentMetadata.paid_in_usd ?? 0);
     const rate = Number(data.paymentMetadata.exchange_rate || 36.5);
     const changeNio = Number(data.paymentMetadata.change_nio || 0);
 
@@ -753,10 +758,13 @@ export const downloadInvoiceAsPDF = async ({ data }: { data: InvoiceData }) => {
   // small layout settle
   await new Promise((r) => setTimeout(r, 50));
 
+  const isProforma = String(data.invoiceType ?? '').toLowerCase() === 'proforma' || data.paymentMethodRaw === 'PROFORMA';
+  const filename = isProforma ? `PROFORMA-${data.invoiceNumber}.pdf` : `${data.invoiceNumber}.pdf`;
+
   await html2pdf()
     .set({
       margin: 0,
-      filename: `${data.invoiceNumber}.pdf`,
+      filename,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true, backgroundColor: '#fff' },
       jsPDF: { unit: 'mm', format: [data.printWidth, 297], orientation: 'portrait' }

@@ -7,7 +7,7 @@ import { useLocation } from 'react-router';
 export default function Layout({ children }: { children: React.ReactNode }) {
   const isLoading = useAppSelector((state) => state.storeSlice.isLoading);
   const { pathname } = useLocation();
-  const isVentaPage = pathname === '/venta';
+  const isVentaPage = pathname === '/venta' || pathname === '/';
 
   return (
     <div className="relative min-h-screen flex flex-col bg-background text-foreground pb-[var(--bottom-nav-height)]">

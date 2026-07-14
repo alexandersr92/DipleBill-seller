@@ -17,12 +17,17 @@ import { ISingleInvoice } from '@diplebill/core';
 import { getInvoiceById } from '../services/billingApi';
 import OwnerPasswordConfirmDialog from '@/modules/auth/components/OwnerPasswordConfirmDialog';
 
+import { useNavigate } from 'react-router-dom';
+import { ShoppingCart } from 'lucide-react';
+
 interface InvoiceListActionsProps {
   id: string;
+  invoiceStatus?: string;
 }
 
-const InvoiceListActions = ({ id }: InvoiceListActionsProps) => {
+const InvoiceListActions = ({ id, invoiceStatus }: InvoiceListActionsProps) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const printInfo = useAppSelector((state) => state.storeSlice.store);
   const [invoice, setInvoice] = useState<ISingleInvoice>();
@@ -157,6 +162,14 @@ const InvoiceListActions = ({ id }: InvoiceListActionsProps) => {
             </svg>
             {isDownloadingPDF ? 'Generando...' : 'Descargar PDF'}
           </DropdownMenuItem>
+          {invoiceStatus === 'proforma' && (
+            <DropdownMenuItem
+              onSelect={() => navigate(`/venta?proforma_id=${id}`)}
+            >
+              <ShoppingCart className="w-4 h-4 text-emerald-500" strokeWidth={1.5} />
+              Facturar en POS
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem
             onSelect={(e) => {
               e.preventDefault();

@@ -13,7 +13,8 @@ import { calculateTotalDiscount, currencyFormatter } from '../helpers';
 import { Copy, Trash } from 'lucide-react';
 import CustomInputNumber from './CustomInputNumber';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { IInvoiceProduct, SELL_TYPES } from '@diplebill/core';
+import { IInvoiceProduct } from '@diplebill/core';
+import { SELL_TYPES } from '../types';
 import CustomSearchInputSuggetions from './CustomSearchInputSuggetions';
 import {
   deleteSelectedProduct,
@@ -491,7 +492,11 @@ const ProductTable = ({
                   <TableCell className="text-left text-xs">Tipo de venta </TableCell>
                   <TableCell className="text-right">
                     <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wide bg-sale-accent-soft text-sale-accent-text border border-sale-accent-border">
-                      {sellType === 'credito' ? 'Crédito' : 'Contado'}
+                      {sellType === SELL_TYPES.CREDITO
+                        ? 'Crédito'
+                        : sellType === SELL_TYPES.PROFORMA
+                        ? 'Proforma'
+                        : 'Contado'}
                     </span>
                   </TableCell>
                 </TableRow>

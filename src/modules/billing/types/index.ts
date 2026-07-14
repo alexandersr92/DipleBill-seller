@@ -1,6 +1,7 @@
 export const SELL_TYPES = {
   CREDITO: 'credito',
-  CONTADO: 'contado'
+  CONTADO: 'contado',
+  PROFORMA: 'proforma'
 };
 
 export const PAYMENT_METHODS = {

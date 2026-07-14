@@ -42,27 +42,32 @@ import { InferType } from 'yup';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { createBilling, replaceInvoice } from '../services/billingThunks';
-import { IInvoiceProduct, ISingleInvoice, SELL_TYPES, PAYMENT_METHODS } from '@diplebill/core';
+import { IInvoiceProduct, ISingleInvoice, PAYMENT_METHODS } from '@diplebill/core';
+import { SELL_TYPES } from '../types';
 import { useToast } from '@/components/hooks/use-toast';
 import {
   clearInvoice,
   resetProductsInvoice,
   updateInvoice,
   addProductsToBilling,
-  cancelEditingInvoice
+  cancelEditingInvoice,
+  loadProductsToBilling
 } from '../slices/billingSlice';
 import { sellerLogout } from '@/modules/auth/slices/userSlice';
 import { addClientFromInvoice, getClients } from '@/modules/clients/services/clientsThunks';
 import { handleKeyDown } from '../helpers';
-import { getBillingProductsApi } from '../services/billingApi';
+import { getBillingProductsApi, getInvoiceById } from '../services/billingApi';
 import {
   AlertDialog,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle
+  AlertDialogTitle,
+  AlertDialogAction,
+  AlertDialogDescription
 } from '@/components/ui/alert-dialog';
+import { useSearchParams } from 'react-router-dom';
 import SearchSelect from '../../../components/ui/SearchSelect';
 import { ActionButtons } from '../components/ActionButtons';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -158,11 +163,170 @@ const Billing = () => {
     reject: (reason?: any) => void;
   } | null>(null);
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  const proformaId = searchParams.get('proforma_id');
+  const [isPriceDialogOpen, setIsPriceDialogOpen] = useState(false);
+  const [priceDiscrepancies, setPriceDiscrepancies] = useState<{
+    detail: any;
+    currentPrice: number;
+    product: any;
+  }[]>([]);
+  const [pendingInvoice, setPendingInvoice] = useState<ISingleInvoice | null>(null);
+
   useEffect(() => {
     if (!isClientSelected) {
       setSellType(SELL_TYPES.CONTADO);
     }
   }, [isClientSelected]);
+
+  useEffect(() => {
+    if (!proformaId || !storeId) return;
+
+    const fetchAndCheckProforma = async () => {
+      try {
+        const response = await getInvoiceById(proformaId);
+        const invoiceData = response.data;
+        if (!invoiceData) return;
+
+        const discrepancies: typeof priceDiscrepancies = [];
+        const stockWarnings: string[] = [];
+        const checkedDetails = await Promise.all(
+          invoiceData.invoice_details.map(async (detail: any) => {
+            try {
+              const resp = await getBillingProductsApi({
+                search: detail.sku || detail.product_name,
+                storeId: storeId,
+                search_by: detail.sku ? 'sku' : 'name'
+              });
+              const matches = Array.isArray(resp?.data) ? resp.data : [];
+              const match = matches.find((m: any) => m.sku === detail.sku || m.id === detail.product_id);
+              if (match) {
+                const currentPrice = parseFloat(match.price);
+                const detailPrice = parseFloat(detail.price);
+                const requestedQty = parseFloat(detail.quantity);
+                const availableQty = parseFloat(match.quantity ?? 0);
+
+                if (availableQty <= 0) {
+                  stockWarnings.push(`${detail.product_name} (Sin Stock en inventario)`);
+                } else if (requestedQty > availableQty) {
+                  stockWarnings.push(`${detail.product_name} (Solicitado: ${requestedQty}, Disponible: ${availableQty})`);
+                }
+
+                if (currentPrice !== detailPrice) {
+                  discrepancies.push({
+                    detail,
+                    currentPrice,
+                    product: match
+                  });
+                }
+                return { detail, match, priceToUse: detailPrice };
+              }
+              return { detail, match: null, priceToUse: parseFloat(detail.price) };
+            } catch (err) {
+              console.error(err);
+              return { detail, match: null, priceToUse: parseFloat(detail.price) };
+            }
+          })
+        );
+
+        if (stockWarnings.length > 0) {
+          toast({
+            title: 'Advertencia de Stock',
+            description: `Algunos productos no tienen inventario suficiente: ${stockWarnings.join(', ')}`,
+            variant: 'warning',
+            duration: 8000
+          });
+        }
+
+        if (discrepancies.length > 0) {
+          setPriceDiscrepancies(discrepancies);
+          setPendingInvoice(invoiceData);
+          setIsPriceDialogOpen(true);
+        } else {
+          loadProforma(invoiceData, checkedDetails);
+        }
+      } catch (error) {
+        console.error('Error loading proforma:', error);
+        toast({
+          title: 'Error al cargar proforma',
+          description: 'No se pudo recuperar la información de la cotización.',
+          variant: 'error'
+        });
+      } finally {
+        const nextParams = new URLSearchParams(searchParams);
+        nextParams.delete('proforma_id');
+        setSearchParams(nextParams);
+      }
+    };
+
+    fetchAndCheckProforma();
+  }, [proformaId, storeId]);
+
+  const loadProforma = (
+    invoiceData: ISingleInvoice,
+    detailsWithMatches: { detail: any; match: any; priceToUse: number }[]
+  ) => {
+    const mappedProducts: IInvoiceProduct[] = detailsWithMatches.map(({ detail, match, priceToUse }) => {
+      const qty = parseFloat(detail.quantity);
+      const total = qty * priceToUse;
+      const disc = parseFloat(detail.discount || 0);
+      const grandTotal = total - disc;
+
+      return {
+        id: detail.product_id,
+        product_id: detail.product_id,
+        sku: detail.sku,
+        barcode: detail.barcode || '',
+        name: detail.product_name,
+        price: priceToUse,
+        quantity: qty,
+        discount: disc,
+        total: total,
+        tax: parseFloat(detail.tax || 0),
+        grand_total: grandTotal,
+        inventory_id: detail.inventory_id,
+        inventory_name: match?.inventory_name || '',
+        image: match?.image || '',
+        cost: match?.cost || 0,
+        min_stock: match?.min_stock || 0,
+        unit_of_measure: match?.unit_of_measure || '',
+        categories: match?.categories || [],
+        tags: match?.tags || [],
+        inventory: match?.inventory || []
+      };
+    });
+
+    dispatch(loadProductsToBilling(mappedProducts));
+    setValue('client_id', invoiceData.client_id, { shouldValidate: true });
+    setValue('client_name', invoiceData.client_name, { shouldValidate: true });
+    setValue('invoice_note', invoiceData.invoice_note || '', { shouldValidate: true });
+    setIsClientSelected(!!invoiceData.client_id);
+    
+    toast({
+      title: 'Proforma cargada',
+      description: `Se cargaron los productos de la proforma #${invoiceData.invoice_number} en el carrito.`,
+      variant: 'success'
+    });
+  };
+
+  const handleResolvePrices = (updatePrices: boolean) => {
+    if (!pendingInvoice) return;
+
+    const checkedDetails = pendingInvoice.invoice_details.map((detail: any) => {
+      const discrepancy = priceDiscrepancies.find((d) => d.detail.id === detail.id);
+      const priceToUse = discrepancy && updatePrices ? discrepancy.currentPrice : parseFloat(detail.price);
+      return {
+        detail,
+        match: discrepancy?.product || null,
+        priceToUse
+      };
+    });
+
+    loadProforma(pendingInvoice, checkedDetails);
+    setIsPriceDialogOpen(false);
+    setPendingInvoice(null);
+    setPriceDiscrepancies([]);
+  };
 
   const focusElement = (element?: HTMLElement | null) => {
     if (!element) return;
@@ -312,7 +476,7 @@ const Billing = () => {
   const handleConfirmedSubmit = async (
     paymentMethod: string,
     paymentMetadata: any,
-    isCreditSale: boolean
+    _isCreditSale: boolean
   ) => {
     if (isSubmittingSale) return;
     if (!pendingFormValues || !currentUser.sellerId) {
@@ -338,12 +502,14 @@ const Billing = () => {
           : invoiceCreated.client_id,
       invoice_date: format(new Date(), 'yyyy-MM-dd'),
       store_id: storeId!,
-      isCredit: isCreditSale,
-      payment_method: isCreditSale ? 'CREDIT' : paymentMethod,
-      payment_metadata: paymentMetadata,
+      isCredit: sellType === SELL_TYPES.CREDITO,
+      is_proforma: sellType === SELL_TYPES.PROFORMA,
+      invoice_status: sellType === SELL_TYPES.PROFORMA ? 'proforma' : undefined,
+      payment_method: sellType === SELL_TYPES.PROFORMA ? 'PROFORMA' : (sellType === SELL_TYPES.CREDITO ? 'CREDIT' : paymentMethod),
+      payment_metadata: sellType === SELL_TYPES.PROFORMA ? {} : paymentMetadata,
       payment_date: format(dateExp, 'yyyy-MM-dd'),
       seller_id: currentUser.sellerId,
-      cash_session_id: cashSessionId,
+      cash_session_id: sellType === SELL_TYPES.PROFORMA ? null : cashSessionId,
       invoice_note: finalNote,
       products: productsSelected.map((product) => ({
         ...product,
@@ -555,21 +721,30 @@ const Billing = () => {
           break;
         case 'F3':
           event.preventDefault();
-          if (isClientSelected) {
-            const nextType = sellType === 'credito' ? 'contado' : 'credito';
-            setSellType(nextType);
-            setValue('isCredit', nextType === 'credito', { shouldValidate: true });
-            toast({
-              title: `Venta cambiada a ${nextType === 'credito' ? 'Crédito' : 'Contado'}`,
-              variant: 'success',
-              duration: 1500
-            });
+          let nextType = 'contado';
+          if (sellType === 'contado') {
+            if (isClientSelected) {
+              nextType = 'credito';
+            } else {
+              nextType = 'proforma';
+            }
+          } else if (sellType === 'credito') {
+            nextType = 'proforma';
           } else {
-            toast({
-              title: 'Debe seleccionar un cliente primero para vender a Crédito',
-              variant: 'warning'
-            });
+            nextType = 'contado';
           }
+          setSellType(nextType);
+          setValue('isCredit', nextType === 'credito', { shouldValidate: true });
+          
+          let displayLabel = 'Contado';
+          if (nextType === 'credito') displayLabel = 'Crédito';
+          if (nextType === 'proforma') displayLabel = 'Proforma';
+
+          toast({
+            title: `Venta cambiada a ${displayLabel}`,
+            variant: 'success',
+            duration: 1500
+          });
           break;
         case 'F4':
           event.preventDefault();
@@ -921,6 +1096,19 @@ const Billing = () => {
             </TooltipProvider>
 
             <Button
+              onClick={() => {
+                setSellType(SELL_TYPES.PROFORMA);
+                setValue('isCredit', false, { shouldValidate: true });
+                buttonRef.current?.click();
+              }}
+              type="button"
+              tabIndex={-1}
+              disabled={isSubmittingSale}
+              className="w-full h-10 text-sm font-bold bg-amber-400 hover:bg-amber-500 text-amber-950 border-0">
+              Realizar proforma
+            </Button>
+
+            <Button
               onClick={handleCancelInvoice}
               type="button"
               tabIndex={-1}
@@ -962,6 +1150,47 @@ const Billing = () => {
         onSelectExisting={handleSelectExisting}
         onConfirmNew={handleConfirmNew}
       />
+
+      <AlertDialog open={isPriceDialogOpen} onOpenChange={setIsPriceDialogOpen}>
+        <AlertDialogContent className="max-w-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cambios de precio detectados</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se encontraron diferencias entre los precios de la cotización y las tarifas actuales del inventario. ¿Cómo deseas proceder?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="my-4 max-h-40 overflow-y-auto border rounded p-2 text-sm">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b">
+                  <th className="pb-1 font-semibold">Producto</th>
+                  <th className="pb-1 font-semibold text-right">Precio Proforma</th>
+                  <th className="pb-1 font-semibold text-right">Precio Actual</th>
+                </tr>
+              </thead>
+              <tbody>
+                {priceDiscrepancies.map((disc, idx) => (
+                  <tr key={idx} className="border-b last:border-0">
+                    <td className="py-2">{disc.detail.product_name}</td>
+                    <td className="py-2 text-right text-muted-foreground">C$ {parseFloat(disc.detail.price).toFixed(2)}</td>
+                    <td className="py-2 text-right font-medium text-emerald-600">C$ {disc.currentPrice.toFixed(2)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <AlertDialogFooter className="flex gap-2">
+            <AlertDialogCancel onClick={() => handleResolvePrices(false)}>
+              Respetar Cotización
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleResolvePrices(true)} className="bg-theme_blue hover:bg-theme_blue/90">
+              Actualizar Precios
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog
         open={isOpenDialogAfterInvoice}
@@ -1013,7 +1242,7 @@ const Billing = () => {
           <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[9px] font-extrabold shadow-sm">
             F3
           </kbd>
-          <span>Contado / Crédito</span>
+          <span>Contado / Crédito / Proforma</span>
         </div>
         <div className="flex items-center gap-1.5">
           <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[9px] font-extrabold shadow-sm">
