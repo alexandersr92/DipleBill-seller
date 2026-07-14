@@ -360,7 +360,14 @@ const ProductTable = ({
                       {product.barcode || '--'}
                     </TableCell>
                     <TableCell className="py-4 text-xs">{product.sku}</TableCell>
-                    <TableCell className="font-semibold py-4 text-xs">{product.name}</TableCell>
+                    <TableCell className="py-4 text-xs">
+                      <div className="font-semibold text-foreground">{product.name}</div>
+                      {product.inventory_name && (
+                        <div className="text-[10px] text-muted-foreground mt-0.5 font-medium">
+                          {product.inventory_name}
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell className="text-center py-4 w-[200px]">
                       <div className="flex justify-center">
                         <CustomInputNumber
