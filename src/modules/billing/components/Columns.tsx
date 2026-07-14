@@ -39,6 +39,11 @@ const INVOICE_STATUS: Record<
     value: 'credit',
     label: 'Credito',
     variant: 'processing'
+  },
+  PROFORMA: {
+    value: 'proforma',
+    label: 'Proforma',
+    variant: 'draft'
   }
 };
 
@@ -48,7 +53,7 @@ export const columns: ColumnDef<ISingleInvoice>[] = [
     header: 'Nº Factura',
     cell: ({ row }) => (
       <div className="text-left">
-        <Link to={`${row.original.id}`} className="hover:underline hover:text-theme_blue">
+        <Link to={`/invoices/${row.original.id}`} className="hover:underline hover:text-theme_blue">
           {row.getValue('invoice_number')}
         </Link>
       </div>
@@ -69,7 +74,7 @@ export const columns: ColumnDef<ISingleInvoice>[] = [
     },
     cell: ({ row }) => (
       <div className="text-left">
-        <Link to={`${row.original.id}`} className="hover:underline hover:text-theme_blue">
+        <Link to={`/invoices/${row.original.id}`} className="hover:underline hover:text-theme_blue">
           {row.getValue('client_name')}
         </Link>
       </div>
@@ -141,6 +146,9 @@ export const columns: ColumnDef<ISingleInvoice>[] = [
         case INVOICE_STATUS.CREDIT.value:
           statusConfig = INVOICE_STATUS.CREDIT;
           break;
+        case INVOICE_STATUS.PROFORMA.value:
+          statusConfig = INVOICE_STATUS.PROFORMA;
+          break;
         default:
           statusConfig = INVOICE_STATUS.CANCELED;
       }
@@ -177,7 +185,7 @@ export const columns: ColumnDef<ISingleInvoice>[] = [
     cell: ({ row }) => {
       const id = row.original.id;
       if (id) {
-        return <InvoiceListActions id={id} />;
+        return <InvoiceListActions id={id} invoiceStatus={row.original.invoice_status} />;
       } else {
         return null;
       }

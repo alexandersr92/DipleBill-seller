@@ -24,6 +24,7 @@ const InvoiceList = () => {
   const [paymentMethod, setPaymentMethod] = useState<string>('');
   const [status, setStatus] = useState<string>('');
   const [showExport, setShowExport] = useState(false);
+  const [viewType, setViewType] = useState<'invoices' | 'proformas'>('invoices');
 
   const { getFilteredData } = useGenericFilters({
     defaultSort: 'created_at',
@@ -114,7 +115,7 @@ const InvoiceList = () => {
 
     setSearchValue('');
     setDateRange({});
-    setStatus('');
+    setStatus(viewType === 'proformas' ? 'proforma' : '');
     setPaymentMethod('');
 
     // Se usa settimeout para ejecutar los filtros una vez que los estados se limpien
@@ -125,13 +126,13 @@ const InvoiceList = () => {
         page: 1,
         dateRange: {},
         paymentMethod: '',
-        status: '',
+        status: viewType === 'proformas' ? 'proforma' : '',
         ...getSortParams()
       });
 
       isClearingFiltersRef.current = false;
     }, 0);
-  }, [pagination.itemsPerPage, getFilteredData, getSortParams]);
+  }, [pagination.itemsPerPage, getFilteredData, getSortParams, viewType]);
 
   const hasActiveFilters = Boolean(
     searchValue || dateRange.start || dateRange.end || status || paymentMethod
@@ -139,7 +140,39 @@ const InvoiceList = () => {
 
   return (
     <section>
-      <h1 className="text-2xl font-semibold ">Facturas</h1>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-semibold ">Facturas y Proformas</h1>
+        <div className="flex gap-2 bg-muted p-1 rounded-lg">
+          <button
+            onClick={() => {
+              setViewType('invoices');
+              setStatus('');
+              getFilteredData({ ...filters, status: '' });
+            }}
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+              viewType === 'invoices'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Facturas de Venta
+          </button>
+          <button
+            onClick={() => {
+              setViewType('proformas');
+              setStatus('proforma');
+              getFilteredData({ ...filters, status: 'proforma' });
+            }}
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+              viewType === 'proformas'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Proformas
+          </button>
+        </div>
+      </div>
       <div className="py-[14px] flex items-center justify-between">
         <Filters
           searchValue={searchValue}
@@ -152,34 +185,50 @@ const InvoiceList = () => {
             });
             setShowExport(true);
           }}
-          customFilter={[
-            {
-              options: [
-                { value: '--', label: 'Todos' },
-                { value: 'CASH', label: 'Efectivo' },
-                { value: 'BACS', label: 'Transferencia' }
-              ],
-              selectedValue: paymentMethod,
-              placeholder: 'Seleccionar Método...',
-              onChange(value) {
-                setPaymentMethod(value);
-              }
-            },
-            {
-              options: [
-                { value: '--', label: 'Todos' },
-                { value: 'completed', label: 'Completado' },
-                { value: 'pending', label: 'Pendiente' },
-                { value: 'failed', label: 'Fallido' },
-                { value: 'canceled', label: 'Cancelado' }
-              ],
-              selectedValue: status,
-              placeholder: 'Seleccionar Estado',
-              onChange(value) {
-                setStatus(value);
-              }
-            }
-          ]}
+          customFilter={
+            viewType === 'proformas'
+              ? [
+                  {
+                    options: [
+                      { value: '--', label: 'Todos' },
+                      { value: 'PROFORMA', label: 'Proforma' }
+                    ],
+                    selectedValue: paymentMethod,
+                    placeholder: 'Seleccionar Método...',
+                    onChange(value) {
+                      setPaymentMethod(value);
+                    }
+                  }
+                ]
+              : [
+                  {
+                    options: [
+                      { value: '--', label: 'Todos' },
+                      { value: 'CASH', label: 'Efectivo' },
+                      { value: 'BACS', label: 'Transferencia' }
+                    ],
+                    selectedValue: paymentMethod,
+                    placeholder: 'Seleccionar Método...',
+                    onChange(value) {
+                      setPaymentMethod(value);
+                    }
+                  },
+                  {
+                    options: [
+                      { value: '--', label: 'Todos' },
+                      { value: 'completed', label: 'Completado' },
+                      { value: 'pending', label: 'Pendiente' },
+                      { value: 'failed', label: 'Fallido' },
+                      { value: 'canceled', label: 'Cancelado' }
+                    ],
+                    selectedValue: status,
+                    placeholder: 'Seleccionar Estado',
+                    onChange(value) {
+                      setStatus(value);
+                    }
+                  }
+                ]
+          }
           onClearFilters={handleClearFilters}
           hasActiveFilters={hasActiveFilters}
         />

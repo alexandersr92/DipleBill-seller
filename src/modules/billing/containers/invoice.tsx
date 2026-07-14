@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Params, useParams, useNavigate } from 'react-router';
 import { useEffect, useState } from 'react';
-import { ISingleInvoice, SELL_TYPES } from '@diplebill/core';
+import { ISingleInvoice } from '@diplebill/core';
 import { cancelInvoiceById, getInvoiceById } from '../services/billingApi';
 import {
   Table,
@@ -108,7 +108,9 @@ const Invoice = () => {
         <section>
           <section className="rounded-md shadow-sm p-4 border mb-4">
             <div className="w-full text-sm border-0 border-b pb-2">
-              <h1 className="text-2xl font-bold">Factura #{invoice?.invoice_number}</h1>
+              <h1 className="text-2xl font-bold">
+                {invoice?.invoice_status === 'proforma' ? 'Proforma' : 'Factura'} #{invoice?.invoice_number}
+              </h1>
             </div>
 
             <div className="grid grid-cols-3 gap-4 mt-8">
@@ -126,7 +128,7 @@ const Invoice = () => {
 
               <div className="w-full flex flex-wrap">
                 <label className="text-sm mb-1" htmlFor="">
-                  Fecha de la factura
+                  {invoice?.invoice_status === 'proforma' ? 'Fecha de la proforma' : 'Fecha de la factura'}
                 </label>
                 <Input
                   readOnly
@@ -145,9 +147,11 @@ const Invoice = () => {
                   disabled
                   className="h-10 border-gray-500 capitalize"
                   value={
-                    invoice?.invoice_type === 'credit'
-                      ? SELL_TYPES.CREDITO && 'crédito'
-                      : SELL_TYPES.CONTADO && 'Contado'
+                    invoice?.invoice_status === 'proforma'
+                      ? 'Proforma'
+                      : invoice?.invoice_type === 'credit'
+                        ? 'Crédito'
+                        : 'Contado'
                   }
                 />
               </div>
@@ -235,7 +239,7 @@ const Invoice = () => {
 
               <div className="w-full xl:col-span-1 sm:col-span-2 flex gap-2 flex-wrap items-start flex-col">
                 <label className="text-sm mb-1" htmlFor="">
-                  Detalles de la factura
+                  {invoice?.invoice_status === 'proforma' ? 'Detalles de la proforma' : 'Detalles de la factura'}
                 </label>
                 <Textarea
                   readOnly
@@ -327,7 +331,7 @@ const Invoice = () => {
                 onClick={() => setIsEditConfirmOpen(true)}
                 tabIndex={-1}
                 className="bg-edit-accent hover:bg-edit-accent-strong text-edit-accent-foreground border border-transparent">
-                Editar factura
+                Editar {invoice.invoice_status === 'proforma' ? 'proforma' : 'factura'}
               </Button>
             )}
             <Button
@@ -335,21 +339,21 @@ const Invoice = () => {
               onClick={() => setIsConfirmOpen(true)}
               tabIndex={-1}
               className="bg-theme_blue hover:bg-[#f4f4f5] hover:text-black border border-transparent hover:border-gray-500">
-              Anular factura
+              Anular {invoice?.invoice_status === 'proforma' ? 'proforma' : 'factura'}
             </Button>
             <OwnerPasswordConfirmDialog
               open={isConfirmOpen}
               onOpenChange={setIsConfirmOpen}
               onConfirm={cancelInvoice}
-              title="Anular Factura"
-              description="Se requiere la contraseña del propietario para anular esta factura."
+              title={invoice?.invoice_status === 'proforma' ? 'Anular Proforma' : 'Anular Factura'}
+              description={`Se requiere la contraseña del propietario para anular esta ${invoice?.invoice_status === 'proforma' ? 'proforma' : 'factura'}.`}
             />
             <OwnerPasswordConfirmDialog
               open={isEditConfirmOpen}
               onOpenChange={setIsEditConfirmOpen}
               onConfirm={handleConfirmEdit}
-              title="Editar Factura"
-              description="Se requiere la contraseña del propietario para editar esta factura."
+              title={invoice?.invoice_status === 'proforma' ? 'Editar Proforma' : 'Editar Factura'}
+              description={`Se requiere la contraseña del propietario para editar esta ${invoice?.invoice_status === 'proforma' ? 'proforma' : 'factura'}.`}
             />
           </div>
         </section>

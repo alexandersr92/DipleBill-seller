@@ -23,9 +23,12 @@ export const invoiceActions = async ({ settings, invoice, action }: IInvoiceActi
   const normalizedInvoiceType = String(invoice.invoice_type ?? '')
     .trim()
     .toLowerCase();
+  const isProforma = normalizedInvoiceType === 'proforma' || invoice.method === 'PROFORMA' || invoice.invoice_status === 'proforma';
   const isCreditSale = normalizedInvoiceType === 'credit' || normalizedInvoiceType === 'credito';
   let paymentMethod = '';
-  if (isCreditSale || invoice.method === 'CREDIT') {
+  if (isProforma) {
+    paymentMethod = 'Proforma';
+  } else if (isCreditSale || invoice.method === 'CREDIT') {
     paymentMethod = 'Crédito';
   } else {
     if (invoice.method === 'CASH') {

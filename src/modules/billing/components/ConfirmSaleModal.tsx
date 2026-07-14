@@ -9,14 +9,15 @@ import {
   CreditCard,
   ChevronLeft,
   Calculator,
-  AlertCircle
+  AlertCircle,
+  FileText
 } from 'lucide-react';
 import { AlertDialog, AlertDialogContent, AlertDialogFooter } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { SELL_TYPES } from '@diplebill/core';
+import { SELL_TYPES } from '../types';
 import { currencyFormatter } from '../helpers';
 
 interface ConfirmSaleModalProps {
@@ -85,9 +86,9 @@ export const ConfirmSaleModal = ({
   // Resetear estados al abrir y cargar la tasa de cambio desde el servidor
   useEffect(() => {
     if (open) {
-      const isCreditDefault = sellType === SELL_TYPES.CREDITO;
+      const isCreditSaleDefault = sellType === SELL_TYPES.CREDITO;
       setStep(1);
-      setIsCreditSale(isCreditDefault);
+      setIsCreditSale(isCreditSaleDefault);
       setPaymentMethod('CASH');
 
       // Resetear estados de pago
@@ -163,6 +164,7 @@ export const ConfirmSaleModal = ({
 
   // Validaciones de confirmación
   const canConfirm = () => {
+    if (sellType === SELL_TYPES.PROFORMA) return true;
     if (isCreditSale) return true;
 
     const hasCash = rawMultCashNio > 0 || rawMultCashUsd > 0;
@@ -192,6 +194,11 @@ export const ConfirmSaleModal = ({
 
     let finalMethod = 'CASH';
     let metadata: any = {};
+
+    if (sellType === SELL_TYPES.PROFORMA) {
+      onConfirm('PROFORMA', {}, false);
+      return;
+    }
 
     if (!isCreditSale) {
       const hasCash = rawMultCashNio > 0 || rawMultCashUsd > 0;
@@ -350,8 +357,10 @@ export const ConfirmSaleModal = ({
         {/* Banner Superior Reactivo */}
         <div
           className={cn(
-            'h-2.5 px-6 transition-all duration-300',
-            isCreditSale ? 'bg-purple-650' : 'bg-blue-650'
+            'h-2.5 px-6 transition-all duration-350',
+            sellType === SELL_TYPES.PROFORMA
+              ? 'bg-amber-500'
+              : (isCreditSale ? 'bg-purple-600' : 'bg-blue-600')
           )}
         />
 
@@ -363,8 +372,9 @@ export const ConfirmSaleModal = ({
                 Proceso de Pago
               </span>
               <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
-                {step === 1 && '1. Tipo de Venta'}
-                {step === 2 && '2. Detalles de Cobro'}
+                {sellType === SELL_TYPES.PROFORMA
+                  ? 'Confirmar Cotización'
+                  : (step === 1 ? '1. Tipo de Venta' : '2. Detalles de Cobro')}
               </h2>
             </div>
             {step > 1 && (
@@ -393,7 +403,7 @@ export const ConfirmSaleModal = ({
             </div>
             <div className="flex flex-col items-end">
               <span className="text-[11px] uppercase font-black text-slate-800 dark:text-slate-100">
-                Total a Cobrar
+                {sellType === SELL_TYPES.PROFORMA ? 'Total Estimado' : 'Total a Cobrar'}
               </span>
               <span className="text-xl font-black text-slate-900 dark:text-white">
                 {formattedTotal}
@@ -401,16 +411,27 @@ export const ConfirmSaleModal = ({
             </div>
           </div>
 
-          {/* PASO 1: SELECCIONAR TIPO DE VENTA */}
-          {step === 1 && (
-            <div className="grid grid-cols-2 gap-4 my-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsCreditSale(false);
-                  setStep(2);
-                }}
-                disabled={isSubmitting}
+          {/* PASO 1: SELECCIONAR TIPO DE VENTA O PROFORMA */}
+          {sellType === SELL_TYPES.PROFORMA ? (
+            <div className="flex flex-col gap-3 my-2 text-center items-center justify-center p-6 border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50/10 rounded-xl">
+              <FileText className="w-12 h-12 text-amber-500 animate-pulse" />
+              <p className="font-extrabold text-slate-900 dark:text-white mt-2">
+                ¿Desea registrar esta Proforma / Cotización?
+              </p>
+              <p className="text-xs text-slate-750 dark:text-slate-400 max-w-sm mt-1">
+                Esto generará un documento de cotización para el cliente. No se descontará stock del inventario ni se afectará la caja.
+              </p>
+            </div>
+          ) : (
+            step === 1 && (
+              <div className="grid grid-cols-2 gap-4 my-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCreditSale(false);
+                    setStep(2);
+                  }}
+                  disabled={isSubmitting}
                 className={cn(
                   'p-5 rounded-xl border-2 flex flex-col items-center justify-center gap-3 transition-all',
                   'hover:border-blue-500 hover:bg-blue-50/20 active:scale-95 group',
@@ -490,7 +511,7 @@ export const ConfirmSaleModal = ({
                 </div>
               </button>
             </div>
-          )}
+          ))}
 
           {/* PASO 2: DETALLES DE COBRO (CONTADO - MERGED) */}
           {step === 2 && !isCreditSale && (
@@ -883,17 +904,20 @@ export const ConfirmSaleModal = ({
           </Button>
 
           <div className="flex items-center gap-2">
-            {step === 2 && (
+            {(step === 2 || sellType === SELL_TYPES.PROFORMA) && (
               <Button
                 type="button"
                 onClick={handleFinalSubmit}
                 disabled={isSubmitting || !canConfirm()}
                 className={cn(
                   'h-9 px-5 text-xs font-bold flex items-center gap-1.5 shadow-md border-2',
-                  isCreditSale
-                    ? 'bg-purple-600 hover:bg-purple-700 text-white border-purple-500'
-                    : 'bg-blue-600 hover:bg-blue-700 text-white border-blue-500'
-                )}>
+                  sellType === SELL_TYPES.PROFORMA
+                    ? 'bg-amber-600 hover:bg-amber-700 text-white border-amber-500'
+                    : (isCreditSale
+                      ? 'bg-purple-650 hover:bg-purple-700 text-white border-purple-500'
+                      : 'bg-blue-650 hover:bg-blue-700 text-white border-blue-500')
+                )}
+              >
                 {isSubmitting ? (
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -901,7 +925,7 @@ export const ConfirmSaleModal = ({
                   </>
                 ) : (
                   <>
-                    <span>Confirmar y Cobrar</span>
+                    <span>{sellType === SELL_TYPES.PROFORMA ? 'Confirmar Proforma' : 'Confirmar y Cobrar'}</span>
                     <kbd className="hidden sm:inline-block px-1 ml-1.5 rounded bg-white/20 text-[9px] font-semibold">
                       Ctrl + Enter
                     </kbd>
@@ -910,7 +934,7 @@ export const ConfirmSaleModal = ({
               </Button>
             )}
 
-            {step === 1 && (
+            {step === 1 && sellType !== SELL_TYPES.PROFORMA && (
               <Button
                 type="button"
                 onClick={() => setStep(2)}
@@ -921,7 +945,8 @@ export const ConfirmSaleModal = ({
                       clientName === 'Cliente Genérico' ||
                       clientName === 'Consumidor Final'))
                 }
-                className="h-9 px-5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white border-2 border-blue-500">
+                className="h-9 px-5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white border-2 border-blue-500"
+              >
                 Siguiente
               </Button>
             )}
