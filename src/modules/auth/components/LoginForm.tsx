@@ -221,7 +221,7 @@ export default function LoginForm() {
               const user: IUserState = {
                 id: res.attributes?.id || res.id || '',
                 orgId: res.attributes?.organization_id || res.organization_id || '',
-                email: res.attributes?.email || res.email || 'google_user@test.com',
+                email: res.attributes?.email || res.email || '',
                 token: res.token,
                 sellerId: storedSellerId || res.attributes?.seller_id || res.seller_id || '',
                 sellerName: storedSellerName,
