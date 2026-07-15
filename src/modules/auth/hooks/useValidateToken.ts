@@ -41,7 +41,8 @@ export function useValidateToken() {
             isSellerAuthenticated: hasSeller,
             mustChangePassword: (validUser.user as any).must_change_password || false,
             avatar: (validUser.user as any).avatar || '',
-            googleId: (validUser.user as any).google_id || ''
+            googleId: (validUser.user as any).google_id || '',
+            name: validUser.user.name || ''
           };
 
           dispatch(setUser(user));

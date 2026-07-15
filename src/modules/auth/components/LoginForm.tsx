@@ -72,7 +72,8 @@ export default function LoginForm() {
           isSellerAuthenticated: hasSeller,
           mustChangePassword: res.attributes?.must_change_password || res.must_change_password || false,
           avatar: res.attributes?.avatar || res.avatar || '',
-          googleId: res.attributes?.google_id || res.google_id || ''
+          googleId: res.attributes?.google_id || res.google_id || '',
+          name: res.attributes?.name || res.name || ''
         };
         persistSessionToken(user.token);
         dispatch(setUser(user));
@@ -228,7 +229,8 @@ export default function LoginForm() {
                 isSellerAuthenticated: hasSeller,
                 mustChangePassword: res.attributes?.must_change_password || res.must_change_password || false,
                 avatar: res.attributes?.avatar || res.avatar || '',
-                googleId: res.attributes?.google_id || res.google_id || ''
+                googleId: res.attributes?.google_id || res.google_id || '',
+                name: res.attributes?.name || res.name || ''
               };
 
               persistSessionToken(user.token);

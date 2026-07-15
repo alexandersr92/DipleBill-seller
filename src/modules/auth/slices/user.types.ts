@@ -11,4 +11,5 @@ export interface IUserState {
   mustChangePassword?: boolean;
   avatar?: string;
   googleId?: string;
+  name?: string;
 }
