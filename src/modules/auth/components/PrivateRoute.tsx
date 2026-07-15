@@ -4,7 +4,7 @@ import LayoutSkeleton from './LayoutSkeleton';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { PinLockOverlay } from '@/modules/billing/components/PinLockOverlay';
 import { CashSessionOverlay } from '@/modules/billing/components/CashSessionOverlay';
-import { fetchCashSettingsAndSession } from '@/modules/billing/slices/cashSlice';
+import { fetchCashSettingsAndSession, openCashSession } from '@/modules/billing/slices/cashSlice';
 import { useEffect } from 'react';
 import { MustChangePasswordOverlay } from './MustChangePasswordOverlay';
 
@@ -32,6 +32,14 @@ export default function PrivateRoute({ children }: IPrivateRouteProps) {
       dispatch(fetchCashSettingsAndSession(storeId));
     }
   }, [isSellerAuthenticated, storeId, dispatch]);
+
+  useEffect(() => {
+    if (isSellerAuthenticated && storeId && !isCashLoading) {
+      if (controlMode === 'SIMPLIFIED' && !isOpen) {
+        dispatch(openCashSession({ storeId, openingBalance: 0, cashRegisterName: 'Caja Simplificada' }));
+      }
+    }
+  }, [isSellerAuthenticated, storeId, controlMode, isOpen, isCashLoading, dispatch]);
 
   if (isValidated === null) {
     return <LayoutSkeleton />;

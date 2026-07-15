@@ -39,7 +39,7 @@ export default function CashControlContainer() {
   const { store } = useAppSelector((state) => state.storeSlice);
   const storeId = store?.id || '';
 
-  const { activeSession, isOpen, totals, countType, isLoading } = useAppSelector(
+  const { activeSession, isOpen, totals, countType, controlMode, isLoading } = useAppSelector(
     (state) => state.cashSlice
   );
 
@@ -441,7 +441,17 @@ export default function CashControlContainer() {
         )}
       </div>
 
-      {!isOpen || !activeSession ? (
+      {controlMode === 'NONE' ? (
+        <div className="border border-dashed border-slate-350 dark:border-slate-850 rounded-lg p-12 text-center flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900/10 animate-in fade-in-50 duration-200">
+          <AlertCircle className="w-10 h-10 text-slate-400 mb-3" />
+          <h3 className="text-base font-extrabold text-slate-900 dark:text-white mb-1">
+            Control de Caja Desactivado
+          </h3>
+          <p className="text-xs text-slate-500 max-w-md">
+            El control de turnos y arqueos de caja está desactivado en la configuración.
+          </p>
+        </div>
+      ) : !isOpen || !activeSession ? (
         <div className="border border-dashed border-slate-300 dark:border-slate-800 rounded-lg p-12 text-center flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900/10">
           <AlertCircle className="w-10 h-10 text-slate-400 mb-3" />
           <h3 className="text-base font-extrabold text-slate-900 dark:text-white mb-1">
@@ -474,11 +484,13 @@ export default function CashControlContainer() {
                 </h3>
                 <div className="flex flex-col md:flex-row md:items-baseline gap-2 mt-1">
                   <span className="text-3xl font-black text-white tracking-tight">
-                    {currencyFormatter({ currency: 'NIO', value: totals?.expected_cash_nio ?? totals?.expected_cash ?? 0 })}
+                    {countType === 'BLIND'
+                      ? 'C$ *******'
+                      : currencyFormatter({ currency: 'NIO', value: totals?.expected_cash_nio ?? totals?.expected_cash ?? 0 })}
                   </span>
                   {totals?.expected_cash_usd !== undefined && totals.expected_cash_usd > 0 && (
                     <span className="text-xl font-bold text-slate-350">
-                      / ${totals.expected_cash_usd.toFixed(2)} USD
+                      / {countType === 'BLIND' ? '$ ***' : `$${totals.expected_cash_usd.toFixed(2)}`} USD
                     </span>
                   )}
                 </div>
@@ -501,7 +513,9 @@ export default function CashControlContainer() {
                     Fondo Inicial
                   </p>
                   <p className="text-sm font-black text-slate-800 dark:text-slate-100 mt-0.5">
-                    {currencyFormatter({ currency: 'NIO', value: activeSession.opening_balance })}
+                    {countType === 'BLIND'
+                      ? 'C$ ***'
+                      : currencyFormatter({ currency: 'NIO', value: activeSession.opening_balance })}
                   </p>
                 </div>
 
@@ -511,8 +525,10 @@ export default function CashControlContainer() {
                     Ventas Directas (Efe)
                   </p>
                   <p className="text-sm font-black text-slate-800 dark:text-slate-100 mt-0.5">
-                    {currencyFormatter({ currency: 'NIO', value: totals?.invoice_cash_nio ?? totals?.invoice_cash ?? 0 })}
-                    {totals?.invoice_cash_usd !== undefined && totals.invoice_cash_usd > 0 && (
+                    {countType === 'BLIND'
+                      ? 'C$ ***'
+                      : currencyFormatter({ currency: 'NIO', value: totals?.invoice_cash_nio ?? totals?.invoice_cash ?? 0 })}
+                    {countType !== 'BLIND' && totals?.invoice_cash_usd !== undefined && totals.invoice_cash_usd > 0 && (
                       <span className="text-[11px] font-bold text-slate-500 ml-1">
                         / ${totals.invoice_cash_usd.toFixed(2)}
                       </span>
@@ -526,8 +542,10 @@ export default function CashControlContainer() {
                     Abonos Crédito (Efe)
                   </p>
                   <p className="text-sm font-black text-slate-800 dark:text-slate-100 mt-0.5">
-                    {currencyFormatter({ currency: 'NIO', value: totals?.credit_cash_nio ?? totals?.credit_cash ?? 0 })}
-                    {totals?.credit_cash_usd !== undefined && totals.credit_cash_usd > 0 && (
+                    {countType === 'BLIND'
+                      ? 'C$ ***'
+                      : currencyFormatter({ currency: 'NIO', value: totals?.credit_cash_nio ?? totals?.credit_cash ?? 0 })}
+                    {countType !== 'BLIND' && totals?.credit_cash_usd !== undefined && totals.credit_cash_usd > 0 && (
                       <span className="text-[11px] font-bold text-slate-500 ml-1">
                         / ${totals.credit_cash_usd.toFixed(2)}
                       </span>
@@ -541,8 +559,10 @@ export default function CashControlContainer() {
                     <ArrowUpRight className="w-3 h-3 text-green-500" /> Ingresos Manuales
                   </p>
                   <p className="text-sm font-black text-green-600 mt-1">
-                    {currencyFormatter({ currency: 'NIO', value: totals?.manual_in_nio ?? totals?.manual_in ?? 0 })}
-                    {totals?.manual_in_usd !== undefined && totals.manual_in_usd > 0 && (
+                    {countType === 'BLIND'
+                      ? 'C$ ***'
+                      : currencyFormatter({ currency: 'NIO', value: totals?.manual_in_nio ?? totals?.manual_in ?? 0 })}
+                    {countType !== 'BLIND' && totals?.manual_in_usd !== undefined && totals.manual_in_usd > 0 && (
                       <span className="text-[11px] font-bold text-slate-500 ml-1">
                         / ${totals.manual_in_usd.toFixed(2)}
                       </span>
@@ -556,8 +576,10 @@ export default function CashControlContainer() {
                     <ArrowDownRight className="w-3 h-3 text-red-500" /> Egresos/Gastos
                   </p>
                   <p className="text-sm font-black text-red-500 mt-1">
-                    {currencyFormatter({ currency: 'NIO', value: totals?.manual_out_nio ?? totals?.manual_out ?? 0 })}
-                    {totals?.manual_out_usd !== undefined && totals.manual_out_usd > 0 && (
+                    {countType === 'BLIND'
+                      ? 'C$ ***'
+                      : currencyFormatter({ currency: 'NIO', value: totals?.manual_out_nio ?? totals?.manual_out ?? 0 })}
+                    {countType !== 'BLIND' && totals?.manual_out_usd !== undefined && totals.manual_out_usd > 0 && (
                       <span className="text-[11px] font-bold text-slate-500 ml-1">
                         / ${totals.manual_out_usd.toFixed(2)}
                       </span>
