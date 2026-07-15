@@ -8,7 +8,9 @@ const userInitialState: IUserState = {
   sellerId: '',
   sellerName: '',
   sellerCode: '',
-  isSellerAuthenticated: false
+  isSellerAuthenticated: false,
+  mustChangePassword: false,
+  avatar: ''
 };
 
 export default userInitialState;

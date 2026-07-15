@@ -38,7 +38,9 @@ export function useValidateToken() {
             sellerId: storedSellerId || validUser.user.seller_id || '',
             sellerName: storedSellerName,
             sellerCode: storedSellerCode,
-            isSellerAuthenticated: hasSeller
+            isSellerAuthenticated: hasSeller,
+            mustChangePassword: (validUser.user as any).must_change_password || false,
+            avatar: (validUser.user as any).avatar || ''
           };
 
           dispatch(setUser(user));

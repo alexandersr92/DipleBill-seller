@@ -6,6 +6,7 @@ import { PinLockOverlay } from '@/modules/billing/components/PinLockOverlay';
 import { CashSessionOverlay } from '@/modules/billing/components/CashSessionOverlay';
 import { fetchCashSettingsAndSession } from '@/modules/billing/slices/cashSlice';
 import { useEffect } from 'react';
+import { MustChangePasswordOverlay } from './MustChangePasswordOverlay';
 
 interface IPrivateRouteProps {
   children: JSX.Element;
@@ -18,7 +19,7 @@ export default function PrivateRoute({ children }: IPrivateRouteProps) {
   const { store } = useAppSelector((state) => state.storeSlice);
   const storeId = store?.id || '';
 
-  const { isSellerAuthenticated } = useAppSelector((state) => state.userSlice);
+  const { isSellerAuthenticated, mustChangePassword } = useAppSelector((state) => state.userSlice);
 
   const {
     isOpen,
@@ -38,6 +39,10 @@ export default function PrivateRoute({ children }: IPrivateRouteProps) {
 
   if (!isValidated) {
     return <Navigate to="/login" />;
+  }
+
+  if (mustChangePassword) {
+    return <MustChangePasswordOverlay />;
   }
 
   if (!isSellerAuthenticated) {
