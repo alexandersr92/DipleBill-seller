@@ -806,8 +806,8 @@ export default function CashControlContainer() {
                                 if (categorySearchTerm) {
                                   try {
                                     const newCategory = await createExpenseCategoryApi(categorySearchTerm);
-                                    setExpenseCategories([...expenseCategories, newCategory.data]);
-                                    setTxCategoryId(newCategory.data.id);
+                                    setExpenseCategories([...expenseCategories, newCategory]);
+                                    setTxCategoryId(newCategory.id);
                                     setCategorySearchTerm('');
                                     toast({ title: 'Categoría creada', variant: 'success' });
                                   } catch (error) {
