@@ -34,7 +34,7 @@ export default function LoginForm() {
   // Variables auxiliares para el flujo de restablecimiento
   const [resetEmail, setResetEmail] = useState<string>('');
   const [verificationCode, setVerificationCode] = useState<string>('');
-  const [showPassword, setShowPassword] = useState({ new: false, confirm: false });
+  const [showPassword, setShowPassword] = useState({ login: false, new: false, confirm: false });
 
   // 1. Formulario de Inicio de Sesión
   const {
@@ -237,16 +237,26 @@ export default function LoginForm() {
                     ¿Olvidaste tu contraseña?
                   </button>
                 </div>
-                <Input
-                  id="password"
-                  placeholder="Contraseña"
-                  type="password"
-                  autoCapitalize="none"
-                  autoComplete="current-password"
-                  autoCorrect="off"
-                  disabled={isLoading}
-                  {...registerLogin('password')}
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    placeholder="Contraseña"
+                    type={showPassword.login ? 'text' : 'password'}
+                    autoCapitalize="none"
+                    autoComplete="current-password"
+                    autoCorrect="off"
+                    disabled={isLoading}
+                    className="pr-10"
+                    {...registerLogin('password')}
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                    onClick={() => setShowPassword({ ...showPassword, login: !showPassword.login })}
+                  >
+                    {showPassword.login ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
                 <div className="form-error-slot min-h-[16px]">
                   {errorsLogin.password && <p className="text-red-500 text-[11px] font-bold mt-0.5">{errorsLogin.password.message}</p>}
                 </div>
