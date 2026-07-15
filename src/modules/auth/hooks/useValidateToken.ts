@@ -40,7 +40,8 @@ export function useValidateToken() {
             sellerCode: storedSellerCode,
             isSellerAuthenticated: hasSeller,
             mustChangePassword: (validUser.user as any).must_change_password || false,
-            avatar: (validUser.user as any).avatar || ''
+            avatar: (validUser.user as any).avatar || '',
+            googleId: (validUser.user as any).google_id || ''
           };
 
           dispatch(setUser(user));

@@ -10,7 +10,8 @@ const userInitialState: IUserState = {
   sellerCode: '',
   isSellerAuthenticated: false,
   mustChangePassword: false,
-  avatar: ''
+  avatar: '',
+  googleId: ''
 };
 
 export default userInitialState;

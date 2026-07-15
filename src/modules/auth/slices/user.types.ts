@@ -10,4 +10,5 @@ export interface IUserState {
   isSellerAuthenticated?: boolean;
   mustChangePassword?: boolean;
   avatar?: string;
+  googleId?: string;
 }
