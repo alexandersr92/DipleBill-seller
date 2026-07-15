@@ -109,7 +109,7 @@ export default function CashControlContainer() {
     
     // Fetch categories
     getExpenseCategoriesApi().then((res) => {
-      setExpenseCategories(res.data || []);
+      setExpenseCategories(Array.isArray(res) ? res : (res?.data || []));
     }).catch(err => {
       console.error('Error fetching categories:', err);
     });
