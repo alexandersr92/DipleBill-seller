@@ -6,7 +6,7 @@ import { Input } from '../../../components/ui/input';
 import { Button } from '../../../components/ui/button';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { loginSchema } from '../helpers/loginSchema';
-import { login, sendPasswordResetCode, resetPasswordWithCode, loginWithGoogle } from '../services/authService';
+import { login, sendPasswordResetCode, resetPasswordWithCode } from '../services/authService';
 import { useAppDispatch } from '../../../store/hooks';
 import { setUser } from '../slices/userSlice';
 import { IUserState } from '../slices/user.types';
@@ -182,55 +182,11 @@ export default function LoginForm() {
   };
 
   const handleGoogleLogin = async () => {
-    setIsLoading(true);
-    try {
-      toast({
-        title: 'Google OAuth',
-        description: 'Simulando el inicio de sesión con Google...',
-        variant: 'default'
-      });
-
-      // Generar token mockeado para pruebas en local
-      const mockToken = 'mock_google_oauth_token_' + Math.random().toString(36).substring(7);
-      const res = await loginWithGoogle(mockToken);
-
-      const storedSellerId = localStorage.getItem('seller_id') || '';
-      const storedSellerName = localStorage.getItem('seller_name') || '';
-      const storedSellerCode = localStorage.getItem('seller_code') || '';
-      const hasSeller = !!storedSellerId;
-
-      const user: IUserState = {
-        id: res.attributes?.id || res.id || '',
-        orgId: res.attributes?.organization_id || res.organization_id || '',
-        email: res.attributes?.email || res.email || 'google_user@test.com',
-        token: res.token,
-        sellerId: storedSellerId || res.attributes?.seller_id || res.seller_id || '',
-        sellerName: storedSellerName,
-        sellerCode: storedSellerCode,
-        isSellerAuthenticated: hasSeller,
-        mustChangePassword: res.attributes?.must_change_password || res.must_change_password || false,
-        avatar: res.attributes?.avatar || res.avatar || '',
-        googleId: res.attributes?.google_id || res.google_id || ''
-      };
-      
-      persistSessionToken(user.token);
-      dispatch(setUser(user));
-      navigate('/');
-
-      toast({
-        title: 'Sesión iniciada',
-        description: 'Autenticación con Google exitosa.',
-        variant: 'success'
-      });
-    } catch (error: any) {
-      toast({
-        title: 'Google Auth Error',
-        description: error.message || 'No se pudo iniciar sesión con Google.',
-        variant: 'error'
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    toast({
+      title: 'Google OAuth',
+      description: 'El inicio de sesión con Google está preparado a nivel de API. Integra el script del Google Client SDK en index.html para obtener y transmitir el token real.',
+      variant: 'default'
+    });
   };
 
   // RENDER SECCIONAL SEGÚN LA VISTA ACTIVA
