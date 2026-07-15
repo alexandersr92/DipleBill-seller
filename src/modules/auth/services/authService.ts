@@ -139,7 +139,69 @@ async function verifyOwnerPassword(email: string, password: string): Promise<boo
   }
 }
 
-export { login, logout, registerService, validateToken, sellerLoginService, verifyOwnerPassword };
+async function sendPasswordResetCode(email: string): Promise<any> {
+  try {
+    const response = await axios.post(`${apiBaseUrl}/v1/forgot-password`, { email });
+    return response.data;
+  } catch (error: any) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(error.response?.data?.message || 'Error al solicitar el código de recuperación.');
+    }
+    throw new Error('Ha ocurrido un error inesperado');
+  }
+}
+
+async function resetPasswordWithCode(data: {
+  email: string;
+  code: string;
+  password?: string;
+  password_confirmation?: string;
+}): Promise<any> {
+  try {
+    const response = await axios.post(`${apiBaseUrl}/v1/reset-password`, data);
+    return response.data;
+  } catch (error: any) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(error.response?.data?.message || 'Error al restablecer la contraseña.');
+    }
+    throw new Error('Ha ocurrido un error inesperado');
+  }
+}
+
+async function loginWithGoogle(token: string): Promise<any> {
+  const device_name = 'web';
+  try {
+    const response = await axios.post(`${apiBaseUrl}/v1/auth/google`, { token, device_name });
+    return response.data;
+  } catch (error: any) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(error.response?.data?.message || 'Error de autenticación con Google.');
+    }
+    throw new Error('Ha ocurrido un error inesperado');
+  }
+}
+
+async function updateAccountPassword(data: {
+  current_password?: string;
+  password?: string;
+  password_confirmation?: string;
+}): Promise<any> {
+  const response = await axiosInstance.put('/v1/user/password', data);
+  return response.data;
+}
+
+export {
+  login,
+  logout,
+  registerService,
+  validateToken,
+  sellerLoginService,
+  verifyOwnerPassword,
+  sendPasswordResetCode,
+  resetPasswordWithCode,
+  loginWithGoogle,
+  updateAccountPassword
+};
 
 export const performLogout = () => async (dispatch: AppDispatch) => {
   try {

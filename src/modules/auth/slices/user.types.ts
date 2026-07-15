@@ -8,4 +8,7 @@ export interface IUserState {
   sellerName?: string;
   sellerCode?: string;
   isSellerAuthenticated?: boolean;
+  mustChangePassword?: boolean;
+  avatar?: string;
+  googleId?: string;
 }
