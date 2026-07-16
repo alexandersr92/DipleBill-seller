@@ -476,7 +476,7 @@ const Billing = () => {
   const handleConfirmedSubmit = async (
     paymentMethod: string,
     paymentMetadata: any,
-    _isCreditSale: boolean
+    isCreditSale: boolean
   ) => {
     if (isSubmittingSale) return;
     if (!pendingFormValues || !currentUser.sellerId) {
@@ -494,6 +494,8 @@ const Billing = () => {
       ? `Factura editada que reemplaza a la factura N° ${editingInvoiceNumber}. ${values.invoice_note || ''}`.trim()
       : values.invoice_note || '';
 
+    const finalIsCredit = isCreditSale !== undefined ? isCreditSale : (sellType === SELL_TYPES.CREDITO);
+
     const invoice: any = {
       ...invoiceCreated,
       client_id:
@@ -502,10 +504,10 @@ const Billing = () => {
           : invoiceCreated.client_id,
       invoice_date: format(new Date(), 'yyyy-MM-dd'),
       store_id: storeId!,
-      isCredit: sellType === SELL_TYPES.CREDITO,
+      isCredit: finalIsCredit,
       is_proforma: sellType === SELL_TYPES.PROFORMA,
       invoice_status: sellType === SELL_TYPES.PROFORMA ? 'proforma' : undefined,
-      payment_method: sellType === SELL_TYPES.PROFORMA ? 'PROFORMA' : (sellType === SELL_TYPES.CREDITO ? 'CREDIT' : paymentMethod),
+      payment_method: sellType === SELL_TYPES.PROFORMA ? 'PROFORMA' : (finalIsCredit ? 'CREDIT' : paymentMethod),
       payment_metadata: sellType === SELL_TYPES.PROFORMA ? {} : paymentMetadata,
       payment_date: format(dateExp, 'yyyy-MM-dd'),
       seller_id: currentUser.sellerId,
