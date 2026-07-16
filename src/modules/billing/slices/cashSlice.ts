@@ -37,14 +37,24 @@ export interface ICashSession {
 
 export interface ICashTotals {
   invoice_cash: number;
+  invoice_cash_nio?: number;
+  invoice_cash_usd?: number;
   invoice_transfer: number;
   invoice_card: number;
   credit_cash: number;
+  credit_cash_nio?: number;
+  credit_cash_usd?: number;
   credit_transfer: number;
   credit_card: number;
   manual_in: number;
   manual_out: number;
+  manual_in_nio?: number;
+  manual_out_nio?: number;
+  manual_in_usd?: number;
+  manual_out_usd?: number;
   expected_cash: number;
+  expected_cash_nio?: number;
+  expected_cash_usd?: number;
   total_transfer: number;
   total_card: number;
 }

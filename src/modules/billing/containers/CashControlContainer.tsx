@@ -6,7 +6,6 @@ import {
   closeCashSession,
   fetchCashSettingsAndSession,
   ICashSession,
-  ICashTotals,
   updateCashTransaction,
   deleteCashTransaction
 } from '../slices/cashSlice';
@@ -40,7 +39,7 @@ export default function CashControlContainer() {
   const { store } = useAppSelector((state) => state.storeSlice);
   const storeId = store?.id || '';
 
-  const { activeSession, isOpen, totals, countType, isLoading } = useAppSelector(
+  const { activeSession, isOpen, totals, countType, controlMode, isLoading } = useAppSelector(
     (state) => state.cashSlice
   );
 
@@ -110,7 +109,7 @@ export default function CashControlContainer() {
     
     // Fetch categories
     getExpenseCategoriesApi().then((res) => {
-      setExpenseCategories(res.data || []);
+      setExpenseCategories(Array.isArray(res) ? res : (res?.data || []));
     }).catch(err => {
       console.error('Error fetching categories:', err);
     });
@@ -242,7 +241,7 @@ export default function CashControlContainer() {
       });
 
       // Imprimir el ticket de cierre térmico
-      handlePrintClosureTicket(activeSession, totals, cashVal, closeNotes);
+      handlePrintClosureTicket(activeSession, totals, cashVal, usdVal, closeNotes);
 
       setShowCloseModal(false);
     } catch (err: any) {
@@ -258,21 +257,43 @@ export default function CashControlContainer() {
 
   const handlePrintClosureTicket = (
     session: ICashSession,
-    tot: ICashTotals,
+    tot: any,
     reportedCash: number,
+    reportedUsd: number,
     notesText: string
   ) => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
-    const expectedCash = tot.expected_cash;
-    const diff = reportedCash - expectedCash;
-    const diffText =
-      diff === 0
+    const expectedCashNio = tot?.expected_cash_nio ?? tot?.expected_cash ?? 0;
+    const expectedCashUsd = tot?.expected_cash_usd ?? 0;
+    const rate = session.usd_exchange_rate || parseFloat(localStorage.getItem('usd_exchange_rate') || '36.5') || 36.5;
+
+    const diffNio = reportedCash - expectedCashNio;
+    const diffNioText =
+      diffNio === 0
         ? 'CUADRADO'
-        : diff > 0
-          ? `SOBRANTE (+C$ ${diff.toFixed(2)})`
-          : `FALTANTE (-C$ ${Math.abs(diff).toFixed(2)})`;
+        : diffNio > 0
+          ? `SOBRANTE (+C$ ${diffNio.toFixed(2)})`
+          : `FALTANTE (-C$ ${Math.abs(diffNio).toFixed(2)})`;
+
+    const diffUsd = reportedUsd - expectedCashUsd;
+    const diffUsdText =
+      diffUsd === 0
+        ? 'CUADRADO'
+        : diffUsd > 0
+          ? `SOBRANTE (+$ ${diffUsd.toFixed(2)})`
+          : `FALTANTE (-$ ${Math.abs(diffUsd).toFixed(2)})`;
+
+    const totalExpectedNio = expectedCashNio + (expectedCashUsd * rate);
+    const totalReportedNio = reportedCash + (reportedUsd * rate);
+    const totalDiffNio = totalReportedNio - totalExpectedNio;
+    const totalDiffText =
+      totalDiffNio === 0
+        ? 'CUADRADO'
+        : totalDiffNio > 0
+          ? `SOBRANTE (+C$ ${totalDiffNio.toFixed(2)})`
+          : `FALTANTE (-C$ ${Math.abs(totalDiffNio).toFixed(2)})`;
 
     const htmlContent = `
       <html>
@@ -301,24 +322,48 @@ export default function CashControlContainer() {
           </table>
           
           <div class="hr"></div>
-          <div class="bold">1. RESUMEN DE GAVETA (EFECTIVO)</div>
+          <div class="bold">1. RESUMEN GAVETA EFECTIVO (C$)</div>
           <div class="hr"></div>
           <table>
             <tr><td>(+) Fondo Inicial:</td><td class="right">C$ ${session.opening_balance.toFixed(2)}</td></tr>
-            <tr><td>(+) Ventas Efectivo:</td><td class="right">C$ ${tot.invoice_cash.toFixed(2)}</td></tr>
-            <tr><td>(+) Abonos Crédito Efe:</td><td class="right">C$ ${tot.credit_cash.toFixed(2)}</td></tr>
-            <tr><td>(+) Ingresos Manuales:</td><td class="right">C$ ${tot.manual_in.toFixed(2)}</td></tr>
-            <tr><td>(-) Egresos Manuales:</td><td class="right">C$ ${tot.manual_out.toFixed(2)}</td></tr>
+            <tr><td>(+) Ventas Efectivo C$:</td><td class="right">C$ ${(tot.invoice_cash_nio ?? tot.invoice_cash ?? 0).toFixed(2)}</td></tr>
+            <tr><td>(+) Abonos Crédito C$:</td><td class="right">C$ ${(tot.credit_cash_nio ?? tot.credit_cash ?? 0).toFixed(2)}</td></tr>
+            <tr><td>(+) Ingresos Manuales C$:</td><td class="right">C$ ${(tot.manual_in_nio ?? tot.manual_in ?? 0).toFixed(2)}</td></tr>
+            <tr><td>(-) Egresos Manuales C$:</td><td class="right">C$ ${(tot.manual_out_nio ?? tot.manual_out ?? 0).toFixed(2)}</td></tr>
           </table>
           <div class="hr"></div>
           <table>
-            <tr class="bold"><td>Efectivo Esperado:</td><td class="right">C$ ${expectedCash.toFixed(2)}</td></tr>
-            <tr class="bold"><td>Efectivo Reportado:</td><td class="right">C$ ${reportedCash.toFixed(2)}</td></tr>
-            <tr class="bold"><td>Discrepancia:</td><td class="right">${diffText}</td></tr>
+            <tr class="bold"><td>Esperado Córdoba:</td><td class="right">C$ ${expectedCashNio.toFixed(2)}</td></tr>
+            <tr class="bold"><td>Reportado Córdoba:</td><td class="right">C$ ${reportedCash.toFixed(2)}</td></tr>
+            <tr class="bold"><td>Diferencia Córdoba:</td><td class="right">${diffNioText}</td></tr>
           </table>
 
           <div class="hr"></div>
-          <div class="bold">2. VENTAS ELECTRÓNICAS (AUDITORÍA)</div>
+          <div class="bold">2. RESUMEN GAVETA EFECTIVO (USD)</div>
+          <div class="hr"></div>
+          <table>
+            <tr><td>(+) Ventas Efectivo USD:</td><td class="right">$ ${(tot.invoice_cash_usd ?? 0).toFixed(2)}</td></tr>
+            <tr><td>(+) Abonos Crédito USD:</td><td class="right">$ ${(tot.credit_cash_usd ?? 0).toFixed(2)}</td></tr>
+            <tr><td>(+) Ingresos Manuales USD:</td><td class="right">$ ${(tot.manual_in_usd ?? 0).toFixed(2)}</td></tr>
+            <tr><td>(-) Egresos Manuales USD:</td><td class="right">$ ${(tot.manual_out_usd ?? 0).toFixed(2)}</td></tr>
+          </table>
+          <div class="hr"></div>
+          <table>
+            <tr class="bold"><td>Esperado Dólar:</td><td class="right">$ ${expectedCashUsd.toFixed(2)}</td></tr>
+            <tr class="bold"><td>Reportado Dólar:</td><td class="right">$ ${reportedUsd.toFixed(2)}</td></tr>
+            <tr class="bold"><td>Diferencia Dólar:</td><td class="right">${diffUsdText}</td></tr>
+          </table>
+
+          <div class="hr"></div>
+          <div class="bold">3. RESUMEN UNIFICADO Y AUDITORÍA</div>
+          <div class="hr"></div>
+          <table>
+            <tr><td>Tasa de Cambio:</td><td class="right">C$ ${rate.toFixed(4)}</td></tr>
+            <tr class="bold"><td>Diferencia Total (NIO):</td><td class="right">${totalDiffText}</td></tr>
+          </table>
+
+          <div class="hr"></div>
+          <div class="bold">4. VENTAS ELECTRÓNICAS (AUDITORÍA)</div>
           <div class="hr"></div>
           <table>
             <tr><td>Ventas Transferencia:</td><td class="right">C$ ${tot.invoice_transfer.toFixed(2)}</td></tr>
@@ -396,7 +441,17 @@ export default function CashControlContainer() {
         )}
       </div>
 
-      {!isOpen || !activeSession ? (
+      {controlMode === 'NONE' ? (
+        <div className="border border-dashed border-slate-350 dark:border-slate-850 rounded-lg p-12 text-center flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900/10 animate-in fade-in-50 duration-200">
+          <AlertCircle className="w-10 h-10 text-slate-400 mb-3" />
+          <h3 className="text-base font-extrabold text-slate-900 dark:text-white mb-1">
+            Control de Caja Desactivado
+          </h3>
+          <p className="text-xs text-slate-500 max-w-md">
+            El control de turnos y arqueos de caja está desactivado en la configuración.
+          </p>
+        </div>
+      ) : !isOpen || !activeSession ? (
         <div className="border border-dashed border-slate-300 dark:border-slate-800 rounded-lg p-12 text-center flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900/10">
           <AlertCircle className="w-10 h-10 text-slate-400 mb-3" />
           <h3 className="text-base font-extrabold text-slate-900 dark:text-white mb-1">
@@ -427,9 +482,18 @@ export default function CashControlContainer() {
                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                   Efectivo Esperado en Gaveta
                 </h3>
-                <p className="text-3xl font-black text-white tracking-tight mt-1">
-                  {currencyFormatter({ currency: 'NIO', value: totals?.expected_cash || 0 })}
-                </p>
+                <div className="flex flex-col md:flex-row md:items-baseline gap-2 mt-1">
+                  <span className="text-3xl font-black text-white tracking-tight">
+                    {countType === 'BLIND'
+                      ? 'C$ *******'
+                      : currencyFormatter({ currency: 'NIO', value: totals?.expected_cash_nio ?? totals?.expected_cash ?? 0 })}
+                  </span>
+                  {totals?.expected_cash_usd !== undefined && totals.expected_cash_usd > 0 && (
+                    <span className="text-xl font-bold text-slate-350">
+                      / {countType === 'BLIND' ? '$ ***' : `$${totals.expected_cash_usd.toFixed(2)}`} USD
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="p-3.5 bg-blue-500/10 rounded-full border border-blue-500/20 text-blue-400">
                 <Coins className="w-8 h-8" />
@@ -449,7 +513,9 @@ export default function CashControlContainer() {
                     Fondo Inicial
                   </p>
                   <p className="text-sm font-black text-slate-800 dark:text-slate-100 mt-0.5">
-                    {currencyFormatter({ currency: 'NIO', value: activeSession.opening_balance })}
+                    {countType === 'BLIND'
+                      ? 'C$ ***'
+                      : currencyFormatter({ currency: 'NIO', value: activeSession.opening_balance })}
                   </p>
                 </div>
 
@@ -459,7 +525,14 @@ export default function CashControlContainer() {
                     Ventas Directas (Efe)
                   </p>
                   <p className="text-sm font-black text-slate-800 dark:text-slate-100 mt-0.5">
-                    {currencyFormatter({ currency: 'NIO', value: totals?.invoice_cash || 0 })}
+                    {countType === 'BLIND'
+                      ? 'C$ ***'
+                      : currencyFormatter({ currency: 'NIO', value: totals?.invoice_cash_nio ?? totals?.invoice_cash ?? 0 })}
+                    {countType !== 'BLIND' && totals?.invoice_cash_usd !== undefined && totals.invoice_cash_usd > 0 && (
+                      <span className="text-[11px] font-bold text-slate-500 ml-1">
+                        / ${totals.invoice_cash_usd.toFixed(2)}
+                      </span>
+                    )}
                   </p>
                 </div>
 
@@ -469,7 +542,14 @@ export default function CashControlContainer() {
                     Abonos Crédito (Efe)
                   </p>
                   <p className="text-sm font-black text-slate-800 dark:text-slate-100 mt-0.5">
-                    {currencyFormatter({ currency: 'NIO', value: totals?.credit_cash || 0 })}
+                    {countType === 'BLIND'
+                      ? 'C$ ***'
+                      : currencyFormatter({ currency: 'NIO', value: totals?.credit_cash_nio ?? totals?.credit_cash ?? 0 })}
+                    {countType !== 'BLIND' && totals?.credit_cash_usd !== undefined && totals.credit_cash_usd > 0 && (
+                      <span className="text-[11px] font-bold text-slate-500 ml-1">
+                        / ${totals.credit_cash_usd.toFixed(2)}
+                      </span>
+                    )}
                   </p>
                 </div>
 
@@ -479,7 +559,14 @@ export default function CashControlContainer() {
                     <ArrowUpRight className="w-3 h-3 text-green-500" /> Ingresos Manuales
                   </p>
                   <p className="text-sm font-black text-green-600 mt-1">
-                    {currencyFormatter({ currency: 'NIO', value: totals?.manual_in || 0 })}
+                    {countType === 'BLIND'
+                      ? 'C$ ***'
+                      : currencyFormatter({ currency: 'NIO', value: totals?.manual_in_nio ?? totals?.manual_in ?? 0 })}
+                    {countType !== 'BLIND' && totals?.manual_in_usd !== undefined && totals.manual_in_usd > 0 && (
+                      <span className="text-[11px] font-bold text-slate-500 ml-1">
+                        / ${totals.manual_in_usd.toFixed(2)}
+                      </span>
+                    )}
                   </p>
                 </div>
 
@@ -489,7 +576,14 @@ export default function CashControlContainer() {
                     <ArrowDownRight className="w-3 h-3 text-red-500" /> Egresos/Gastos
                   </p>
                   <p className="text-sm font-black text-red-500 mt-1">
-                    {currencyFormatter({ currency: 'NIO', value: totals?.manual_out || 0 })}
+                    {countType === 'BLIND'
+                      ? 'C$ ***'
+                      : currencyFormatter({ currency: 'NIO', value: totals?.manual_out_nio ?? totals?.manual_out ?? 0 })}
+                    {countType !== 'BLIND' && totals?.manual_out_usd !== undefined && totals.manual_out_usd > 0 && (
+                      <span className="text-[11px] font-bold text-slate-500 ml-1">
+                        / ${totals.manual_out_usd.toFixed(2)}
+                      </span>
+                    )}
                   </p>
                 </div>
               </div>
@@ -734,8 +828,8 @@ export default function CashControlContainer() {
                                 if (categorySearchTerm) {
                                   try {
                                     const newCategory = await createExpenseCategoryApi(categorySearchTerm);
-                                    setExpenseCategories([...expenseCategories, newCategory.data]);
-                                    setTxCategoryId(newCategory.data.id);
+                                    setExpenseCategories([...expenseCategories, newCategory]);
+                                    setTxCategoryId(newCategory.id);
                                     setCategorySearchTerm('');
                                     toast({ title: 'Categoría creada', variant: 'success' });
                                   } catch (error) {

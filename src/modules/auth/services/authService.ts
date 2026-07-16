@@ -10,6 +10,7 @@ const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 interface ValidatedUser {
   id: string;
   email: string;
+  name?: string;
   organization_id: string;
   seller_id?: string | null;
 }

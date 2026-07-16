@@ -11,7 +11,8 @@ const userInitialState: IUserState = {
   isSellerAuthenticated: false,
   mustChangePassword: false,
   avatar: '',
-  googleId: ''
+  googleId: '',
+  name: ''
 };
 
 export default userInitialState;

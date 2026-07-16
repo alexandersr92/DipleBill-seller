@@ -6,7 +6,7 @@ import { Input } from '../../../components/ui/input';
 import { Button } from '../../../components/ui/button';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { loginSchema } from '../helpers/loginSchema';
-import { login, sendPasswordResetCode, resetPasswordWithCode } from '../services/authService';
+import { login, sendPasswordResetCode, resetPasswordWithCode, loginWithGoogle } from '../services/authService';
 import { useAppDispatch } from '../../../store/hooks';
 import { setUser } from '../slices/userSlice';
 import { IUserState } from '../slices/user.types';
@@ -72,7 +72,8 @@ export default function LoginForm() {
           isSellerAuthenticated: hasSeller,
           mustChangePassword: res.attributes?.must_change_password || res.must_change_password || false,
           avatar: res.attributes?.avatar || res.avatar || '',
-          googleId: res.attributes?.google_id || res.google_id || ''
+          googleId: res.attributes?.google_id || res.google_id || '',
+          name: res.attributes?.name || res.name || ''
         };
         persistSessionToken(user.token);
         dispatch(setUser(user));
@@ -181,12 +182,85 @@ export default function LoginForm() {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    toast({
-      title: 'Google OAuth',
-      description: 'El inicio de sesión con Google está preparado a nivel de API. Integra el script del Google Client SDK en index.html para obtener y transmitir el token real.',
-      variant: 'default'
-    });
+  const handleGoogleLogin = () => {
+    const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+    if (!googleClientId) {
+      toast({
+        title: 'Falta Google Client ID',
+        description: 'Debes definir la variable VITE_GOOGLE_CLIENT_ID en tu archivo .env del frontend.',
+        variant: 'error'
+      });
+      return;
+    }
+
+    try {
+      // @ts-expect-error - google is loaded via script tag on window
+      const client = window.google.accounts.oauth2.initTokenClient({
+        client_id: googleClientId,
+        scope: 'email profile openid',
+        callback: async (response: any) => {
+          if (response.error) {
+            toast({
+              title: 'Error de Google',
+              description: response.error_description || 'El usuario canceló la autenticación.',
+              variant: 'error'
+            });
+            return;
+          }
+
+          if (response.access_token) {
+            setIsLoading(true);
+            try {
+              const res = await loginWithGoogle(response.access_token);
+              
+              const storedSellerId = localStorage.getItem('seller_id') || '';
+              const storedSellerName = localStorage.getItem('seller_name') || '';
+              const storedSellerCode = localStorage.getItem('seller_code') || '';
+              const hasSeller = !!storedSellerId;
+
+              const user: IUserState = {
+                id: res.attributes?.id || res.id || '',
+                orgId: res.attributes?.organization_id || res.organization_id || '',
+                email: res.attributes?.email || res.email || '',
+                token: res.token,
+                sellerId: storedSellerId || res.attributes?.seller_id || res.seller_id || '',
+                sellerName: storedSellerName,
+                sellerCode: storedSellerCode,
+                isSellerAuthenticated: hasSeller,
+                mustChangePassword: res.attributes?.must_change_password || res.must_change_password || false,
+                avatar: res.attributes?.avatar || res.avatar || '',
+                googleId: res.attributes?.google_id || res.google_id || '',
+                name: res.attributes?.name || res.name || ''
+              };
+
+              persistSessionToken(user.token);
+              dispatch(setUser(user));
+              navigate('/');
+              toast({
+                title: 'Sesión iniciada',
+                description: 'Autenticación con Google exitosa.',
+                variant: 'success'
+              });
+            } catch (error: any) {
+              toast({
+                title: 'Google Auth Error',
+                description: error.message || 'No se pudo iniciar sesión con Google.',
+                variant: 'error'
+              });
+            } finally {
+               setIsLoading(false);
+            }
+          }
+        }
+      });
+      client.requestAccessToken();
+    } catch {
+      toast({
+        title: 'Error de Google SDK',
+        description: 'No se pudo cargar el cliente de autenticación. Verifica que el SDK de Google esté cargado.',
+        variant: 'error'
+      });
+    }
   };
 
   // RENDER SECCIONAL SEGÚN LA VISTA ACTIVA
