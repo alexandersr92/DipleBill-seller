@@ -173,8 +173,8 @@ export default function CreditPayments() {
     setNotes('');
     setPaymentMethod('CASH');
 
-    // Reset payment values: default to full debt in NIO Cash, others empty
-    setMultipleCashNio(credit.debt.toString());
+    // Reset payment values: all inputs should be empty by default
+    setMultipleCashNio('');
     setMultipleCashUsd('');
     setMultipleTransferBank('');
     setMultipleTransferRef('');
