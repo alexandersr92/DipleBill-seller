@@ -1,5 +1,6 @@
 import { downloadInvoiceAsPDF, InvoiceData, handleInvoicePrintHtml } from '.';
 import { getStoreLogoAsBase64 } from '../services/billingApi';
+import { getMetadata, metadataKeys } from '@/modules/offline/db';
 import { ISingleInvoice } from '@diplebill/core';
 
 interface IInvoiceActions {
@@ -86,6 +87,16 @@ export const invoiceActions = async ({ settings, invoice, action }: IInvoiceActi
         }
         companyImage = '';
       }
+
+      // Sin red: usar el logo base64 precacheado por el modo offline.
+      if (!companyImage) {
+        try {
+          const cachedLogo = await getMetadata<string>(metadataKeys.logo(settings.store_id));
+          if (cachedLogo) companyImage = cachedLogo;
+        } catch {
+          // El caché offline es opcional: sin logo se imprime igual.
+        }
+      }
     }
   } else {
     companyImage = '';
@@ -115,7 +126,8 @@ export const invoiceActions = async ({ settings, invoice, action }: IInvoiceActi
     total: invoice.grand_total ?? 0,
     printWidth: parseInt(settings.print_width.toString() ?? 80),
     printFooter: settings.print_footer ?? '',
-    printNote: settings.print_note ?? ''
+    printNote: settings.print_note ?? '',
+    isOffline: Boolean((invoice as any).__offline)
   };
 
   if (action === 'download') return downloadInvoiceAsPDF({ data: invoiceGenerate });

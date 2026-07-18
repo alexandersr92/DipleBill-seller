@@ -16,14 +16,33 @@ import {
   getClientsParams
 } from '../slices/client.types';
 import { ISingleClient, IUpdatedClient } from '@diplebill/core';
+import axios from 'axios';
+import { getClientsFromCache, mirrorClientsToCache } from '@/modules/offline/clientsCache';
 
 export const getClients = createAsyncThunk<IGetClientsResponse, getClientsParams>(
   'clients/getClients',
   async (params, { rejectWithValue }) => {
     try {
       const data = await getClientsApi(params);
+      // Espejo al caché offline (fire-and-forget: no bloquea la respuesta).
+      mirrorClientsToCache(data?.data ?? []);
       return data;
     } catch (error) {
+      // Sin red: responder desde el caché offline con la misma forma.
+      if (axios.isAxiosError(error) && !error.response) {
+        const cached = await getClientsFromCache();
+        if (cached.length > 0) {
+          return {
+            data: cached,
+            meta: {
+              per_page: cached.length,
+              total: cached.length,
+              current_page: 1,
+              last_page: 1
+            }
+          };
+        }
+      }
       console.error('Error getting clients:', error);
       return rejectWithValue(error);
     }

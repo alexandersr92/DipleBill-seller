@@ -49,6 +49,9 @@
     --edit-accent-soft: 38 100% 97%;
     --edit-accent-text: 38 92% 50%;
     --edit-accent-border: 38 92% 50%;
+    --offline-accent: 38 92% 50%;
+    --offline-accent-foreground: 0 0% 100%;
+    --offline-accent-soft: 38 100% 97%;
     --top-bar-height: 3.5rem;
     --bottom-nav-height: 4rem;
   }
@@ -98,6 +101,9 @@
     --edit-accent-soft: 38 40% 15%;
     --edit-accent-text: 38 92% 50%;
     --edit-accent-border: 38 92% 50%;
+    --offline-accent: 38 92% 50%;
+    --offline-accent-foreground: 222.2 84% 4.9%;
+    --offline-accent-soft: 38 40% 15%;
     --top-bar-height: 3.5rem;
     --bottom-nav-height: 4rem;
   }

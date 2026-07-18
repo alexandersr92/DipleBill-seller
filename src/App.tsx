@@ -5,6 +5,7 @@ import { store } from './store/store';
 import { Provider } from 'react-redux';
 import { ThemeProvider } from './components/theme-provider';
 import { LicenseExpiredOverlay } from '@modules/auth/components/LicenseExpiredOverlay';
+import { OfflineManager } from '@modules/offline/OfflineManager';
 
 function App() {
   const [licenseExpired, setLicenseExpired] = useState({ isExpired: false, message: '' });
@@ -28,6 +29,7 @@ function App() {
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
       <Provider store={store}>
         <HashRouter>
+          <OfflineManager />
           {licenseExpired.isExpired && <LicenseExpiredOverlay message={licenseExpired.message} />}
           <Router />
         </HashRouter>

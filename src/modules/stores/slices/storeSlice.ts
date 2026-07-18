@@ -15,6 +15,16 @@ export const storeSlice = createSlice({
       prepare(storeId: string) {
         return { payload: storeId };
       }
+    },
+    // Arranque offline: hidratar tiendas desde el snapshot cacheado sin red.
+    hydrateFromCache(
+      state,
+      action: PayloadAction<{ stores: IStore[]; store: ICurrentStore | null }>
+    ) {
+      state.stores = action.payload.stores;
+      state.store = action.payload.store;
+      state.isLoading = false;
+      state.error = null;
     }
   },
   extraReducers: (builder) => {
@@ -60,5 +70,5 @@ export const storeSlice = createSlice({
   }
 });
 
-export const { setCurrentStore } = storeSlice.actions;
+export const { setCurrentStore, hydrateFromCache } = storeSlice.actions;
 export default storeSlice.reducer;

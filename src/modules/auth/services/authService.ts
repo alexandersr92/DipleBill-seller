@@ -28,6 +28,7 @@ export type ValidateTokenResult =
   | {
       valid: false;
       user: null;
+      networkError?: boolean;
     };
 
 async function login(email: string, password: string): Promise<any> {
@@ -102,10 +103,13 @@ async function validateToken(token: string): Promise<ValidateTokenResult> {
       valid: false,
       user: null
     };
-  } catch {
+  } catch (error) {
     return {
       valid: false,
-      user: null
+      user: null,
+      // Sin respuesta del servidor = error de red: el token no es inválido,
+      // simplemente no se pudo verificar (permite el arranque offline).
+      networkError: axios.isAxiosError(error) && !error.response
     };
   }
 }

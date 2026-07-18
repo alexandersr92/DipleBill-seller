@@ -70,6 +70,10 @@ import {
 import { useSearchParams } from 'react-router-dom';
 import SearchSelect from '../../../components/ui/SearchSelect';
 import { ActionButtons } from '../components/ActionButtons';
+import { store as reduxStore } from '@/store/store';
+import { findByBarcodeOffline } from '@/modules/offline/productSearch';
+import { nextOfflineNumber, queueOfflineInvoice } from '@/modules/offline/offlineInvoice';
+import { OfflineStatusBadge } from '@/modules/offline/components/OfflineStatusBadge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 type FormValues = InferType<typeof billingSchema>;
@@ -445,10 +449,90 @@ const Billing = () => {
   };
 
   const handlePostSaleLogout = () => {
+    // Offline no se puede re-validar el PIN contra el servidor: mantener la
+    // sesión de vendedor activa para no bloquear la caja tras la primera venta.
+    if (!reduxStore.getState().offlineSlice.isOnline) return;
+
     localStorage.removeItem('seller_id');
     localStorage.removeItem('seller_name');
     localStorage.removeItem('seller_code');
     dispatch(sellerLogout());
+  };
+
+  // Venta sin conexión: se encola en IndexedDB con un correlativo temporal y
+  // se imprime de inmediato; el backend asigna el número oficial al sincronizar.
+  const handleOfflineSale = async (invoice: any, finalIsCredit: boolean) => {
+    if (isEditing) {
+      toast({
+        title: 'Sin conexión: no es posible editar facturas en modo offline.',
+        variant: 'error'
+      });
+      return;
+    }
+
+    if (sellType === SELL_TYPES.PROFORMA) {
+      toast({
+        title: 'Sin conexión: las proformas requieren conexión con el servidor.',
+        variant: 'error'
+      });
+      return;
+    }
+
+    if (finalIsCredit && !invoice.client_id) {
+      toast({
+        title: 'Sin conexión: las ventas a crédito requieren un cliente ya registrado.',
+        variant: 'error'
+      });
+      return;
+    }
+
+    // Reusar la referencia generada en el submit: si el POST online alcanzó a
+    // llegar al servidor antes del corte, la sincronización no la duplicará.
+    const localId = (invoice.offline_reference as string) || crypto.randomUUID();
+    const offlineNumber = await nextOfflineNumber(storeId);
+
+    const payload = {
+      ...invoice,
+      offline_reference: localId,
+      is_offline: true,
+      offline_number: offlineNumber,
+      source: 'POS'
+    };
+
+    const totalItems = productsSelected.reduce(
+      (sum, product) => sum + Math.abs(product.quantity),
+      0
+    );
+
+    const snapshotBase = {
+      ...invoice,
+      invoice_number: offlineNumber,
+      invoice_status: finalIsCredit ? 'credit' : 'completed',
+      invoice_type: finalIsCredit ? 'credit' : 'cash',
+      method: invoice.payment_method,
+      total_items: totalItems,
+      seller: currentUser.sellerName ?? '',
+      invoice_details: []
+    } as unknown as ISingleInvoice;
+
+    const printSnapshot = buildInvoiceDetailsFromSelectedProducts(snapshotBase, productsSelected);
+
+    await queueOfflineInvoice({
+      localId,
+      offlineNumber,
+      storeId,
+      payload,
+      printSnapshot: printSnapshot as unknown as Record<string, unknown>
+    });
+
+    toast({
+      title: `Venta offline ${offlineNumber} guardada. Se sincronizará al recuperar la conexión.`,
+      variant: 'success'
+    });
+
+    clearForm();
+    setIsOpenDialogAfterInvoice(true);
+    setInvoiceRecentCreated({ ...printSnapshot, __offline: true } as any);
   };
 
   const onSubmit: SubmitHandler<FormValues> = (values) => {
@@ -498,6 +582,10 @@ const Billing = () => {
 
     const invoice: any = {
       ...invoiceCreated,
+      // Idempotencia por intento de venta: si la red se corta a mitad del POST y
+      // la venta se reenvía (o se encola offline), el backend deduplica por uuid.
+      offline_reference: crypto.randomUUID(),
+      source: 'POS',
       client_id:
         invoiceCreated.client_id === '--' || !invoiceCreated.client_id
           ? null
@@ -518,6 +606,19 @@ const Billing = () => {
         inventory_id: product.inventory_id ?? ''
       }))
     };
+
+    const isOnline = reduxStore.getState().offlineSlice.isOnline;
+
+    if (!isOnline) {
+      try {
+        await handleOfflineSale(invoice, finalIsCredit);
+      } finally {
+        setConfirmSaleOpen(false);
+        setPendingFormValues(null);
+        setIsSubmittingSale(false);
+      }
+      return;
+    }
 
     try {
       let orderedInvoice;
@@ -551,6 +652,15 @@ const Billing = () => {
       setInvoiceRecentCreated(orderedInvoice);
     } catch (error: unknown) {
       if (import.meta.env.DEV) console.error(error);
+
+      // La red se cayó a mitad del envío: encolar offline. Es seguro aunque el
+      // servidor haya alcanzado a recibir el POST, porque la sincronización
+      // reutiliza el mismo offline_reference y el backend deduplica.
+      if (axios.isAxiosError(error) && !error.response && !isEditing) {
+        await handleOfflineSale(invoice, finalIsCredit);
+        return;
+      }
+
       if (axios.isAxiosError(error) && error.response?.data) {
         const { quantity_available, product_name, quantity_requested, message } =
           error.response.data;
@@ -805,14 +915,30 @@ const Billing = () => {
           });
 
           try {
-            const response = await getBillingProductsApi({
-              search: barcode,
-              storeId: storeId || ''
-            });
-            const items = Array.isArray(response?.data) ? response.data : [];
-            const exactProduct = items.find(
-              (p: any) => p.barcode?.toLowerCase() === barcode.toLowerCase()
-            );
+            let exactProduct: any = null;
+            const isOnline = reduxStore.getState().offlineSlice.isOnline;
+
+            if (!isOnline && storeId) {
+              exactProduct = await findByBarcodeOffline(storeId, barcode);
+            } else {
+              try {
+                const response = await getBillingProductsApi({
+                  search: barcode,
+                  storeId: storeId || ''
+                });
+                const items = Array.isArray(response?.data) ? response.data : [];
+                exactProduct = items.find(
+                  (p: any) => p.barcode?.toLowerCase() === barcode.toLowerCase()
+                );
+              } catch (scanError) {
+                // Red caída sin evento offline todavía: responder desde el caché.
+                if (axios.isAxiosError(scanError) && !scanError.response && storeId) {
+                  exactProduct = await findByBarcodeOffline(storeId, barcode);
+                } else {
+                  throw scanError;
+                }
+              }
+            }
 
             if (exactProduct) {
               dispatch(
@@ -895,6 +1021,7 @@ const Billing = () => {
 
         {/* Lado Derecho: Usuario / Dropdown */}
         <div className="flex items-center gap-2">
+          <OfflineStatusBadge />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button

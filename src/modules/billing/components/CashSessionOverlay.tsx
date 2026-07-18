@@ -7,10 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { sellerLogout } from '@/modules/auth/slices/userSlice';
+import { useOnlineStatus } from '@/modules/offline/hooks/useOnlineStatus';
+import { OfflineBlockedScreen } from '@/modules/offline/components/OfflineBlockedScreen';
 
 export function CashSessionOverlay() {
   const dispatch = useAppDispatch();
   const { toast } = useToast();
+  const isOnline = useOnlineStatus();
 
   const { store } = useAppSelector((state) => state.storeSlice);
   const sellerName =
@@ -70,6 +73,14 @@ export function CashSessionOverlay() {
     localStorage.removeItem('seller_code');
     dispatch(sellerLogout());
   };
+
+  // Sin conexión no se abre caja (la apertura registra el turno en el servidor):
+  // solo se factura offline si la caja ya estaba abierta antes del corte.
+  if (!isOnline) {
+    return (
+      <OfflineBlockedScreen message="Sin conexión y sin una caja abierta previamente. Se requiere internet para abrir el turno de caja." />
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-slate-950/95 backdrop-blur-md flex items-center justify-center z-[9999] select-none p-4">

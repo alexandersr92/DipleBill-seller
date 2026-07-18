@@ -1,5 +1,8 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import axios from 'axios';
 import axiosInstance from '@/helpers/axiosInstance';
+import { getMetadata, metadataKeys, setMetadata } from '@/modules/offline/db';
+import { ICashSnapshot } from '@/modules/offline/types';
 
 export interface ICashSession {
   id: string;
@@ -131,7 +134,7 @@ export const fetchCashSettingsAndSession = createAsyncThunk(
         /* configuración opcional: conservar valor por defecto */
       }
 
-      return {
+      const payload = {
         session: sessionRes.data?.session || null,
         isOpen: sessionRes.data?.is_open || false,
         totals: sessionRes.data?.totals || null,
@@ -140,7 +143,37 @@ export const fetchCashSettingsAndSession = createAsyncThunk(
         countType,
         carryOver
       };
+
+      // Snapshot para poder operar offline con la caja ya abierta.
+      setMetadata(metadataKeys.cashSnapshot(storeId), {
+        ...payload,
+        cachedAt: new Date().toISOString()
+      }).catch(() => undefined);
+
+      return payload;
     } catch (err: any) {
+      // Sin red: si había una caja abierta cacheada, operar con ella.
+      // El cash_session_id del payload de ventas sigue saliendo de localStorage.
+      if (axios.isAxiosError(err) && !err.response) {
+        const snapshot = await getMetadata<ICashSnapshot>(
+          metadataKeys.cashSnapshot(storeId)
+        ).catch(() => undefined);
+
+        if (snapshot?.isOpen && snapshot.session) {
+          return {
+            session: snapshot.session,
+            isOpen: snapshot.isOpen,
+            totals: snapshot.totals,
+            controlMode: snapshot.controlMode,
+            assignmentMode: snapshot.assignmentMode,
+            countType: snapshot.countType,
+            carryOver: snapshot.carryOver
+          };
+        }
+
+        return rejectWithValue('OFFLINE_NO_CASH');
+      }
+
       return rejectWithValue(err.response?.data?.message || 'Error al cargar caja');
     }
   }

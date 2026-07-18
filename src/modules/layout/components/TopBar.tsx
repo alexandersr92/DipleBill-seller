@@ -25,6 +25,7 @@ import {
   DropdownMenuSubTrigger
 } from '@/components/ui/AppDropdownMenu';
 import { Button } from '@/components/ui/button';
+import { OfflineStatusBadge } from '@/modules/offline/components/OfflineStatusBadge';
 
 export function TopBar() {
   const dispatch = useAppDispatch();
@@ -92,6 +93,7 @@ export function TopBar() {
 
       {/* Lado Derecho: Usuario */}
       <div className="flex items-center gap-2">
+        <OfflineStatusBadge />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
