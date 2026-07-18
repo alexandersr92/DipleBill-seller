@@ -5,14 +5,37 @@ import { setUser } from '../slices/userSlice';
 import { IUserState } from '../slices/user.types';
 import { getStoredToken } from '@/helpers/authSession';
 import { fetchCurrentStore, fetchStores } from '@/modules/stores/slices/storeThunks';
+import { hydrateFromCache } from '@/modules/stores/slices/storeSlice';
+import { getMetadata, metadataKeys } from '@/modules/offline/db';
+import { setBootedFromCache } from '@/modules/offline/slices/offlineSlice';
+import { IAuthSnapshot } from '@/modules/offline/types';
 
-export function useValidateToken() {
+export type ValidationState = boolean | null | 'offline-blocked';
+
+export function useValidateToken(): ValidationState {
   const dispatch = useAppDispatch();
   const { isAuthenticated } = useAppSelector((state) => state.userSlice);
   const token = getStoredToken();
-  const [isValidated, setIsValidated] = useState<boolean | null>(null);
+  const [isValidated, setIsValidated] = useState<ValidationState>(null);
 
   useEffect(() => {
+    // Sin red: arrancar con el snapshot de sesión cacheado (si el token coincide).
+    async function validateFromCache(): Promise<boolean> {
+      try {
+        const snapshot = await getMetadata<IAuthSnapshot>(metadataKeys.authSnapshot);
+        if (!snapshot || snapshot.token !== token) return false;
+
+        dispatch(setUser({ ...snapshot.user, token: token! }));
+        dispatch(
+          hydrateFromCache({ stores: snapshot.stores ?? [], store: snapshot.currentStore ?? null })
+        );
+        dispatch(setBootedFromCache(true));
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
     async function validate() {
       if (token) {
         if (isAuthenticated) {
@@ -21,6 +44,13 @@ export function useValidateToken() {
         }
 
         const validUser = await validateToken(token);
+
+        if (!validUser.valid && validUser.networkError) {
+          const restored = await validateFromCache();
+          setIsValidated(restored ? true : 'offline-blocked');
+          return restored;
+        }
+
         setIsValidated(validUser.valid);
 
         if (validUser.valid) {

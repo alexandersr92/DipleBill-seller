@@ -517,6 +517,13 @@ const buildInvoiceHtml = (data: InvoiceData) => {
           font-weight: ${typography.mediumWeight};
         }
 
+        .paper .offline-banner {
+          font-weight: ${typography.strongWeight};
+          text-align: center;
+          border: 1px dashed #000;
+          padding: 1mm;
+        }
+
         /* avoid ugly page splits */
         .paper tr,
         .paper .totals-table { page-break-inside: avoid; }
@@ -538,6 +545,13 @@ const buildInvoiceHtml = (data: InvoiceData) => {
             <td class="meta-label">${saleLabel} #${escapeHtml(data.invoiceNumber)}</td>
             <td class="meta-value"></td>
           </tr>
+          ${
+            data.isOffline
+              ? `<tr>
+            <td class="meta-label-wrap offline-banner" colspan="2">*** FACTURA OFFLINE - PENDIENTE DE SINCRONIZAR ***</td>
+          </tr>`
+              : ''
+          }
           <tr>
             <td class="meta-label">Fecha: ${escapeHtml(data.invoiceDate || currentPrintedDate)}</td>
             <td class="meta-value">${escapeHtml(currentPrintedTime || '')}</td>
@@ -808,6 +822,7 @@ export interface InvoiceData {
   printWidth: number;
   printFooter: string;
   printNote: string;
+  isOffline?: boolean;
 }
 
 export const getBase64FromURL = async (url: string): Promise<string | null> => {

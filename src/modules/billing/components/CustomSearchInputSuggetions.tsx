@@ -5,6 +5,8 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { IInvoiceProduct } from '@diplebill/core';
 import { addProductsToBilling } from '../slices/billingSlice';
 import { getBillingProductsApi } from '../services/billingApi';
+import { searchProductsOffline } from '@/modules/offline/productSearch';
+import { store } from '@/store/store';
 import axios from 'axios';
 import { debounce } from 'lodash';
 import { useToast } from '@/components/hooks/use-toast';
@@ -128,6 +130,19 @@ export default function CustomSearchInputSuggetions({
         return;
       }
 
+      // Leer conectividad en tiempo de llamada: el closure del debounce no ve props frescas.
+      const isOnline = store.getState().offlineSlice.isOnline;
+
+      if (!isOnline && storeId) {
+        try {
+          const localResults = await searchProductsOffline(storeId, value);
+          setResults(localResults);
+        } finally {
+          setIsLoading(false);
+        }
+        return;
+      }
+
       try {
         const [nameResponse, skuResponse] = await Promise.all([
           getBillingProductsApi({
@@ -154,6 +169,11 @@ export default function CustomSearchInputSuggetions({
       } catch (error: unknown) {
         if (!axios.isCancel(error)) {
           if (import.meta.env.DEV) console.error('Error fetching products:', error);
+          // La red cayó a mitad de búsqueda: responder desde el catálogo cacheado.
+          if (axios.isAxiosError(error) && !error.response && storeId) {
+            const localResults = await searchProductsOffline(storeId, value);
+            setResults(localResults);
+          }
         }
         setIsLoading(false);
       } finally {

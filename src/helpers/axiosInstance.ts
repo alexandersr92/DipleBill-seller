@@ -53,6 +53,13 @@ axiosInstance.interceptors.response.use(
       return Promise.reject(error);
     }
 
+    // Error de red pura (sin respuesta del servidor): activar modo offline.
+    if (!error.response) {
+      import('@/modules/offline/connectivity').then(({ reportNetworkError }) => {
+        reportNetworkError();
+      });
+    }
+
     return Promise.reject(error);
   }
 );
