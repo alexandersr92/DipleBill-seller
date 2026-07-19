@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect } from 'react';
 import { Loader2, Lock, LogOut, UserRound, Store } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { BrandLogo } from '@/components/BrandLogo';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { setSeller, sellerLogout } from '@/modules/auth/slices/userSlice';
 import { sellerLoginService, performLogout } from '@/modules/auth/services/authService';
@@ -179,6 +180,8 @@ export const PinLockOverlay = () => {
           'w-full max-w-sm rounded-xl border bg-card text-card-foreground shadow-2xl p-6 flex flex-col items-center justify-center relative animate-in zoom-in-95 duration-200',
           'before:absolute before:inset-x-0 before:top-0 before:h-[3px] before:bg-sale-accent-strong before:rounded-t-xl'
         )}>
+        <BrandLogo size={30} className="mb-4" />
+
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-sale-accent-soft text-sale-accent-text border border-sale-accent-border mb-4 animate-bounce">
           <Lock className="h-6 w-6 animate-pulse" />
         </div>
@@ -359,7 +362,7 @@ export const PinLockOverlay = () => {
 
             <Button
               type="button"
-              disabled={isVerifying || pin.length < 4 || !code}
+              disabled={isVerifying || pin.length < 4 || (loginMode !== 'PIN_ONLY' && !code)}
               onClick={() => handleVerify(pin)}
               className="w-full max-w-[240px] h-10 bg-sale-accent text-sale-accent-foreground hover:bg-sale-accent/90 font-medium rounded-lg mt-5 shadow-md transition-all flex items-center justify-center gap-2">
               {isVerifying ? (
