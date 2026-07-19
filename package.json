@@ -37,6 +37,7 @@
     "@radix-ui/react-toast": "^1.2.1",
     "@radix-ui/react-tooltip": "^1.1.4",
     "@reduxjs/toolkit": "2.2.7",
+    "@sentry/react": "^10.66.0",
     "@tanstack/react-table": "8.20.5",
     "autoprefixer": "10.4.20",
     "axios": "1.7.5",
