@@ -43,6 +43,14 @@ export default function CashControlContainer() {
     (state) => state.cashSlice
   );
 
+  // Ventas offline aún sin enviar (pendientes + con error). El backend calcula
+  // el arqueo solo con las facturas que conoce, así que cerrar la caja con
+  // ventas offline en cola dejaría el efectivo esperado descuadrado. Se bloquea
+  // el cierre hasta que la cola quede vacía (sincronizada o descartada).
+  const unsyncedOffline = useAppSelector(
+    (state) => state.offlineSlice.pendingCount + state.offlineSlice.errorCount
+  );
+
   const sellerName =
     useAppSelector((state) => state.userSlice.sellerName) ||
     localStorage.getItem('seller_name') ||
@@ -200,6 +208,14 @@ export default function CashControlContainer() {
   };
 
   const handleOpenCloseModal = () => {
+    if (unsyncedOffline > 0) {
+      toast({
+        title: 'Ventas offline sin sincronizar',
+        description: `Tienes ${unsyncedOffline} venta(s) offline en cola. Conéctate a internet y espera la sincronización (o resuélvelas en la cola de ventas offline) antes de cerrar la caja, o el arqueo quedará descuadrado.`,
+        variant: 'destructive'
+      });
+      return;
+    }
     setActualCash('');
     setActualUsd('');
     setCloseNotes('');
@@ -209,6 +225,16 @@ export default function CashControlContainer() {
   const handleCloseSessionSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeSession || !storeId || !totals) return;
+
+    // Defensa: nunca cerrar con cola offline pendiente (arqueo incompleto).
+    if (unsyncedOffline > 0) {
+      toast({
+        title: 'No se puede cerrar la caja',
+        description: 'Hay ventas offline sin sincronizar. El arqueo quedaría incompleto.',
+        variant: 'destructive'
+      });
+      return;
+    }
 
     const cashVal = parseFloat(actualCash);
     if (isNaN(cashVal) || cashVal < 0) {
@@ -440,6 +466,22 @@ export default function CashControlContainer() {
           </div>
         )}
       </div>
+
+      {isOpen && activeSession && unsyncedOffline > 0 && (
+        <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3">
+          <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+          <div className="text-xs">
+            <p className="font-extrabold uppercase tracking-wide text-amber-600 dark:text-amber-400">
+              {unsyncedOffline} venta(s) offline sin sincronizar — no se puede cerrar la caja
+            </p>
+            <p className="mt-0.5 font-medium text-amber-700/90 dark:text-amber-200/80">
+              El arqueo del servidor todavía no incluye estas ventas. Conéctate a internet y espera
+              la sincronización (o resuélvelas en la cola de ventas offline) antes de cerrar el turno,
+              o el efectivo esperado quedará descuadrado.
+            </p>
+          </div>
+        </div>
+      )}
 
       {controlMode === 'NONE' ? (
         <div className="border border-dashed border-slate-350 dark:border-slate-850 rounded-lg p-12 text-center flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900/10 animate-in fade-in-50 duration-200">

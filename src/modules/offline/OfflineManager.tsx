@@ -21,6 +21,7 @@ export const OfflineManager = () => {
     (state) => state.storeSlice.store?.id || localStorage.getItem('currentStoreId') || ''
   );
   const wasOnlineRef = useRef(isOnline);
+  const wasSellerAuthRef = useRef(isSellerAuthenticated);
 
   // Contadores reactivos de la cola (se actualizan ante cualquier cambio en Dexie).
   const counts = useLiveQuery(getUnsyncedCounts, [], { pending: 0, errors: 0 });
@@ -61,6 +62,23 @@ export const OfflineManager = () => {
       trigger();
     }
   }, [isOnline]);
+
+  // Al re-autenticarse (p. ej. tras un 401 que deslogueó a mitad de sync), las
+  // facturas quedaron en 'pending' y deben reintentarse sin esperar un reload
+  // ni un cambio de red. Se dispara sync cuando el cajero vuelve a entrar.
+  useEffect(() => {
+    const wasAuth = wasSellerAuthRef.current;
+    wasSellerAuthRef.current = isSellerAuthenticated;
+
+    if (!isSellerAuthenticated || wasAuth || !isOnline) return;
+
+    (async () => {
+      const { pending } = await getUnsyncedCounts();
+      if (pending === 0) return;
+      resetSyncBackoff();
+      await runSync();
+    })();
+  }, [isSellerAuthenticated, isOnline]);
 
   // Precalentamiento de caché: al montar (autenticado y online) y cada 10 minutos.
   useEffect(() => {
