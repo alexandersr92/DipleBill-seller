@@ -30,7 +30,12 @@ function App() {
       <Provider store={store}>
         <HashRouter>
           <OfflineManager />
-          {licenseExpired.isExpired && <LicenseExpiredOverlay message={licenseExpired.message} />}
+          {licenseExpired.isExpired && (
+            <LicenseExpiredOverlay
+              message={licenseExpired.message}
+              onDismiss={() => setLicenseExpired({ isExpired: false, message: '' })}
+            />
+          )}
           <Router />
         </HashRouter>
       </Provider>
