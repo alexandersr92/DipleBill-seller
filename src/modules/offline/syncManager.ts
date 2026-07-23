@@ -81,16 +81,38 @@ const runSyncInternal = async (): Promise<ISyncSummary> => {
         summary.synced += 1;
         resetSyncBackoff();
       } catch (error) {
-        if (axios.isAxiosError(error) && !error.response) {
-          // Error de red: revertir, abortar la pasada y reintentar con backoff.
+        const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+
+        // Errores que NO son culpa de ESTA factura. Marcarlas 'error' aquí
+        // perdería TODA la cola en cadena: un 401 (token vencido) o un 402
+        // (licencia) haría fallar la primera y todas las siguientes, dejándolas
+        // como error permanente que ya no se reintenta solo. Se revierte a
+        // 'pending' y se aborta la pasada (las demás fallarían igual).
+        const isNetworkError = axios.isAxiosError(error) && !error.response;
+        const isServerBusy = status === 408 || status === 429 || (status !== undefined && status >= 500);
+        const isAuthOrLicense = status === 401 || status === 402 || status === 403;
+
+        if (isNetworkError || isServerBusy) {
+          // Transitorio y auto-recuperable con la sesión vigente: backoff.
           await db.offline_invoices.update(item.local_id, { status: 'pending' });
           scheduleRetry();
           break;
         }
 
+        if (isAuthOrLicense) {
+          // 401 desloguea (interceptor), 402 abre el overlay de licencia, 403
+          // suspende la org: reintentar en bucle no ayuda. Se recupera en el
+          // próximo disparo de sync tras re-login / renovación. La cola vive en
+          // IndexedDB (el logout solo limpia localStorage), no se pierde.
+          await db.offline_invoices.update(item.local_id, { status: 'pending' });
+          break;
+        }
+
+        // Error de validación real (400/422/…): específico de esta factura.
+        // Marcarla 'error' y continuar con las siguientes.
         const message = axios.isAxiosError(error)
           ? (error.response?.data as { message?: string } | undefined)?.message ??
-            `Error HTTP ${error.response?.status ?? 'desconocido'}`
+            `Error HTTP ${status ?? 'desconocido'}`
           : 'Error inesperado al sincronizar';
 
         await db.offline_invoices.update(item.local_id, {
