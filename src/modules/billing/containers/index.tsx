@@ -976,16 +976,16 @@ const Billing = () => {
   }, [storeId, dispatch]);
 
   return (
-    <div className="h-[calc(100vh-var(--bottom-nav-height))] flex flex-col overflow-hidden w-full select-none bg-background">
+    <div className="h-[calc(100dvh-var(--bottom-nav-height))] flex flex-col overflow-hidden w-full select-none bg-background">
       {/* Barra de Navegación Local para Venta */}
-      <header className="flex-shrink-0 flex h-14 w-full items-center justify-between border-b bg-card px-6 shadow-sm z-10">
+      <header className="flex-shrink-0 flex h-14 w-full items-center justify-between border-b bg-card px-3 sm:px-6 shadow-sm z-10">
         {/* Lado Izquierdo: Sucursal */}
         <div className="flex items-center gap-2 max-w-[50%]">
           {stores.length > 1 ? (
             <div className="flex items-center gap-2">
               <Store className="h-5 w-5 text-primary shrink-0" />
               <Select value={store?.id || ''} onValueChange={handleStoreChange}>
-                <SelectTrigger className="h-9 w-[180px] bg-transparent border-input focus:ring-1 focus:ring-ring text-sm font-medium">
+                <SelectTrigger className="h-9 w-[130px] sm:w-[180px] bg-transparent border-input focus:ring-1 focus:ring-ring text-sm font-medium">
                   <SelectValue placeholder="Seleccionar Sucursal" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1142,7 +1142,7 @@ const Billing = () => {
                 )}
               </div>
 
-              <div className="grid grid-cols-3 gap-6 mt-6 border-t pt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mt-6 border-t pt-4">
                 <div className="w-full">
                   <Label htmlFor="client_id">Agregar Cliente *</Label>
 
@@ -1353,8 +1353,9 @@ const Billing = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      {/* Barra de atajos flotante al final */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur border-t py-2 px-4 flex flex-wrap justify-center gap-x-6 gap-y-1.5 text-[11px] text-muted-foreground select-none z-40 shadow-lg">
+      {/* Barra de atajos flotante al final (solo desktop: los atajos de teclado
+          no aplican con dedos y en móvil pisaban la navegación inferior). */}
+      <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur border-t py-2 px-4 hidden md:flex flex-wrap justify-center gap-x-6 gap-y-1.5 text-[11px] text-muted-foreground select-none z-40 shadow-lg">
         <div className="flex items-center gap-1.5">
           <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[9px] font-extrabold shadow-sm">
             F1

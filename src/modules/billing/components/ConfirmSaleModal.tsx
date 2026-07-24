@@ -738,7 +738,7 @@ export const ConfirmSaleModal = ({
                         <kbd className="px-1 rounded bg-white/20 text-[9px] font-semibold">F8</kbd>
                       </button>
                     </div>
-                    <div className="grid grid-cols-3 gap-2 mb-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
                       <div className="flex flex-col gap-1">
                         <Label
                           htmlFor="multCardBrand"

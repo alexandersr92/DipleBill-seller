@@ -439,7 +439,7 @@ export default function CashControlContainer() {
 
   return (
     <div className="flex-1 flex flex-col gap-4 p-2 max-w-5xl mx-auto w-full select-none">
-      <div className="flex justify-between items-center border-b pb-3 border-slate-200 dark:border-slate-800">
+      <div className="flex flex-wrap gap-2 justify-between items-center border-b pb-3 border-slate-200 dark:border-slate-800">
         <div>
           <h1 className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
             <Coins className="w-5 h-5 text-blue-600 dark:text-blue-400 stroke-[2.5px]" />
