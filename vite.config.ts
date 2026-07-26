@@ -13,7 +13,10 @@ export default defineConfig({
     // internet. Los datos offline viven en IndexedDB, nunca en el SW: la API
     // siempre va a la red.
     VitePWA({
-      registerType: 'autoUpdate',
+      // 'prompt' (no 'autoUpdate'): el SW nuevo NO recarga solo. El cajero
+      // decide cuándo actualizar (ver PwaUpdatePrompt) para no perder una venta
+      // a media digitación.
+      registerType: 'prompt',
       injectRegister: 'auto',
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
@@ -31,7 +34,11 @@ export default defineConfig({
         name: 'DipleBill Seller',
         short_name: 'DipleBill POS',
         description: 'Punto de venta DipleBill',
+        lang: 'es',
         display: 'standalone',
+        orientation: 'portrait',
+        start_url: '.',
+        scope: './',
         background_color: '#0b1220',
         theme_color: '#0b1220',
         icons: [
