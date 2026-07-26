@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { getStoredToken, handleUnauthorizedSession } from './authSession';
+import { toast } from '@/components/hooks/use-toast';
 
 const axiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL
@@ -51,6 +52,24 @@ axiosInstance.interceptors.response.use(
         })
       );
       return Promise.reject(error);
+    }
+
+    // Feedback global para errores que los handlers locales suelen NO manejar
+    // (5xx del servidor, 403 sin permiso). Evita fallos silenciosos donde antes
+    // solo había console.error. Un handler que ya muestra su propio error puede
+    // saltarlo con config.skipGlobalErrorToast = true.
+    const status = error.response?.status;
+    const skipToast = (error.config as { skipGlobalErrorToast?: boolean } | undefined)
+      ?.skipGlobalErrorToast;
+    if (!skipToast) {
+      if (status && status >= 500) {
+        toast({
+          title: 'El servidor tuvo un problema. Intenta de nuevo en un momento.',
+          variant: 'destructive'
+        });
+      } else if (status === 403) {
+        toast({ title: 'No tienes permiso para realizar esta acción.', variant: 'destructive' });
+      }
     }
 
     // Error de red pura (sin respuesta del servidor): activar modo offline.

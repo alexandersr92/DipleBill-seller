@@ -6,6 +6,7 @@ import { Provider } from 'react-redux';
 import { ThemeProvider } from './components/theme-provider';
 import { LicenseExpiredOverlay } from '@modules/auth/components/LicenseExpiredOverlay';
 import { OfflineManager } from '@modules/offline/OfflineManager';
+import { PwaUpdatePrompt } from '@/components/PwaUpdatePrompt';
 
 function App() {
   const [licenseExpired, setLicenseExpired] = useState({ isExpired: false, message: '' });
@@ -30,6 +31,7 @@ function App() {
       <Provider store={store}>
         <HashRouter>
           <OfflineManager />
+          <PwaUpdatePrompt />
           {licenseExpired.isExpired && (
             <LicenseExpiredOverlay
               message={licenseExpired.message}

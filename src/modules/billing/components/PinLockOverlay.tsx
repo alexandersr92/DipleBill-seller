@@ -299,7 +299,10 @@ export const PinLockOverlay = () => {
                   <input
                     ref={pinRef}
                     type="password"
-                    inputMode="numeric"
+                    /* 'none': en móvil se usa el teclado en pantalla (handleKeypadPress);
+                       no abrir el teclado nativo encima. En desktop el teclado físico
+                       sigue funcionando vía onChange. */
+                    inputMode="none"
                     pattern="[0-9]*"
                     value={pin}
                     onChange={(e) => {

@@ -32,6 +32,9 @@ interface CreditSearchItem {
 export default function CreditPayments() {
   const { toast } = useToast();
   const { store } = useAppSelector((state) => state.storeSlice);
+  // La cobranza de crédito NO tiene cola offline: sin red hay que ser honestos
+  // (bloquear) en vez de perder el pago con un "no se encontró el crédito" falso.
+  const isOnline = useAppSelector((state) => state.offlineSlice.isOnline);
   const sellerId =
     useAppSelector((state) => state.userSlice.sellerId) || localStorage.getItem('seller_id') || '';
   const sellerName =
@@ -145,6 +148,14 @@ export default function CreditPayments() {
   // Search logic
   const handleSearch = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    if (!isOnline) {
+      toast({
+        title: 'Sin conexión',
+        description: 'La cobranza de crédito requiere internet. Intenta al reconectar.',
+        variant: 'destructive'
+      });
+      return;
+    }
     if (!searchQuery.trim()) {
       setCredits([]);
       return;
@@ -244,6 +255,14 @@ export default function CreditPayments() {
 
   const handleSubmitPayment = async () => {
     if (!canSubmit() || !selectedCredit) return;
+    if (!isOnline) {
+      toast({
+        title: 'Sin conexión',
+        description: 'No se puede registrar el abono sin internet. Intenta al reconectar.',
+        variant: 'destructive'
+      });
+      return;
+    }
 
     setIsSubmitting(true);
 
@@ -421,7 +440,13 @@ export default function CreditPayments() {
 
   return (
     <div className="flex-1 flex flex-col gap-4 p-2 max-w-5xl mx-auto w-full select-none">
-      <div className="flex justify-between items-center border-b pb-3 border-slate-200 dark:border-slate-800">
+      {!isOnline && (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs font-medium text-amber-700 dark:text-amber-300">
+          Sin conexión: la cobranza de crédito requiere internet. Los abonos no se
+          pueden registrar offline; intenta cuando vuelva la red.
+        </div>
+      )}
+      <div className="flex flex-wrap gap-2 justify-between items-center border-b pb-3 border-slate-200 dark:border-slate-800">
         <div>
           <h1 className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
             <Coins className="w-5 h-5 text-blue-600 dark:text-blue-400 stroke-[2.5px]" />

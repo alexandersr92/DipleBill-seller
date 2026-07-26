@@ -113,7 +113,7 @@ const Invoice = () => {
               </h1>
             </div>
 
-            <div className="grid grid-cols-3 gap-4 mt-8">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
               <div className="w-full flex flex-wrap">
                 <label className="text-sm mb-1" htmlFor="">
                   Cliente

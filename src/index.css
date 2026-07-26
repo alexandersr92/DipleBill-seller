@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Área segura del teléfono (notch / barra de gestos). Antes 'pb-safe' era un
+   no-op porque no existía la utilidad; requiere viewport-fit=cover en index.html. */
+@layer utilities {
+  .pb-safe {
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  }
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

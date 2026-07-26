@@ -283,14 +283,14 @@ const ProductTable = ({
   }, [pendingFocusProductId, productsSelected]);
 
   return (
-    <div className="grid grid-cols-5 gap-6 items-stretch flex-grow h-full min-h-0 overflow-hidden">
+    <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-6 lg:items-stretch flex-grow min-h-0 overflow-y-auto lg:overflow-hidden lg:h-full">
       {/* Columna Izquierda: Entradas generales + Tabla de productos (80% ancho) */}
-      <div className="col-span-4 flex flex-col gap-4 h-full overflow-hidden min-h-0">
+      <div className="lg:col-span-4 flex flex-col gap-4 lg:h-full lg:overflow-hidden min-h-0">
         {/* Render general inputs */}
         {headerContent}
 
         {/* Card de la tabla de productos */}
-        <div className="flex-grow overflow-hidden flex flex-col relative rounded-md shadow-md p-4 border bg-card before:absolute before:inset-x-0 before:top-0 before:h-[3px] before:bg-sale-accent-strong before:rounded-t-md">
+        <div className="flex-grow overflow-hidden flex flex-col relative rounded-md shadow-md p-4 border bg-card min-h-[45vh] lg:min-h-0 before:absolute before:inset-x-0 before:top-0 before:h-[3px] before:bg-sale-accent-strong before:rounded-t-md">
           {/* Search header (Filtro / Eliminar seleccionados) */}
           <div className="flex justify-between items-center flex-shrink-0 mb-2">
             <div className="w-1/3 relative z-20">
@@ -314,7 +314,7 @@ const ProductTable = ({
           </div>
 
           {/* Contenedor con Scroll de la tabla de productos */}
-          <div className="mt-2 flex-grow overflow-y-auto border rounded-md min-h-0 bg-background/30 shadow-inner">
+          <div className="mt-2 flex-grow overflow-auto border rounded-md min-h-0 bg-background/30 shadow-inner">
             <Table>
               <TableHeader className="sticky top-0 bg-card z-10 shadow-sm border-b">
                 <TableRow className="hover:bg-inherit">
@@ -480,7 +480,7 @@ const ProductTable = ({
       </div>
 
       {/* Columna Derecha: Totales y Botones (Fijo/Sticky 20% ancho, 100% alto) */}
-      <div className="col-span-1 bg-card border border-slate-200 dark:border-slate-800 p-5 rounded-lg flex flex-col justify-between h-full overflow-y-auto before:absolute before:inset-x-0 before:top-0 before:h-[3px] before:bg-sale-accent-strong before:rounded-t-md relative shadow-md">
+      <div className="lg:col-span-1 bg-card border border-slate-200 dark:border-slate-800 p-5 rounded-lg flex flex-col justify-between lg:h-full overflow-y-auto before:absolute before:inset-x-0 before:top-0 before:h-[3px] before:bg-sale-accent-strong before:rounded-t-md relative shadow-md">
         <div>
           <h3 className="text-xs font-black uppercase tracking-wider text-muted-foreground border-b pb-2 mb-4">
             Resumen de Venta
