@@ -50,6 +50,9 @@ export default function CashControlContainer() {
   const unsyncedOffline = useAppSelector(
     (state) => state.offlineSlice.pendingCount + state.offlineSlice.errorCount
   );
+  // Los movimientos de caja (ingresos/egresos) no tienen cola offline: sin red
+  // hay que bloquear con mensaje claro en vez de fallar con "error del servidor".
+  const isOnline = useAppSelector((state) => state.offlineSlice.isOnline);
 
   const sellerName =
     useAppSelector((state) => state.userSlice.sellerName) ||
@@ -136,6 +139,15 @@ export default function CashControlContainer() {
   const handleAddTransactionSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeSession || !storeId) return;
+
+    if (!isOnline) {
+      toast({
+        title: 'Sin conexión',
+        description: 'Los movimientos de caja se registran con internet. Intenta al reconectar.',
+        variant: 'destructive'
+      });
+      return;
+    }
 
     const amt = parseFloat(txAmount);
     if (isNaN(amt) || amt <= 0) {
