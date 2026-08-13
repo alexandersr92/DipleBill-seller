@@ -25,7 +25,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { currencyFormatter } from '../helpers';
+import { currencyFormatter, escapeHtml } from '../helpers';
 import { getExpenseCategoriesApi, createExpenseCategoryApi } from '../services/expenseCategoryService';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -347,14 +347,14 @@ export default function CashControlContainer() {
           </style>
         </head>
         <body>
-          <div class="center bold title">${store?.name || 'DipleBill POS'}</div>
-          <div class="center">${store?.address || ''}</div>
+          <div class="center bold title">${escapeHtml(store?.name || 'DipleBill POS')}</div>
+          <div class="center">${escapeHtml(store?.address || '')}</div>
           <div class="hr"></div>
           <div class="center bold">ARQUEO Y CIERRE DE CAJA</div>
           <div class="hr"></div>
           <table>
-            <tr><td>Caja:</td><td class="right">${session.cash_register_name || 'General'}</td></tr>
-            <tr><td>Cajero:</td><td class="right">${sellerName}</td></tr>
+            <tr><td>Caja:</td><td class="right">${escapeHtml(session.cash_register_name || 'General')}</td></tr>
+            <tr><td>Cajero:</td><td class="right">${escapeHtml(sellerName || '')}</td></tr>
             <tr><td>Apertura:</td><td class="right">${new Date(session.opened_at).toLocaleString()}</td></tr>
             <tr><td>Cierre:</td><td class="right">${new Date().toLocaleString()}</td></tr>
           </table>
@@ -420,7 +420,7 @@ export default function CashControlContainer() {
               ? `
             <div class="hr"></div>
             <div>Notas del Turno:</div>
-            <div>${notesText}</div>
+            <div>${escapeHtml(notesText)}</div>
           `
               : ''
           }

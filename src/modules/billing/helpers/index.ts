@@ -160,8 +160,8 @@ const formatDateAndHours = () => {
   return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
 };
 
-const escapeHtml = (value: string = '') =>
-  value
+export const escapeHtml = (value: string = '') =>
+  String(value ?? '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -532,7 +532,7 @@ const buildInvoiceHtml = (data: InvoiceData) => {
     <body>
       <div class="paper">
         <div class="receipt-header">
-          ${data.companyImage ? `<div class="logo"><img src="${data.companyImage}" alt="logo" /></div>` : ''}
+          ${data.companyImage && /^(data:image\/(png|jpe?g|gif|webp);base64,|https?:\/\/)/i.test(data.companyImage) ? `<div class="logo"><img src="${escapeHtml(data.companyImage)}" alt="logo" /></div>` : ''}
           <div class="store-name">${escapeHtml(data.companyName || '')}</div>
           <div class="small">${escapeHtml(data.companyAddress || '')}</div>
           <div class="small">${escapeHtml(data.companyTel || '')}</div>
