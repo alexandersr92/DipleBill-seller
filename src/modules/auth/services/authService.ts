@@ -2,6 +2,7 @@ import axios from 'axios';
 import { AppDispatch, store } from '@/store/store';
 import axiosInstance from '@/helpers/axiosInstance';
 import { clearStoredSession, getStoredToken } from '@/helpers/authSession';
+import { clearOfflineData } from '@/modules/offline/db';
 import { userLogout } from '../slices/userSlice';
 import type { IRegisterForm } from '@diplebill/core';
 
@@ -219,5 +220,9 @@ export const performLogout = () => async (dispatch: AppDispatch) => {
   }
 
   clearStoredSession();
+  // SEGURIDAD: limpiar los datos cacheados (catálogo/clientes PII + auth_snapshot
+  // con el token) para que la siguiente sesión en una terminal compartida no los
+  // lea. Preserva ventas offline no sincronizadas. Fire-and-forget.
+  void clearOfflineData();
   dispatch(userLogout());
 };

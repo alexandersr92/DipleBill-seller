@@ -83,3 +83,33 @@ export const metadataKeys = {
   lastSync: (storeId: string) => `last_sync_${storeId}`,
   offlineCounter: (storeId: string) => `offline_counter_${storeId}`
 };
+
+/**
+ * SEGURIDAD: al cerrar sesión, limpiar los datos cacheados en IndexedDB. En una
+ * terminal compartida entre organizaciones, dejar el catálogo/clientes (PII) y
+ * el `auth_snapshot` (que guarda el token para el arranque offline) permitía a
+ * la siguiente sesión leer datos de la organización anterior.
+ *
+ * Se PRESERVAN las facturas offline pendientes/en-sincronización para no perder
+ * ventas no sincronizadas; todo lo demás se borra siempre.
+ */
+export const clearOfflineData = async (): Promise<void> => {
+  try {
+    const pending = await db.offline_invoices
+      .where('status')
+      .anyOf('pending', 'syncing')
+      .count();
+
+    await db.transaction('rw', db.products, db.clients, db.metadata, db.offline_invoices, async () => {
+      await db.products.clear();
+      await db.clients.clear();
+      await db.metadata.clear();
+      if (pending === 0) {
+        await db.offline_invoices.clear();
+      }
+    });
+  } catch (e) {
+    // No bloquear el cierre de sesión si Dexie falla.
+    if (import.meta.env.DEV) console.error('clearOfflineData error', e);
+  }
+};

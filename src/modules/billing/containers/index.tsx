@@ -106,6 +106,11 @@ const buildInvoiceDetailsFromSelectedProducts = (
 const Billing = () => {
   const formRef = useRef<HTMLFormElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  // SEGURIDAD/idempotencia: una MISMA clave por venta lógica. Antes se generaba
+  // un uuid nuevo en cada intento de submit -> si el POST se comitía pero el
+  // cliente veía un error y el cajero reintentaba, se creaba una factura
+  // duplicada. Se mantiene estable hasta que la venta se confirma (clearForm).
+  const saleReferenceRef = useRef<string | null>(null);
   const clientTriggerRef = useRef<HTMLButtonElement>(null);
   const invoiceNoteRef = useRef<HTMLTextAreaElement | null>(null);
   const productSearchRef = useRef<HTMLInputElement>(null);
@@ -446,6 +451,9 @@ const Billing = () => {
     setValue('payment_method', PAYMENT_METHODS.EFECTIVO, { shouldValidate: true });
     dispatch(resetProductsInvoice());
     dispatch(clearInvoice());
+    // La venta se completó (o se limpió el carrito): la próxima venta acuña una
+    // referencia nueva.
+    saleReferenceRef.current = null;
   };
 
   const handlePostSaleLogout = () => {
@@ -553,6 +561,11 @@ const Billing = () => {
       });
       return;
     }
+    // Acuñar la referencia de la venta UNA vez al abrir la confirmación; se
+    // reutiliza en todos los reintentos (online, offline, re-click) hasta éxito.
+    if (!saleReferenceRef.current) {
+      saleReferenceRef.current = crypto.randomUUID();
+    }
     setPendingFormValues(values);
     setConfirmSaleOpen(true);
   };
@@ -582,9 +595,10 @@ const Billing = () => {
 
     const invoice: any = {
       ...invoiceCreated,
-      // Idempotencia por intento de venta: si la red se corta a mitad del POST y
-      // la venta se reenvía (o se encola offline), el backend deduplica por uuid.
-      offline_reference: crypto.randomUUID(),
+      // Idempotencia: MISMA referencia en todos los reintentos de esta venta
+      // (acuñada al abrir la confirmación). El backend deduplica por uuid, así
+      // que un reintento tras un error no crea una factura duplicada.
+      offline_reference: saleReferenceRef.current ?? crypto.randomUUID(),
       source: 'POS',
       client_id:
         invoiceCreated.client_id === '--' || !invoiceCreated.client_id
