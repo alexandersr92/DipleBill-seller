@@ -898,95 +898,115 @@ const Billing = () => {
 
   // Lector de Código de Barras Global
   useEffect(() => {
+    // Un lector de barras envía todos los caracteres en RÁFAGA (casi sin tiempo
+    // entre teclas) y termina con Enter. Se acumula SOLO mientras las teclas
+    // llegan en ráfaga; cualquier pausa (tipeo humano en un campo, o tras
+    // imprimir/cambiar de foco) reinicia el buffer. Antes el buffer se acumulaba
+    // para siempre una vez que tenía contenido, así que el nombre del cliente +
+    // el producto + el código se concatenaban en un "código" gigante inexistente.
     let buffer = '';
-    let lastKeyTime = Date.now();
+    let lastKeyTime = 0;
+    const BURST_GAP_MS = 50;
 
     const handleBarcodeScan = async (e: KeyboardEvent) => {
+      if (e.repeat) return; // ignorar auto-repetición al mantener una tecla
+
       const currentTime = Date.now();
-      const isScanner = currentTime - lastKeyTime < 35;
+      const gap = currentTime - lastKeyTime;
       lastKeyTime = currentTime;
 
-      const target = e.target as HTMLElement | null;
-      const isInputFocused = target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA';
+      if (e.key === 'Enter') {
+        const barcode = buffer.trim();
+        const wasBurst = gap < BURST_GAP_MS;
+        buffer = '';
+        // Solo procesar si el buffer llegó como ráfaga de lector, no tipeo humano.
+        if (barcode.length < 3 || !wasBurst) return;
 
-      if (e.key.length === 1) {
-        if (isScanner || buffer.length > 0) {
-          buffer += e.key;
-        } else if (!isInputFocused) {
-          buffer = e.key;
-        }
-      } else if (e.key === 'Enter') {
-        if (buffer.length >= 3 && (isScanner || currentTime - lastKeyTime < 50)) {
-          e.preventDefault();
-          e.stopPropagation();
-          const barcode = buffer.trim();
-          buffer = '';
+        e.preventDefault();
+        e.stopPropagation();
 
-          toast({
-            title: `Código leído: ${barcode}`,
-            variant: 'default',
-            duration: 1200
-          });
+        toast({
+          title: `Código leído: ${barcode}`,
+          variant: 'default',
+          duration: 1200
+        });
 
-          try {
-            let exactProduct: any = null;
-            const isOnline = reduxStore.getState().offlineSlice.isOnline;
+        try {
+          let exactProduct: any = null;
+          const isOnline = reduxStore.getState().offlineSlice.isOnline;
 
-            if (!isOnline && storeId) {
-              exactProduct = await findByBarcodeOffline(storeId, barcode);
-            } else {
-              try {
-                const response = await getBillingProductsApi({
-                  search: barcode,
-                  storeId: storeId || ''
-                });
-                const items = Array.isArray(response?.data) ? response.data : [];
-                exactProduct = items.find(
-                  (p: any) => p.barcode?.toLowerCase() === barcode.toLowerCase()
-                );
-              } catch (scanError) {
-                // Red caída sin evento offline todavía: responder desde el caché.
-                if (axios.isAxiosError(scanError) && !scanError.response && storeId) {
-                  exactProduct = await findByBarcodeOffline(storeId, barcode);
-                } else {
-                  throw scanError;
-                }
+          if (!isOnline && storeId) {
+            exactProduct = await findByBarcodeOffline(storeId, barcode);
+          } else {
+            try {
+              const response = await getBillingProductsApi({
+                search: barcode,
+                storeId: storeId || ''
+              });
+              const items = Array.isArray(response?.data) ? response.data : [];
+              exactProduct = items.find(
+                (p: any) => p.barcode?.toLowerCase() === barcode.toLowerCase()
+              );
+            } catch (scanError) {
+              // Red caída sin evento offline todavía: responder desde el caché.
+              if (axios.isAxiosError(scanError) && !scanError.response && storeId) {
+                exactProduct = await findByBarcodeOffline(storeId, barcode);
+              } else {
+                throw scanError;
               }
             }
-
-            if (exactProduct) {
-              dispatch(
-                addProductsToBilling({
-                  ...exactProduct,
-                  quantity: 1,
-                  total: exactProduct.price,
-                  tax: 0,
-                  grand_total: exactProduct.price,
-                  discount: 0
-                })
-              );
-              toast({
-                title: `${exactProduct.name} agregado`,
-                variant: 'success',
-                duration: 1500
-              });
-            } else {
-              toast({
-                title: `Código "${barcode}" no encontrado.`,
-                variant: 'error'
-              });
-            }
-          } catch (err) {
-            console.error('Error al escanear código de barra:', err);
           }
-        } else {
-          buffer = '';
+
+          if (exactProduct) {
+            dispatch(
+              addProductsToBilling({
+                ...exactProduct,
+                quantity: 1,
+                total: exactProduct.price,
+                tax: 0,
+                grand_total: exactProduct.price,
+                discount: 0
+              })
+            );
+            toast({
+              title: `${exactProduct.name} agregado`,
+              variant: 'success',
+              duration: 1500
+            });
+          } else {
+            toast({
+              title: `Código "${barcode}" no encontrado.`,
+              variant: 'error'
+            });
+          }
+        } catch (err) {
+          console.error('Error al escanear código de barra:', err);
         }
+        return;
       }
+
+      // Solo caracteres imprimibles de un símbolo.
+      if (e.key.length !== 1) return;
+
+      // Dentro de la ráfaga → se acumula; una pausa → empieza de cero (así el
+      // tipeo humano nunca se concatena y un buffer sucio se auto-limpia).
+      buffer = gap < BURST_GAP_MS ? buffer + e.key : e.key;
+    };
+
+    // Al imprimir / cambiar de pestaña / perder el foco, descartar cualquier resto
+    // del buffer (evita que lo que quede se pegue a la próxima lectura).
+    const resetBuffer = () => {
+      buffer = '';
     };
 
     window.addEventListener('keydown', handleBarcodeScan);
-    return () => window.removeEventListener('keydown', handleBarcodeScan);
+    window.addEventListener('blur', resetBuffer);
+    document.addEventListener('visibilitychange', resetBuffer);
+    return () => {
+      window.removeEventListener('keydown', handleBarcodeScan);
+      window.removeEventListener('blur', resetBuffer);
+      document.removeEventListener('visibilitychange', resetBuffer);
+    };
   }, [storeId, dispatch]);
 
   return (
