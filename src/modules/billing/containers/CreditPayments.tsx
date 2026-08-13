@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { currencyFormatter } from '../helpers';
+import { currencyFormatter, escapeHtml } from '../helpers';
 
 interface CreditSearchItem {
   id: string;
@@ -383,8 +383,8 @@ export default function CreditPayments() {
     if (!printWindow) return;
 
     let methodStr = 'Efectivo';
-    if (method === 'TRANSFER') methodStr = `Transferencia (${metadata?.bank || ''})`;
-    if (method === 'CARD') methodStr = `Tarjeta (${metadata?.card_brand || ''})`;
+    if (method === 'TRANSFER') methodStr = `Transferencia (${escapeHtml(metadata?.bank || '')})`;
+    if (method === 'CARD') methodStr = `Tarjeta (${escapeHtml(metadata?.card_brand || '')})`;
 
     const htmlContent = `
       <html>
@@ -399,28 +399,28 @@ export default function CreditPayments() {
           </style>
         </head>
         <body>
-          <div class="center bold">${store?.name || 'DipleBill POS'}</div>
-          <div class="center">${store?.address || ''}</div>
-          <div class="center">Telf: ${store?.phone || ''}</div>
+          <div class="center bold">${escapeHtml(store?.name || 'DipleBill POS')}</div>
+          <div class="center">${escapeHtml(store?.address || '')}</div>
+          <div class="center">Telf: ${escapeHtml(store?.phone || '')}</div>
           <div class="hr"></div>
           <div class="center bold">COMPROBANTE DE ABONO</div>
           <div class="hr"></div>
           <table>
-            <tr><td>Recibo:</td><td class="right">${credit.credit_number}</td></tr>
-            <tr><td>Factura Ref:</td><td class="right">${credit.invoice_number}</td></tr>
+            <tr><td>Recibo:</td><td class="right">${escapeHtml(credit.credit_number)}</td></tr>
+            <tr><td>Factura Ref:</td><td class="right">${escapeHtml(credit.invoice_number)}</td></tr>
             <tr><td>Fecha:</td><td class="right">${new Date().toLocaleDateString()}</td></tr>
-            <tr><td>Vendedor:</td><td class="right">${sellerName || 'Cajero'}</td></tr>
+            <tr><td>Vendedor:</td><td class="right">${escapeHtml(sellerName || 'Cajero')}</td></tr>
           </table>
           <div class="hr"></div>
           <table>
-            <tr><td class="bold">Cliente:</td><td class="right">${credit.client_name}</td></tr>
+            <tr><td class="bold">Cliente:</td><td class="right">${escapeHtml(credit.client_name)}</td></tr>
             <tr><td>Deuda Anterior:</td><td class="right">C$ ${credit.debt.toFixed(2)}</td></tr>
             <tr><td class="bold">Monto Abonado:</td><td class="bold right">C$ ${amount.toFixed(2)}</td></tr>
             <tr><td class="bold">Nuevo Saldo:</td><td class="bold right">C$ ${(credit.debt - amount).toFixed(2)}</td></tr>
           </table>
           <div class="hr"></div>
           <div>Mód. Pago: ${methodStr}</div>
-          ${notes ? `<div>Nota: ${notes}</div>` : ''}
+          ${notes ? `<div>Nota: ${escapeHtml(notes)}</div>` : ''}
           <div class="hr"></div>
           <div class="center bold" style="margin-top: 30px;">Firma del Cliente</div>
           <div style="margin-top: 40px; border-top: 1px solid #000; width: 70%; margin-left: auto; margin-right: auto;"></div>
