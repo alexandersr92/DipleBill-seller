@@ -196,6 +196,27 @@ async function updateAccountPassword(data: {
   return response.data;
 }
 
+async function claimMagicLinkService(token: string, deviceName?: string): Promise<any> {
+  const device_name = deviceName || 'Terminal POS';
+  try {
+    const response = await axios.post(`${apiBaseUrl}/v1/terminals/claim-link`, {
+      token,
+      device_name
+    });
+    return response.data;
+  } catch (error: any) {
+    if (axios.isAxiosError(error)) {
+      if (error.response?.status === 422 || error.response?.status === 403) {
+        return error.response.data;
+      } else {
+        throw new Error(error.response?.data?.message || 'Error al validar el enlace de activación');
+      }
+    } else {
+      throw new Error('Ha ocurrido un error inesperado al activar la terminal');
+    }
+  }
+}
+
 export {
   login,
   logout,
@@ -206,7 +227,8 @@ export {
   sendPasswordResetCode,
   resetPasswordWithCode,
   loginWithGoogle,
-  updateAccountPassword
+  updateAccountPassword,
+  claimMagicLinkService
 };
 
 export const performLogout = () => async (dispatch: AppDispatch) => {

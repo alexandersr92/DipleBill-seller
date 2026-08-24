@@ -14,6 +14,10 @@ const routes: route = {
     path: '/login',
     name: 'Login'
   },
+  Activate: {
+    path: '/activate',
+    name: 'Activar Terminal'
+  },
   Venta: {
     path: '/venta',
     name: 'Venta'
