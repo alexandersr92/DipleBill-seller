@@ -194,66 +194,67 @@ export default function LoginForm() {
     }
 
     try {
+      // SEGURIDAD: usar el flujo de ID token (google.accounts.id) — devuelve un
+      // JWT firmado en response.credential que el backend requiere para validar.
       // @ts-expect-error - google is loaded via script tag on window
-      const client = window.google.accounts.oauth2.initTokenClient({
+      window.google.accounts.id.initialize({
         client_id: googleClientId,
-        scope: 'email profile openid',
+        auto_select: false,
         callback: async (response: any) => {
-          if (response.error) {
+          if (!response?.credential) {
             toast({
               title: 'Error de Google',
-              description: response.error_description || 'El usuario canceló la autenticación.',
+              description: 'No se recibió el token de identidad de Google.',
               variant: 'error'
             });
             return;
           }
 
-          if (response.access_token) {
-            setIsLoading(true);
-            try {
-              const res = await loginWithGoogle(response.access_token);
-              
-              const storedSellerId = localStorage.getItem('seller_id') || '';
-              const storedSellerName = localStorage.getItem('seller_name') || '';
-              const storedSellerCode = localStorage.getItem('seller_code') || '';
-              const hasSeller = !!storedSellerId;
+          setIsLoading(true);
+          try {
+            const res = await loginWithGoogle(response.credential);
+            
+            const storedSellerId = localStorage.getItem('seller_id') || '';
+            const storedSellerName = localStorage.getItem('seller_name') || '';
+            const storedSellerCode = localStorage.getItem('seller_code') || '';
+            const hasSeller = !!storedSellerId;
 
-              const user: IUserState = {
-                id: res.attributes?.id || res.id || '',
-                orgId: res.attributes?.organization_id || res.organization_id || '',
-                email: res.attributes?.email || res.email || '',
-                token: res.token,
-                sellerId: storedSellerId || res.attributes?.seller_id || res.seller_id || '',
-                sellerName: storedSellerName,
-                sellerCode: storedSellerCode,
-                isSellerAuthenticated: hasSeller,
-                mustChangePassword: res.attributes?.must_change_password || res.must_change_password || false,
-                avatar: res.attributes?.avatar || res.avatar || '',
-                googleId: res.attributes?.google_id || res.google_id || '',
-                name: res.attributes?.name || res.name || ''
-              };
+            const user: IUserState = {
+              id: res.attributes?.id || res.id || '',
+              orgId: res.attributes?.organization_id || res.organization_id || '',
+              email: res.attributes?.email || res.email || '',
+              token: res.token,
+              sellerId: storedSellerId || res.attributes?.seller_id || res.seller_id || '',
+              sellerName: storedSellerName,
+              sellerCode: storedSellerCode,
+              isSellerAuthenticated: hasSeller,
+              mustChangePassword: res.attributes?.must_change_password || res.must_change_password || false,
+              avatar: res.attributes?.avatar || res.avatar || '',
+              googleId: res.attributes?.google_id || res.google_id || '',
+              name: res.attributes?.name || res.name || ''
+            };
 
-              persistSessionToken(user.token);
-              dispatch(setUser(user));
-              navigate('/');
-              toast({
-                title: 'Sesión iniciada',
-                description: 'Autenticación con Google exitosa.',
-                variant: 'success'
-              });
-            } catch (error: any) {
-              toast({
-                title: 'Google Auth Error',
-                description: error.message || 'No se pudo iniciar sesión con Google.',
-                variant: 'error'
-              });
-            } finally {
-               setIsLoading(false);
-            }
+            persistSessionToken(user.token);
+            dispatch(setUser(user));
+            navigate('/');
+            toast({
+              title: 'Sesión iniciada',
+              description: 'Autenticación con Google exitosa.',
+              variant: 'success'
+            });
+          } catch (error: any) {
+            toast({
+              title: 'Google Auth Error',
+              description: error.message || 'No se pudo iniciar sesión con Google.',
+              variant: 'error'
+            });
+          } finally {
+             setIsLoading(false);
           }
         }
       });
-      client.requestAccessToken();
+      // @ts-expect-error - google is loaded via script tag on window
+      window.google.accounts.id.prompt();
     } catch {
       toast({
         title: 'Error de Google SDK',
