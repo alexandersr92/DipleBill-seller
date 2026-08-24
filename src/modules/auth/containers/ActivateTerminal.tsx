@@ -8,7 +8,7 @@ import { persistSessionToken } from '@/helpers/authSession';
 import { fetchCurrentStore, fetchStores } from '@/modules/stores/slices/storeThunks';
 import { BrandLogo, BrandMark } from '@/components/BrandLogo';
 import { Button } from '@/components/ui/button';
-import { Loader2, CheckCircle2, AlertTriangle, ArrowRight, Store } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertTriangle, ArrowRight } from 'lucide-react';
 
 export default function ActivateTerminal() {
   const [searchParams] = useSearchParams();
