@@ -845,7 +845,7 @@ const Billing = () => {
           event.preventDefault();
           clientTriggerRef.current?.click();
           break;
-        case 'F3':
+        case 'F3': {
           event.preventDefault();
           let nextType = 'contado';
           if (sellType === 'contado') {
@@ -872,6 +872,7 @@ const Billing = () => {
             duration: 1500
           });
           break;
+        }
         case 'F4':
           event.preventDefault();
           buttonRef.current?.click();
@@ -1115,7 +1116,7 @@ const Billing = () => {
       {/* Formulario Principal de Facturación */}
       <form
         ref={formRef}
-        className="flex-grow flex flex-col gap-4 overflow-hidden p-4 pb-10"
+        className="flex-grow flex flex-col gap-3 overflow-hidden p-3 pb-8"
         data-sell-type={sellType}
         data-is-editing={isEditing}
         onKeyDown={(e) => handleKeyDown({ event: e, formRef, buttonRef })}
@@ -1124,24 +1125,24 @@ const Billing = () => {
           sellType={sellType}
           productSearchRef={productSearchRef}
           headerContent={
-            <section className="flex-shrink-0 relative rounded-md shadow-md p-4 border mb-0 before:absolute before:inset-x-0 before:top-0 before:h-[3px] before:bg-sale-accent-strong before:rounded-t-md bg-card">
-              <div className="flex justify-between items-start">
-                <div className="w-full md:w-3/5 text-sm">
-                  <h1 className="text-2xl font-bold">
-                    {isEditing ? `Editando Factura #${editingInvoiceNumber}` : 'Nueva factura'}
+            <section className="flex-shrink-0 relative rounded-md shadow-xs px-3.5 py-2.5 border mb-0 before:absolute before:inset-x-0 before:top-0 before:h-[2px] before:bg-sale-accent-strong before:rounded-t-md bg-card">
+              <div className="flex justify-between items-center pb-2 border-b border-border/60">
+                <div className="flex items-center gap-2">
+                  <h1 className="text-sm sm:text-base font-bold text-foreground">
+                    {isEditing ? `Editando Factura #${editingInvoiceNumber}` : 'Nueva Factura'}
                   </h1>
-                  <p className="mt-1 text-muted-foreground">
+                  <span className="text-[11px] text-muted-foreground hidden sm:inline">
                     {isEditing
-                      ? 'Modifique los datos y guarde para anular la factura anterior y emitir una nueva.'
-                      : 'Complete los detalles básicos de la transacción.'}
-                  </p>
+                      ? '• Modifique los datos y guarde para anular la anterior'
+                      : '• Datos de la transacción'}
+                  </span>
                 </div>
                 {isEditing && (
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="border-sale-accent text-sale-accent hover:bg-sale-accent-soft"
+                    className="h-7 text-xs border-sale-accent text-sale-accent hover:bg-sale-accent-soft px-2.5"
                     onClick={() => {
                       dispatch(cancelEditingInvoice());
                       clearForm();
@@ -1156,9 +1157,11 @@ const Billing = () => {
                 )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mt-6 border-t pt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-2">
                 <div className="w-full">
-                  <Label htmlFor="client_id">Agregar Cliente *</Label>
+                  <Label htmlFor="client_id" className="text-xs font-semibold text-muted-foreground mb-1 block">
+                    Agregar Cliente *
+                  </Label>
 
                   <Controller
                     control={control}
@@ -1186,12 +1189,14 @@ const Billing = () => {
                 </div>
 
                 <div className="w-full">
-                  <Label htmlFor="seller">Vendedor</Label>
+                  <Label htmlFor="seller" className="text-xs font-semibold text-muted-foreground mb-1 block">
+                    Vendedor
+                  </Label>
                   <Input
                     id="seller"
                     readOnly
                     disabled
-                    className="h-10 bg-muted/50 font-medium"
+                    className="h-9 bg-muted/50 font-medium text-xs sm:text-sm"
                     value={currentUser.sellerName || currentUser.email || ''}
                   />
                   <Input type="hidden" {...register('seller_id')} value={currentUser.id || ''} />
@@ -1200,14 +1205,14 @@ const Billing = () => {
                 <div className="w-full flex flex-col">
                   <Label
                     htmlFor="invoice_note"
-                    className="text-xs font-semibold text-muted-foreground mb-1.5">
+                    className="text-xs font-semibold text-muted-foreground mb-1 block">
                     Detalles de la factura (Notas)
                   </Label>
                   <Textarea
                     id="invoice_note"
                     tabIndex={4}
-                    placeholder="Ej. Entregar en empaque de regalo, observaciones del cliente, etc."
-                    className="h-10 min-h-[40px] max-h-[100px] py-2 px-3 text-sm rounded-md border border-input bg-background shadow-sm transition-all duration-200 placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-theme_blue disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+                    placeholder="Ej. Entregar en empaque de regalo, observaciones..."
+                    className="h-9 min-h-[36px] max-h-[80px] py-1.5 px-3 text-xs sm:text-sm rounded-md border border-input bg-background shadow-xs transition-all duration-200 placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sale-accent disabled:cursor-not-allowed disabled:opacity-50 resize-none"
                     {...invoiceNoteField}
                     ref={(node) => {
                       invoiceNoteField.ref(node);

@@ -52,6 +52,33 @@ export default function CreditPayments() {
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'TRANSFER' | 'CARD'>('CASH');
 
+  // Divisas y Métodos de Pago configurados
+  const [acceptedCurrencies, setAcceptedCurrencies] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('accepted_currencies');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {
+      // ignore
+    }
+    return ['NIO', 'USD'];
+  });
+
+  const [acceptedPaymentMethods, setAcceptedPaymentMethods] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('accepted_payment_methods');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {
+      // ignore
+    }
+    return ['CASH', 'TRANSFER', 'CARD'];
+  });
+
   // Exchange rate from localStorage
   const [exchangeRate] = useState<number>(() => {
     const saved = localStorage.getItem('usd_exchange_rate');
@@ -75,6 +102,49 @@ export default function CreditPayments() {
   const [multipleCardDigits, setMultipleCardDigits] = useState<string>('');
   const [multipleCardRef, setMultipleCardRef] = useState<string>('');
   const [multipleCardAmount, setMultipleCardAmount] = useState<string>('');
+
+  // Cargar configuraciones del Owner
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const currRes = await axiosInstance.get('/v1/settings?key=accepted_currencies');
+        const currRecords = currRes.data?.data || currRes.data || [];
+        if (currRecords.length > 0 && currRecords[0].value) {
+          try {
+            const parsed = JSON.parse(currRecords[0].value);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setAcceptedCurrencies(parsed);
+              localStorage.setItem('accepted_currencies', JSON.stringify(parsed));
+            }
+          } catch {
+            // ignore
+          }
+        }
+      } catch {
+        // ignore
+      }
+
+      try {
+        const methodRes = await axiosInstance.get('/v1/settings?key=accepted_payment_methods');
+        const methodRecords = methodRes.data?.data || methodRes.data || [];
+        if (methodRecords.length > 0 && methodRecords[0].value) {
+          try {
+            const parsed = JSON.parse(methodRecords[0].value);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setAcceptedPaymentMethods(parsed);
+              localStorage.setItem('accepted_payment_methods', JSON.stringify(parsed));
+              setPaymentMethod((prev) => (parsed.includes(prev) ? prev : (parsed[0] as any)));
+            }
+          } catch {
+            // ignore
+          }
+        }
+      } catch {
+        // ignore
+      }
+    };
+    loadSettings();
+  }, []);
 
   // Auto-focus when tab changes or credit is selected
   useEffect(() => {
@@ -106,15 +176,24 @@ export default function CreditPayments() {
       }
 
       // F2/F3/F4 and Alt+1/2/3 to switch tabs
-      if (e.key === 'F2' || (e.altKey && e.key === '1')) {
+      if (
+        (e.key === 'F2' || (e.altKey && e.key === '1')) &&
+        acceptedPaymentMethods.includes('CASH')
+      ) {
         e.preventDefault();
         setPaymentMethod('CASH');
       }
-      if (e.key === 'F3' || (e.altKey && e.key === '2')) {
+      if (
+        (e.key === 'F3' || (e.altKey && e.key === '2')) &&
+        acceptedPaymentMethods.includes('TRANSFER')
+      ) {
         e.preventDefault();
         setPaymentMethod('TRANSFER');
       }
-      if (e.key === 'F4' || (e.altKey && e.key === '3')) {
+      if (
+        (e.key === 'F4' || (e.altKey && e.key === '3')) &&
+        acceptedPaymentMethods.includes('CARD')
+      ) {
         e.preventDefault();
         setPaymentMethod('CARD');
       }
@@ -138,6 +217,7 @@ export default function CreditPayments() {
     selectedCredit,
     isSubmitting,
     paymentMethod,
+    acceptedPaymentMethods,
     multipleCashNio,
     multipleCashUsd,
     multipleTransferAmount,
@@ -182,7 +262,11 @@ export default function CreditPayments() {
   const handleSelectCredit = (credit: CreditSearchItem) => {
     setSelectedCredit(credit);
     setNotes('');
-    setPaymentMethod('CASH');
+    setPaymentMethod(
+      acceptedPaymentMethods.includes('CASH')
+        ? 'CASH'
+        : (acceptedPaymentMethods[0] as any) || 'CASH'
+    );
 
     // Reset payment values: all inputs should be empty by default
     setMultipleCashNio('');
@@ -220,8 +304,17 @@ export default function CreditPayments() {
   const handleFillExactCash = () => {
     const otherPayments = rawTransferAmt + rawCardAmt;
     const diff = Math.max(targetDebt - otherPayments, 0);
-    setMultipleCashNio(diff.toFixed(2));
-    setMultipleCashUsd('');
+    const allowsNio = acceptedCurrencies.includes('NIO');
+    const allowsUsd = acceptedCurrencies.includes('USD');
+
+    if (allowsNio) {
+      setMultipleCashNio(diff.toFixed(2));
+      setMultipleCashUsd('');
+    } else if (allowsUsd) {
+      const diffUsd = diff / (exchangeRate || 36.5);
+      setMultipleCashUsd(diffUsd.toFixed(2));
+      setMultipleCashNio('');
+    }
   };
 
   const handleFillExactTransfer = () => {
@@ -579,47 +672,73 @@ export default function CreditPayments() {
             </div>
 
             {/* PAYMENT TABS SELECTOR */}
-            <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-200 dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-800 rounded-lg select-none">
-              {(['CASH', 'TRANSFER', 'CARD'] as const).map((method) => {
-                let label = 'Efectivo';
-                let icon = <Coins className="w-3.5 h-3.5" />;
-                let kbd = 'F2';
-                if (method === 'TRANSFER') {
-                  label = 'Transf.';
-                  icon = <ArrowRightLeft className="w-3.5 h-3.5" />;
-                  kbd = 'F3';
-                } else if (method === 'CARD') {
-                  label = 'Tarjeta';
-                  icon = <CreditCard className="w-3.5 h-3.5" />;
-                  kbd = 'F4';
-                }
-
-                return (
+            {acceptedPaymentMethods.length > 1 && (
+              <div
+                className={cn(
+                  'grid gap-1.5 p-1 bg-slate-200 dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-800 rounded-lg select-none',
+                  acceptedPaymentMethods.length === 3 ? 'grid-cols-3' : 'grid-cols-2'
+                )}>
+                {acceptedPaymentMethods.includes('CASH') && (
                   <button
-                    key={method}
                     type="button"
-                    onClick={() => setPaymentMethod(method)}
+                    onClick={() => setPaymentMethod('CASH')}
                     className={cn(
                       'py-2 text-[11px] font-black rounded-md transition-all flex items-center justify-center gap-1.5 border-2',
-                      paymentMethod === method
+                      paymentMethod === 'CASH'
                         ? 'bg-blue-600 text-white shadow-md border-blue-500'
                         : 'text-slate-800 dark:text-slate-200 border-transparent hover:bg-slate-300/60 dark:hover:bg-slate-800/60'
                     )}
                     disabled={isSubmitting}>
-                    {icon}
-                    <span>{label}</span>
+                    <Coins className="w-3.5 h-3.5" />
+                    <span>Efectivo</span>
                     <kbd className="hidden md:inline-block px-1 rounded bg-white/20 text-[9px] font-semibold">
-                      {kbd}
+                      F2
                     </kbd>
                   </button>
-                );
-              })}
-            </div>
+                )}
+                {acceptedPaymentMethods.includes('TRANSFER') && (
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('TRANSFER')}
+                    className={cn(
+                      'py-2 text-[11px] font-black rounded-md transition-all flex items-center justify-center gap-1.5 border-2',
+                      paymentMethod === 'TRANSFER'
+                        ? 'bg-blue-600 text-white shadow-md border-blue-500'
+                        : 'text-slate-800 dark:text-slate-200 border-transparent hover:bg-slate-300/60 dark:hover:bg-slate-800/60'
+                    )}
+                    disabled={isSubmitting}>
+                    <ArrowRightLeft className="w-3.5 h-3.5" />
+                    <span>Transf.</span>
+                    <kbd className="hidden md:inline-block px-1 rounded bg-white/20 text-[9px] font-semibold">
+                      F3
+                    </kbd>
+                  </button>
+                )}
+                {acceptedPaymentMethods.includes('CARD') && (
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('CARD')}
+                    className={cn(
+                      'py-2 text-[11px] font-black rounded-md transition-all flex items-center justify-center gap-1.5 border-2',
+                      paymentMethod === 'CARD'
+                        ? 'bg-blue-600 text-white shadow-md border-blue-500'
+                        : 'text-slate-800 dark:text-slate-200 border-transparent hover:bg-slate-300/60 dark:hover:bg-slate-800/60'
+                    )}
+                    disabled={isSubmitting}>
+                    <CreditCard className="w-3.5 h-3.5" />
+                    <span>Tarjeta</span>
+                    <kbd className="hidden md:inline-block px-1 rounded bg-white/20 text-[9px] font-semibold">
+                      F4
+                    </kbd>
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* TABS CONTAINER */}
             <div className="border-2 border-slate-300 dark:border-slate-800 rounded-lg p-4 bg-background">
               {/* EFECTIVO TAB */}
-              {paymentMethod === 'CASH' && (
+              {paymentMethod === 'CASH' && acceptedPaymentMethods.includes('CASH') && (
                 <div className="flex flex-col gap-3">
                   <div className="flex justify-between items-center mb-1">
                     <h3 className="text-xs font-black uppercase text-blue-600 dark:text-blue-400 tracking-wider flex items-center gap-1.5">
@@ -635,48 +754,59 @@ export default function CreditPayments() {
                       <kbd className="px-1 rounded bg-white/20 text-[9px] font-semibold">F8</kbd>
                     </Button>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="flex flex-col gap-1">
-                      <Label htmlFor="cashNio" className="text-[11px] font-bold">
-                        Córdobas (C$)
-                      </Label>
-                      <div className="relative">
-                        <span className="absolute left-2.5 top-1.5 text-xs font-black text-slate-500">
-                          C$
-                        </span>
-                        <Input
-                          ref={cashNioRef}
-                          id="cashNio"
-                          type="number"
-                          step="any"
-                          value={multipleCashNio}
-                          onChange={(e) => setMultipleCashNio(e.target.value)}
-                          placeholder="0.00"
-                          className="pl-8 h-8 text-sm font-bold border-slate-400 bg-background"
-                          disabled={isSubmitting}
-                        />
+                  <div
+                    className={cn(
+                      'grid gap-3',
+                      acceptedCurrencies.includes('NIO') && acceptedCurrencies.includes('USD')
+                        ? 'grid-cols-2'
+                        : 'grid-cols-1'
+                    )}>
+                    {acceptedCurrencies.includes('NIO') && (
+                      <div className="flex flex-col gap-1">
+                        <Label htmlFor="cashNio" className="text-[11px] font-bold">
+                          Córdobas (C$)
+                        </Label>
+                        <div className="relative">
+                          <span className="absolute left-2.5 top-1.5 text-xs font-black text-slate-500">
+                            C$
+                          </span>
+                          <Input
+                            ref={cashNioRef}
+                            id="cashNio"
+                            type="number"
+                            step="any"
+                            value={multipleCashNio}
+                            onChange={(e) => setMultipleCashNio(e.target.value)}
+                            placeholder="0.00"
+                            className="pl-8 h-8 text-sm font-bold border-slate-400 bg-background"
+                            disabled={isSubmitting}
+                          />
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <Label htmlFor="cashUsd" className="text-[11px] font-bold">
-                        Dólares ($)
-                      </Label>
-                      <div className="relative">
-                        <span className="absolute left-2.5 top-1.5 text-xs font-black text-slate-500">
-                          $
-                        </span>
-                        <Input
-                          id="cashUsd"
-                          type="number"
-                          step="any"
-                          value={multipleCashUsd}
-                          onChange={(e) => setMultipleCashUsd(e.target.value)}
-                          placeholder="0.00"
-                          className="pl-8 h-8 text-sm font-bold border-slate-400 bg-background"
-                          disabled={isSubmitting}
-                        />
+                    )}
+                    {acceptedCurrencies.includes('USD') && (
+                      <div className="flex flex-col gap-1">
+                        <Label htmlFor="cashUsd" className="text-[11px] font-bold">
+                          Dólares ($)
+                        </Label>
+                        <div className="relative">
+                          <span className="absolute left-2.5 top-1.5 text-xs font-black text-slate-500">
+                            $
+                          </span>
+                          <Input
+                            ref={!acceptedCurrencies.includes('NIO') ? cashNioRef : undefined}
+                            id="cashUsd"
+                            type="number"
+                            step="any"
+                            value={multipleCashUsd}
+                            onChange={(e) => setMultipleCashUsd(e.target.value)}
+                            placeholder="0.00"
+                            className="pl-8 h-8 text-sm font-bold border-slate-400 bg-background"
+                            disabled={isSubmitting}
+                          />
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               )}

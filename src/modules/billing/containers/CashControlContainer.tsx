@@ -886,7 +886,7 @@ export default function CashControlContainer() {
                                     setTxCategoryId(newCategory.id);
                                     setCategorySearchTerm('');
                                     toast({ title: 'Categoría creada', variant: 'success' });
-                                  } catch (error) {
+                                  } catch {
                                     toast({ title: 'Error al crear la categoría', variant: 'destructive' });
                                   }
                                 }

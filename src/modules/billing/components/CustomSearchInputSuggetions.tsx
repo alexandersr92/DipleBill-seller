@@ -1,4 +1,4 @@
-import { Loader2Icon, Search } from 'lucide-react';
+import { CornerDownLeft, Loader2Icon, Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { ChangeEvent, KeyboardEvent, RefObject, useEffect, useRef, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
@@ -64,6 +64,13 @@ export default function CustomSearchInputSuggetions({
     setActiveIndex(-1);
   };
 
+  const handleClearSearch = () => {
+    setSearchTerm('');
+    setResults([]);
+    setActiveIndex(-1);
+    inputRef?.current?.focus();
+  };
+
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'ArrowDown') {
       event.preventDefault();
@@ -90,7 +97,11 @@ export default function CustomSearchInputSuggetions({
         exactMatch ?? (activeIndex >= 0 ? results[activeIndex] : undefined) ?? results[0];
 
       if (product) {
-        const hasNoPrice = product.price === null || product.price === undefined || String(product.price) === '' || isNaN(Number(product.price));
+        const hasNoPrice =
+          product.price === null ||
+          product.price === undefined ||
+          String(product.price) === '' ||
+          isNaN(Number(product.price));
         if (hasNoPrice) {
           toast({
             title: `El producto "${product.name}" no tiene precio configurado en el inventario "${product.inventory_name}" y no se puede facturar.`,
@@ -109,7 +120,11 @@ export default function CustomSearchInputSuggetions({
   };
 
   const handleResultClick = (product: IInvoiceProduct) => {
-    const hasNoPrice = product.price === null || product.price === undefined || String(product.price) === '' || isNaN(Number(product.price));
+    const hasNoPrice =
+      product.price === null ||
+      product.price === undefined ||
+      String(product.price) === '' ||
+      isNaN(Number(product.price));
     if (hasNoPrice) {
       toast({
         title: `El producto "${product.name}" no tiene precio configurado en el inventario "${product.inventory_name}" y no se puede facturar.`,
@@ -215,10 +230,13 @@ export default function CustomSearchInputSuggetions({
   const hasVisibleResults = results.length > 0 && !isLoading;
 
   return (
-    <div className="relative w-full max-w-md">
-      <div className="flex flex-col space-y-2 group">
-        <div className="w-full relative flex items-center">
-          <Search className="text-foreground absolute left-2 w-5 h-5" />
+    <div className="relative w-full">
+      <div className="flex flex-col group">
+        <div className="w-full relative flex items-center rounded-lg border-2 border-border/80 bg-background shadow-xs hover:border-muted-foreground/40 focus-within:border-sale-accent focus-within:ring-2 focus-within:ring-sale-accent/15 transition-all duration-200">
+          <div className="pl-3 pr-1 flex items-center pointer-events-none text-muted-foreground group-focus-within:text-sale-accent transition-colors">
+            <Search className="w-4 h-4 shrink-0" />
+          </div>
+
           <Input
             ref={inputRef}
             tabIndex={tabIndex}
@@ -232,73 +250,150 @@ export default function CustomSearchInputSuggetions({
             aria-controls="search-results"
             aria-expanded={results.length > 0}
             data-enter-behavior="native"
-            className="pl-8 text-foreground focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue"
+            className="h-9 sm:h-9.5 border-0 bg-transparent px-2 text-xs sm:text-sm text-foreground font-medium placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0"
           />
+
+          <div className="flex items-center gap-1.5 pr-2.5 shrink-0">
+            {isLoading && (
+              <Loader2Icon className="animate-spin w-3.5 h-3.5 text-sale-accent shrink-0" />
+            )}
+
+            {searchTerm && !isLoading && (
+              <button
+                type="button"
+                tabIndex={-1}
+                onClick={handleClearSearch}
+                className="h-5 w-5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors"
+                title="Limpiar búsqueda">
+                <X className="w-3 h-3" />
+              </button>
+            )}
+
+            <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.2 text-[10px] font-mono font-bold text-muted-foreground bg-muted/80 border border-border rounded shadow-xs select-none">
+              F1
+            </kbd>
+          </div>
         </div>
 
-        <ul
-          ref={resultsListRef}
-          id="search-results"
-          role="listbox"
-          aria-labelledby="suggestions-label"
-          className={`${
-            shouldShowResults ? 'block' : 'hidden'
-          } absolute p-1.5 z-50 w-full mt-1 bg-popover border border-border rounded-lg shadow-xl max-h-60 overflow-y-auto top-full
-            [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-muted/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30
-          `}>
-          {isLoading && (
-            <div className="py-4">
-              <Loader2Icon className="animate-spin mx-auto text-theme_blue" />
-            </div>
-          )}
+        {shouldShowResults && (
+          <div
+            id="search-results"
+            className="absolute z-50 w-full mt-2 bg-popover text-popover-foreground border border-border/80 rounded-xl shadow-2xl overflow-hidden top-full animate-in fade-in-0 zoom-in-95 duration-100">
+            {isLoading && (
+              <div className="py-6 flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                <Loader2Icon className="animate-spin w-6 h-6 text-sale-accent" />
+                <span className="text-xs font-medium">Buscando productos...</span>
+              </div>
+            )}
 
-          {noResults && (
-            <p className="font-medium text-sm text-center py-4">
-              No se han encontrado coincidencias: <strong>{searchTerm}</strong>
-            </p>
-          )}
+            {noResults && (
+              <div className="py-6 px-4 text-center">
+                <p className="font-semibold text-sm text-foreground">
+                  No se encontraron productos
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  No hay coincidencias para <strong className="text-foreground">&quot;{searchTerm}&quot;</strong>
+                </p>
+              </div>
+            )}
 
-          {hasVisibleResults &&
-            results.map((product, index) => {
-              const hasNoPrice = product.price === null || product.price === undefined || String(product.price) === '' || isNaN(Number(product.price));
-              return (
-                <li
-                  key={product.id}
-                  id={`search-result-${product.id}`}
-                  data-result-index={index}
-                  role="option"
-                  aria-selected={index === activeIndex}
-                  className={`p-2.5 flex flex-col items-start rounded-md transition-colors duration-150 ${
-                    hasNoPrice
-                      ? 'opacity-60 cursor-not-allowed bg-transparent'
-                      : product.quantity === 0
-                        ? 'text-destructive font-semibold cursor-pointer'
-                        : index === activeIndex
-                          ? 'text-accent-foreground font-semibold cursor-pointer'
-                          : 'text-foreground cursor-pointer'
-                  } ${!hasNoPrice && index === activeIndex ? 'bg-accent' : !hasNoPrice ? 'hover:bg-accent/40' : ''}`}
-                  onClick={() => handleResultClick(product)}
-                >
-                  <div className="flex justify-between w-full">
-                    <span className="text-sm font-bold">{product.name}</span>
-                    <div className="flex items-center gap-2">
-                      {hasNoPrice && (
-                        <span className="text-[10px] bg-destructive/15 text-destructive border border-destructive/20 px-1.5 py-0.5 rounded font-bold">
-                          Sin Precio
-                        </span>
-                      )}
-                      <span className="text-xs">({product.quantity})</span>
-                    </div>
-                  </div>
-                  <div className="flex justify-between w-full mt-1 text-muted-foreground">
-                    <span className="text-[11px]">{product.sku}</span>
-                    <span className="text-[11px]">{product.inventory_name}</span>
-                  </div>
-                </li>
-              );
-            })}
-        </ul>
+            {hasVisibleResults && (
+              <>
+                <div className="px-3.5 py-2 border-b bg-muted/40 flex items-center justify-between text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  <span>Resultados ({results.length})</span>
+                  <span>Stock / Precio</span>
+                </div>
+
+                <ul
+                  ref={resultsListRef}
+                  role="listbox"
+                  aria-labelledby="suggestions-label"
+                  className="p-1.5 max-h-72 overflow-y-auto divide-y divide-border/40
+                    [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-muted/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30">
+                  {results.map((product, index) => {
+                    const hasNoPrice =
+                      product.price === null ||
+                      product.price === undefined ||
+                      String(product.price) === '' ||
+                      isNaN(Number(product.price));
+                    const isSelected = index === activeIndex;
+
+                    return (
+                      <li
+                        key={product.id}
+                        id={`search-result-${product.id}`}
+                        data-result-index={index}
+                        role="option"
+                        aria-selected={isSelected}
+                        className={`p-2.5 sm:p-3 rounded-lg flex items-center justify-between gap-3 transition-colors duration-150 select-none ${
+                          hasNoPrice
+                            ? 'opacity-60 cursor-not-allowed bg-transparent'
+                            : isSelected
+                              ? 'bg-sale-accent/10 border-l-4 border-sale-accent pl-2 text-foreground font-medium cursor-pointer'
+                              : 'hover:bg-muted/60 text-foreground cursor-pointer'
+                        }`}
+                        onClick={() => handleResultClick(product)}>
+                        <div className="flex flex-col min-w-0 pr-2">
+                          <span className="text-sm font-bold truncate">{product.name}</span>
+                          <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
+                            {product.sku && (
+                              <span className="font-mono bg-muted px-1.5 py-0.2 rounded text-[11px]">
+                                {product.sku}
+                              </span>
+                            )}
+                            <span className="truncate text-[11px]">{product.inventory_name}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col items-end shrink-0 gap-1">
+                          {hasNoPrice ? (
+                            <span className="text-[10px] bg-destructive/15 text-destructive border border-destructive/20 px-1.5 py-0.5 rounded font-bold">
+                              Sin Precio
+                            </span>
+                          ) : (
+                            <span className="text-sm font-extrabold text-sale-accent font-mono">
+                              ${parseFloat(product.price?.toString() || '0').toFixed(2)}
+                            </span>
+                          )}
+
+                          <span
+                            className={`text-[11px] px-2 py-0.5 rounded-full font-semibold border ${
+                              product.quantity === 0
+                                ? 'bg-destructive/10 text-destructive border-destructive/20'
+                                : 'bg-primary/10 text-primary border-primary/20'
+                            }`}>
+                            {product.quantity === 0
+                              ? 'Agotado (0)'
+                              : `Stock: ${product.quantity}`}
+                          </span>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+
+                <div className="px-3 py-1.5 border-t bg-muted/30 flex items-center justify-between text-[11px] text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <kbd className="px-1 py-0.5 bg-background border rounded font-mono text-[10px]">↑↓</kbd>
+                    Navegar
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <kbd className="px-1.5 py-0.5 bg-background border rounded font-mono text-[10px] flex items-center gap-0.5">
+                      <CornerDownLeft className="w-2.5 h-2.5" /> Enter
+                    </kbd>
+                    Agregar a venta
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <kbd className="px-1 py-0.5 bg-background border rounded font-mono text-[10px]">Esc</kbd>
+                    Cerrar
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
 }
+

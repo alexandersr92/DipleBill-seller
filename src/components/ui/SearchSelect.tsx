@@ -27,6 +27,7 @@ interface ISearchSelectProps {
   id?: string;
   triggerRef?: Ref<HTMLButtonElement>;
   onAfterSelect?: () => void;
+  className?: string;
 }
 
 export default function SearchSelect({
@@ -41,7 +42,8 @@ export default function SearchSelect({
   debounceMs = 300,
   id,
   triggerRef,
-  onAfterSelect
+  onAfterSelect,
+  className
 }: ISearchSelectProps) {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -160,7 +162,7 @@ export default function SearchSelect({
           aria-expanded={open}
           data-enter-behavior="native"
           onKeyDown={handleTriggerKeyDown}
-          className="w-full justify-between font-normal">
+          className={cn('w-full justify-between font-normal h-9 text-xs sm:text-sm px-3', className)}>
           {selectedItem || placeholder}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>

@@ -45,6 +45,33 @@ export const ConfirmSaleModal = ({
   const [isCreditSale, setIsCreditSale] = useState<boolean>(false);
   const [paymentMethod, setPaymentMethod] = useState<string>('CASH');
 
+  // Divisas y Métodos de Pago configurados
+  const [acceptedCurrencies, setAcceptedCurrencies] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('accepted_currencies');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {
+      // ignore
+    }
+    return ['NIO', 'USD'];
+  });
+
+  const [acceptedPaymentMethods, setAcceptedPaymentMethods] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('accepted_payment_methods');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {
+      // ignore
+    }
+    return ['CASH', 'TRANSFER', 'CARD'];
+  });
+
   const [exchangeRate, setExchangeRate] = useState<number>(() => {
     const saved = localStorage.getItem('usd_exchange_rate');
     return saved ? parseFloat(saved) : 36.5;
@@ -83,13 +110,12 @@ export const ConfirmSaleModal = ({
     }
   }, [paymentMethod, step]);
 
-  // Resetear estados al abrir y cargar la tasa de cambio desde el servidor
+  // Resetear estados al abrir y cargar configuraciones desde el servidor
   useEffect(() => {
     if (open) {
       const isCreditSaleDefault = sellType === SELL_TYPES.CREDITO;
       setStep(1);
       setIsCreditSale(isCreditSaleDefault);
-      setPaymentMethod('CASH');
 
       // Resetear estados de pago
       setMultipleCashNio('');
@@ -102,24 +128,64 @@ export const ConfirmSaleModal = ({
       setMultipleCardRef('');
       setMultipleCardAmount('');
 
-      // Cargar tasa de cambio oficial configurada por el Owner
-      const loadOfficialExchangeRate = async () => {
+      // Cargar configuraciones del Owner (tasa de cambio, divisas y métodos de pago)
+      const loadPaymentSettings = async () => {
         try {
-          const response = await axiosInstance.get('/v1/settings?key=usd_exchange_rate');
-          const records = response.data?.data || response.data || [];
-          if (records.length > 0) {
-            const val = parseFloat(records[0].value);
+          // 1. Tasa de cambio oficial
+          const rateRes = await axiosInstance.get('/v1/settings?key=usd_exchange_rate');
+          const rateRecords = rateRes.data?.data || rateRes.data || [];
+          if (rateRecords.length > 0) {
+            const val = parseFloat(rateRecords[0].value);
             if (val > 0) {
               setExchangeRate(val);
               localStorage.setItem('usd_exchange_rate', val.toString());
             }
           }
         } catch (error) {
-          console.error('Error fetching exchange rate from database settings:', error);
+          if (import.meta.env.DEV) console.error('Error fetching usd_exchange_rate:', error);
+        }
+
+        try {
+          // 2. Divisas aceptadas
+          const currRes = await axiosInstance.get('/v1/settings?key=accepted_currencies');
+          const currRecords = currRes.data?.data || currRes.data || [];
+          if (currRecords.length > 0 && currRecords[0].value) {
+            try {
+              const parsed = JSON.parse(currRecords[0].value);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                setAcceptedCurrencies(parsed);
+                localStorage.setItem('accepted_currencies', JSON.stringify(parsed));
+              }
+            } catch {
+              // ignore
+            }
+          }
+        } catch (error) {
+          if (import.meta.env.DEV) console.error('Error fetching accepted_currencies:', error);
+        }
+
+        try {
+          // 3. Métodos de pago aceptados
+          const methodRes = await axiosInstance.get('/v1/settings?key=accepted_payment_methods');
+          const methodRecords = methodRes.data?.data || methodRes.data || [];
+          if (methodRecords.length > 0 && methodRecords[0].value) {
+            try {
+              const parsed = JSON.parse(methodRecords[0].value);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                setAcceptedPaymentMethods(parsed);
+                localStorage.setItem('accepted_payment_methods', JSON.stringify(parsed));
+                setPaymentMethod((prev) => (parsed.includes(prev) ? prev : parsed[0]));
+              }
+            } catch {
+              // ignore
+            }
+          }
+        } catch (error) {
+          if (import.meta.env.DEV) console.error('Error fetching accepted_payment_methods:', error);
         }
       };
 
-      loadOfficialExchangeRate();
+      loadPaymentSettings();
     }
   }, [open, sellType]);
 
@@ -142,8 +208,17 @@ export const ConfirmSaleModal = ({
   // Autocompletar el total en un método específico (teniendo en cuenta otros aportes)
   const handleFillExactCash = () => {
     const remaining = Math.max(total - (rawMultTransferAmt + rawMultCardAmt), 0);
-    setMultipleCashNio(remaining.toFixed(2));
-    setMultipleCashUsd('');
+    const allowsNio = acceptedCurrencies.includes('NIO');
+    const allowsUsd = acceptedCurrencies.includes('USD');
+
+    if (allowsNio) {
+      setMultipleCashNio(remaining.toFixed(2));
+      setMultipleCashUsd('');
+    } else if (allowsUsd) {
+      const remainingUsd = remaining / (exchangeRate || 36.5);
+      setMultipleCashUsd(remainingUsd.toFixed(2));
+      setMultipleCashNio('');
+    }
   };
 
   const handleFillExactTransfer = () => {
@@ -298,15 +373,24 @@ export const ConfirmSaleModal = ({
       }
 
       // Cambiar entre pestañas con F2, F3, F4 o Alt+1, Alt+2, Alt+3
-      if (e.key === 'F2' || (e.altKey && e.key === '1')) {
+      if (
+        (e.key === 'F2' || (e.altKey && e.key === '1')) &&
+        acceptedPaymentMethods.includes('CASH')
+      ) {
         e.preventDefault();
         setPaymentMethod('CASH');
       }
-      if (e.key === 'F3' || (e.altKey && e.key === '2')) {
+      if (
+        (e.key === 'F3' || (e.altKey && e.key === '2')) &&
+        acceptedPaymentMethods.includes('TRANSFER')
+      ) {
         e.preventDefault();
         setPaymentMethod('TRANSFER');
       }
-      if (e.key === 'F4' || (e.altKey && e.key === '3')) {
+      if (
+        (e.key === 'F4' || (e.altKey && e.key === '3')) &&
+        acceptedPaymentMethods.includes('CARD')
+      ) {
         e.preventDefault();
         setPaymentMethod('CARD');
       }
@@ -517,61 +601,73 @@ export const ConfirmSaleModal = ({
           {step === 2 && !isCreditSale && (
             <div className="flex flex-col gap-3">
               {/* Selector de Forma de Pago (Pestañas horizontales) - ALTO CONTRASTE */}
-              <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-200 dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-800 rounded-lg select-none">
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('CASH')}
+              {acceptedPaymentMethods.length > 1 && (
+                <div
                   className={cn(
-                    'py-1.5 text-[11px] font-black rounded-md transition-all flex items-center justify-center gap-1.5 border-2',
-                    paymentMethod === 'CASH'
-                      ? 'bg-blue-600 text-white shadow-md border-blue-500'
-                      : 'text-slate-800 dark:text-slate-200 border-transparent hover:bg-slate-300/60 dark:hover:bg-slate-800/60'
+                    'grid gap-1.5 p-1 bg-slate-200 dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-800 rounded-lg select-none',
+                    acceptedPaymentMethods.length === 3 ? 'grid-cols-3' : 'grid-cols-2'
+                  )}>
+                  {acceptedPaymentMethods.includes('CASH') && (
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('CASH')}
+                      className={cn(
+                        'py-1.5 text-[11px] font-black rounded-md transition-all flex items-center justify-center gap-1.5 border-2',
+                        paymentMethod === 'CASH'
+                          ? 'bg-blue-600 text-white shadow-md border-blue-500'
+                          : 'text-slate-800 dark:text-slate-200 border-transparent hover:bg-slate-300/60 dark:hover:bg-slate-800/60'
+                      )}
+                      disabled={isSubmitting}>
+                      <Coins className="w-3.5 h-3.5 stroke-[2.5px]" />
+                      <span>Efectivo</span>
+                      <kbd className="hidden md:inline-block px-1 rounded bg-white/20 text-[9px] font-semibold">
+                        F2
+                      </kbd>
+                    </button>
                   )}
-                  disabled={isSubmitting}>
-                  <Coins className="w-3.5 h-3.5 stroke-[2.5px]" />
-                  <span>Efectivo</span>
-                  <kbd className="hidden md:inline-block px-1 rounded bg-white/20 text-[9px] font-semibold">
-                    F2
-                  </kbd>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('TRANSFER')}
-                  className={cn(
-                    'py-1.5 text-[11px] font-black rounded-md transition-all flex items-center justify-center gap-1.5 border-2',
-                    paymentMethod === 'TRANSFER'
-                      ? 'bg-blue-600 text-white shadow-md border-blue-500'
-                      : 'text-slate-800 dark:text-slate-200 border-transparent hover:bg-slate-300/60 dark:hover:bg-slate-800/60'
+                  {acceptedPaymentMethods.includes('TRANSFER') && (
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('TRANSFER')}
+                      className={cn(
+                        'py-1.5 text-[11px] font-black rounded-md transition-all flex items-center justify-center gap-1.5 border-2',
+                        paymentMethod === 'TRANSFER'
+                          ? 'bg-blue-600 text-white shadow-md border-blue-500'
+                          : 'text-slate-800 dark:text-slate-200 border-transparent hover:bg-slate-300/60 dark:hover:bg-slate-800/60'
+                      )}
+                      disabled={isSubmitting}>
+                      <ArrowRightLeft className="w-3.5 h-3.5 stroke-[2.5px]" />
+                      <span>Transf.</span>
+                      <kbd className="hidden md:inline-block px-1 rounded bg-white/20 text-[9px] font-semibold">
+                        F3
+                      </kbd>
+                    </button>
                   )}
-                  disabled={isSubmitting}>
-                  <ArrowRightLeft className="w-3.5 h-3.5 stroke-[2.5px]" />
-                  <span>Transf.</span>
-                  <kbd className="hidden md:inline-block px-1 rounded bg-white/20 text-[9px] font-semibold">
-                    F3
-                  </kbd>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('CARD')}
-                  className={cn(
-                    'py-1.5 text-[11px] font-black rounded-md transition-all flex items-center justify-center gap-1.5 border-2',
-                    paymentMethod === 'CARD'
-                      ? 'bg-blue-600 text-white shadow-md border-blue-500'
-                      : 'text-slate-800 dark:text-slate-200 border-transparent hover:bg-slate-300/60 dark:hover:bg-slate-800/60'
+                  {acceptedPaymentMethods.includes('CARD') && (
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('CARD')}
+                      className={cn(
+                        'py-1.5 text-[11px] font-black rounded-md transition-all flex items-center justify-center gap-1.5 border-2',
+                        paymentMethod === 'CARD'
+                          ? 'bg-blue-600 text-white shadow-md border-blue-500'
+                          : 'text-slate-800 dark:text-slate-200 border-transparent hover:bg-slate-300/60 dark:hover:bg-slate-800/60'
+                      )}
+                      disabled={isSubmitting}>
+                      <CreditCard className="w-3.5 h-3.5 stroke-[2.5px]" />
+                      <span>Tarjeta</span>
+                      <kbd className="hidden md:inline-block px-1 rounded bg-white/20 text-[9px] font-semibold">
+                        F4
+                      </kbd>
+                    </button>
                   )}
-                  disabled={isSubmitting}>
-                  <CreditCard className="w-3.5 h-3.5 stroke-[2.5px]" />
-                  <span>Tarjeta</span>
-                  <kbd className="hidden md:inline-block px-1 rounded bg-white/20 text-[9px] font-semibold">
-                    F4
-                  </kbd>
-                </button>
-              </div>
+                </div>
+              )}
 
               {/* Contenedor del método activo */}
               <div className="min-h-[175px] flex flex-col justify-center">
                 {/* EFECTIVO PORTION */}
-                {paymentMethod === 'CASH' && (
+                {paymentMethod === 'CASH' && acceptedPaymentMethods.includes('CASH') && (
                   <div className="border-2 border-slate-350 dark:border-slate-700 rounded-lg p-3.5 bg-slate-50 dark:bg-slate-950/20">
                     <div className="flex justify-between items-center mb-2.5">
                       <h3 className="text-xs font-black uppercase text-blue-600 dark:text-blue-400 tracking-wider flex items-center gap-1.5">
@@ -587,54 +683,65 @@ export const ConfirmSaleModal = ({
                         <kbd className="px-1 rounded bg-white/20 text-[9px] font-semibold">F8</kbd>
                       </button>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="flex flex-col gap-1">
-                        <Label
-                          htmlFor="multCashNio"
-                          className="text-[11px] font-bold text-slate-800 dark:text-slate-100">
-                          Córdobas (C$)
-                        </Label>
-                        <div className="relative">
-                          <span className="absolute left-2.5 top-1.5 text-xs font-black text-slate-600 dark:text-slate-400">
-                            C$
-                          </span>
-                          <Input
-                            ref={cashNioRef}
-                            id="multCashNio"
-                            type="number"
-                            step="any"
-                            inputMode="decimal"
-                            value={multipleCashNio}
-                            onChange={(e) => setMultipleCashNio(e.target.value)}
-                            placeholder="0.00"
-                            className="pl-8 h-8 text-sm font-bold border-slate-400 dark:border-slate-650 text-slate-900 dark:text-white bg-background"
-                            disabled={isSubmitting}
-                          />
+                    <div
+                      className={cn(
+                        'grid gap-3',
+                        acceptedCurrencies.includes('NIO') && acceptedCurrencies.includes('USD')
+                          ? 'grid-cols-2'
+                          : 'grid-cols-1'
+                      )}>
+                      {acceptedCurrencies.includes('NIO') && (
+                        <div className="flex flex-col gap-1">
+                          <Label
+                            htmlFor="multCashNio"
+                            className="text-[11px] font-bold text-slate-800 dark:text-slate-100">
+                            Córdobas (C$)
+                          </Label>
+                          <div className="relative">
+                            <span className="absolute left-2.5 top-1.5 text-xs font-black text-slate-600 dark:text-slate-400">
+                              C$
+                            </span>
+                            <Input
+                              ref={cashNioRef}
+                              id="multCashNio"
+                              type="number"
+                              step="any"
+                              inputMode="decimal"
+                              value={multipleCashNio}
+                              onChange={(e) => setMultipleCashNio(e.target.value)}
+                              placeholder="0.00"
+                              className="pl-8 h-8 text-sm font-bold border-slate-400 dark:border-slate-650 text-slate-900 dark:text-white bg-background"
+                              disabled={isSubmitting}
+                            />
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <Label
-                          htmlFor="multCashUsd"
-                          className="text-[11px] font-bold text-slate-800 dark:text-slate-100">
-                          Dólares ($)
-                        </Label>
-                        <div className="relative">
-                          <span className="absolute left-2.5 top-1.5 text-xs font-black text-slate-600 dark:text-slate-400">
-                            $
-                          </span>
-                          <Input
-                            id="multCashUsd"
-                            type="number"
-                            step="any"
-                            inputMode="decimal"
-                            value={multipleCashUsd}
-                            onChange={(e) => setMultipleCashUsd(e.target.value)}
-                            placeholder="0.00"
-                            className="pl-8 h-8 text-sm font-bold border-slate-400 dark:border-slate-650 text-slate-900 dark:text-white bg-background"
-                            disabled={isSubmitting}
-                          />
+                      )}
+                      {acceptedCurrencies.includes('USD') && (
+                        <div className="flex flex-col gap-1">
+                          <Label
+                            htmlFor="multCashUsd"
+                            className="text-[11px] font-bold text-slate-800 dark:text-slate-100">
+                            Dólares ($)
+                          </Label>
+                          <div className="relative">
+                            <span className="absolute left-2.5 top-1.5 text-xs font-black text-slate-600 dark:text-slate-400">
+                              $
+                            </span>
+                            <Input
+                              ref={!acceptedCurrencies.includes('NIO') ? cashNioRef : undefined}
+                              id="multCashUsd"
+                              type="number"
+                              step="any"
+                              inputMode="decimal"
+                              value={multipleCashUsd}
+                              onChange={(e) => setMultipleCashUsd(e.target.value)}
+                              placeholder="0.00"
+                              className="pl-8 h-8 text-sm font-bold border-slate-400 dark:border-slate-650 text-slate-900 dark:text-white bg-background"
+                              disabled={isSubmitting}
+                            />
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   </div>
                 )}

@@ -39,6 +39,27 @@ export function useValidateToken(): ValidationState {
     async function validate() {
       if (token) {
         if (isAuthenticated) {
+          // Asegurar que las sucursales y la sucursal activa estén cargadas aunque el usuario ya esté autenticado (ej. login fresco)
+          try {
+            const storesResult = await dispatch(fetchStores()).unwrap();
+            const savedStoreId = localStorage.getItem('currentStoreId');
+            let currentStoreId = savedStoreId;
+            if (!currentStoreId && storesResult && storesResult.length > 0) {
+              if (storesResult.length === 1) {
+                const firstStoreId = storesResult[0].id;
+                localStorage.setItem('currentStoreId', firstStoreId);
+                currentStoreId = firstStoreId;
+              }
+            }
+
+            const storeIdToFetch = currentStoreId || '';
+            if (storeIdToFetch) {
+              await dispatch(fetchCurrentStore(storeIdToFetch));
+            }
+          } catch (e) {
+            if (import.meta.env.DEV) console.error('Error cargando sucursales:', e);
+          }
+
           setIsValidated(true);
           return true;
         }

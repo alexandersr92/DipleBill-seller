@@ -14,6 +14,7 @@ import { useNavigate } from 'react-router';
 import { Link } from 'react-router-dom';
 import { useToast } from '@/components/hooks/use-toast';
 import { persistSessionToken } from '@/helpers/authSession';
+import { fetchCurrentStore, fetchStores } from '@/modules/stores/slices/storeThunks';
 import { Loader2, KeyRound, Eye, EyeOff, Mail, ArrowLeft, CheckCircle2 } from 'lucide-react';
 
 interface LoginFormInputs {
@@ -77,6 +78,25 @@ export default function LoginForm() {
         };
         persistSessionToken(user.token);
         dispatch(setUser(user));
+
+        try {
+          const storesResult = await dispatch(fetchStores()).unwrap();
+          const savedStoreId = localStorage.getItem('currentStoreId');
+          let currentStoreId = savedStoreId;
+          if (!currentStoreId && storesResult && storesResult.length > 0) {
+            if (storesResult.length === 1) {
+              const firstStoreId = storesResult[0].id;
+              localStorage.setItem('currentStoreId', firstStoreId);
+              currentStoreId = firstStoreId;
+            }
+          }
+          if (currentStoreId) {
+            await dispatch(fetchCurrentStore(currentStoreId));
+          }
+        } catch (storeError) {
+          if (import.meta.env.DEV) console.error('Error cargando sucursales tras login:', storeError);
+        }
+
         navigate('/');
       }
     } catch (error) {
@@ -236,6 +256,25 @@ export default function LoginForm() {
 
             persistSessionToken(user.token);
             dispatch(setUser(user));
+
+            try {
+              const storesResult = await dispatch(fetchStores()).unwrap();
+              const savedStoreId = localStorage.getItem('currentStoreId');
+              let currentStoreId = savedStoreId;
+              if (!currentStoreId && storesResult && storesResult.length > 0) {
+                if (storesResult.length === 1) {
+                  const firstStoreId = storesResult[0].id;
+                  localStorage.setItem('currentStoreId', firstStoreId);
+                  currentStoreId = firstStoreId;
+                }
+              }
+              if (currentStoreId) {
+                await dispatch(fetchCurrentStore(currentStoreId));
+              }
+            } catch (storeError) {
+              if (import.meta.env.DEV) console.error('Error cargando sucursales tras google login:', storeError);
+            }
+
             navigate('/');
             toast({
               title: 'Sesión iniciada',
