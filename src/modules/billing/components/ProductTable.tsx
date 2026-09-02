@@ -283,30 +283,36 @@ const ProductTable = ({
   }, [pendingFocusProductId, productsSelected]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-6 lg:items-stretch flex-grow min-h-0 overflow-y-auto lg:overflow-hidden lg:h-full">
+    <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 lg:gap-4 lg:items-stretch flex-grow min-h-0 overflow-y-auto lg:overflow-hidden lg:h-full">
       {/* Columna Izquierda: Entradas generales + Tabla de productos (80% ancho) */}
-      <div className="lg:col-span-4 flex flex-col gap-4 lg:h-full lg:overflow-hidden min-h-0">
+      <div className="lg:col-span-4 flex flex-col gap-2.5 lg:h-full lg:overflow-hidden min-h-0">
         {/* Render general inputs */}
         {headerContent}
 
         {/* Card de la tabla de productos */}
-        <div className="flex-grow overflow-hidden flex flex-col relative rounded-md shadow-md p-4 border bg-card min-h-[45vh] lg:min-h-0 before:absolute before:inset-x-0 before:top-0 before:h-[3px] before:bg-sale-accent-strong before:rounded-t-md">
+        <div className="flex-grow overflow-hidden flex flex-col relative rounded-md shadow-xs p-3 border bg-card min-h-[45vh] lg:min-h-0 before:absolute before:inset-x-0 before:top-0 before:h-[2px] before:bg-sale-accent-strong before:rounded-t-md">
           {/* Search header (Filtro / Eliminar seleccionados) */}
-          <div className="flex justify-between items-center flex-shrink-0 mb-2">
-            <div className="w-1/3 relative z-20">
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 flex-shrink-0 mb-3">
+            <div className="w-full sm:w-3/5 lg:w-1/2 xl:max-w-lg relative z-20">
               <CustomSearchInputSuggetions
-                placeholder="Buscar productos"
+                placeholder="Buscar por nombre, código de barras o SKU..."
                 tabIndex={7}
                 inputRef={productSearchRef}
                 onProductAdded={setPendingFocusProductId}
               />
             </div>
-            <div className="w-1/4 flex items-center justify-end">
+            <div className="flex items-center justify-end gap-2 flex-shrink-0">
+              {selectProducts.length > 0 && (
+                <span className="text-xs text-muted-foreground font-medium mr-1">
+                  {selectProducts.length} {selectProducts.length === 1 ? 'seleccionado' : 'seleccionados'}
+                </span>
+              )}
               <Button
                 type="button"
                 tabIndex={-1}
+                disabled={selectProducts.length === 0}
                 onClick={handleDeleteSelectedProducts}
-                className="bg-secondary text-foreground hover:bg-primary focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue hover:text-secondary transition-colors duration-300 ease-in-out font-bold text-xs"
+                className="bg-secondary text-secondary-foreground hover:bg-destructive hover:text-destructive-foreground focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-sale-accent transition-colors duration-200 font-semibold text-xs h-9 px-3 disabled:opacity-40"
                 variant={'ghost'}>
                 Eliminar seleccionados
               </Button>
@@ -314,13 +320,13 @@ const ProductTable = ({
           </div>
 
           {/* Contenedor con Scroll de la tabla de productos */}
-          <div className="mt-2 flex-grow overflow-auto border rounded-md min-h-0 bg-background/30 shadow-inner">
+          <div className="mt-1 flex-grow overflow-auto border rounded-md min-h-0 bg-background/30 shadow-inner">
             <Table>
-              <TableHeader className="sticky top-0 bg-card z-10 shadow-sm border-b">
+              <TableHeader className="sticky top-0 bg-card z-10 shadow-xs border-b">
                 <TableRow className="hover:bg-inherit">
-                  <TableHead className="w-[50px]">
+                  <TableHead className="w-[40px] py-1.5 px-2 text-center h-8">
                     <Checkbox
-                      className="focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue"
+                      className="focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-sale-accent"
                       onClick={handleSelectAll}
                       checked={
                         selectProducts.length === productsSelected.length &&
@@ -332,44 +338,56 @@ const ProductTable = ({
                       }
                     />
                   </TableHead>
-                  <TableHead className="text-[#71717A] py-4 w-[150px]">Código de barra</TableHead>
-                  <TableHead className="text-[#71717A] py-4 w-[180px]">SKU</TableHead>
-                  <TableHead className="text-[#71717A] py-4 w-[200px]">Producto</TableHead>
-                  <TableHead className="w-[200px] text-[#71717A] text-center py-4">
+                  <TableHead className="text-muted-foreground py-1.5 px-2 text-xs font-semibold uppercase tracking-wider w-[140px] h-8">
+                    Código de barra
+                  </TableHead>
+                  <TableHead className="text-muted-foreground py-1.5 px-2 text-xs font-semibold uppercase tracking-wider w-[160px] h-8">
+                    SKU
+                  </TableHead>
+                  <TableHead className="text-muted-foreground py-1.5 px-2 text-xs font-semibold uppercase tracking-wider min-w-[180px] h-8">
+                    Producto
+                  </TableHead>
+                  <TableHead className="w-[160px] text-muted-foreground text-center py-1.5 px-2 text-xs font-semibold uppercase tracking-wider h-8">
                     Cantidad
                   </TableHead>
-                  <TableHead className="w-[150px] text-[#71717A] text-center py-4">
+                  <TableHead className="w-[120px] text-muted-foreground text-center py-1.5 px-2 text-xs font-semibold uppercase tracking-wider h-8">
                     Precio
                   </TableHead>
-                  <TableHead className="w-[150px] text-[#71717A] text-center py-4">
+                  <TableHead className="w-[120px] text-muted-foreground text-center py-1.5 px-2 text-xs font-semibold uppercase tracking-wider h-8">
                     Subtotal
                   </TableHead>
-                  <TableHead className="text-[#71717A] text-center py-4">Acciones</TableHead>
+                  <TableHead className="text-muted-foreground text-center py-1.5 px-2 text-xs font-semibold uppercase tracking-wider w-[90px] h-8">
+                    Acciones
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {productsSelected.map((product) => (
-                  <TableRow className="hover:bg-transparent" key={product.temp_id}>
-                    <TableCell className="w-[50px] py-4">
+                  <TableRow className="hover:bg-muted/40 transition-colors" key={product.temp_id}>
+                    <TableCell className="w-[40px] py-1 px-2 text-center">
                       <Checkbox
-                        className="focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue"
+                        className="focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-sale-accent"
                         checked={selectProducts.includes(product.temp_id ?? '')}
                         onClick={() => handleCheckboxChange(product.temp_id ?? '')}
                       />
                     </TableCell>
-                    <TableCell className="font-medium py-4 text-xs">
+                    <TableCell className="font-mono text-muted-foreground py-1 px-2 text-xs">
                       {product.barcode || '--'}
                     </TableCell>
-                    <TableCell className="py-4 text-xs">{product.sku}</TableCell>
-                    <TableCell className="py-4 text-xs">
-                      <div className="font-semibold text-foreground">{product.name}</div>
+                    <TableCell className="font-mono text-muted-foreground py-1 px-2 text-xs">
+                      {product.sku || '--'}
+                    </TableCell>
+                    <TableCell className="py-1 px-2 text-xs">
+                      <div className="font-semibold text-foreground leading-tight truncate max-w-[220px]">
+                        {product.name}
+                      </div>
                       {product.inventory_name && (
-                        <div className="text-[10px] text-muted-foreground mt-0.5 font-medium">
+                        <div className="text-[10px] text-muted-foreground font-medium truncate">
                           {product.inventory_name}
                         </div>
                       )}
                     </TableCell>
-                    <TableCell className="text-center py-4 w-[200px]">
+                    <TableCell className="text-center py-1 px-2 w-[160px]">
                       <div className="flex justify-center">
                         <CustomInputNumber
                           productId={product.temp_id ?? ''}
@@ -384,14 +402,14 @@ const ProductTable = ({
                         />
                       </div>
                     </TableCell>
-                    <TableCell className="text-center py-4 w-[150px]">
+                    <TableCell className="text-center py-1 px-2 w-[120px]">
                       <div className="flex justify-center">
                         <Input
                           tabIndex={-1}
                           type="number"
                           min={0}
                           step={0.01}
-                          className="h-8 w-20 text-center focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none bg-transparent"
+                          className="h-7.5 w-20 text-center focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-sale-accent font-medium text-xs sm:text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none bg-background/50 border border-input px-1 py-0.5"
                           value={product.price || ''}
                           ref={(node) => {
                             priceInputRefs.current[product.temp_id ?? ''] = node;
@@ -415,14 +433,14 @@ const ProductTable = ({
                         />
                       </div>
                     </TableCell>
-                    <TableCell className="text-center py-4 w-[150px]">
+                    <TableCell className="text-center py-1 px-2 w-[120px]">
                       <div className="flex justify-center">
                         <Input
                           tabIndex={-1}
                           type="number"
                           min={0}
                           step={0.01}
-                          className="h-8 w-20 text-center focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-theme_blue font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none bg-transparent"
+                          className="h-7.5 w-20 text-center focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-sale-accent font-medium text-xs sm:text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none bg-background/50 border border-input px-1 py-0.5"
                           ref={(node) => {
                             totalInputRefs.current[product.temp_id ?? ''] = node;
                           }}
@@ -446,22 +464,24 @@ const ProductTable = ({
                         />
                       </div>
                     </TableCell>
-                    <TableCell className="text-center py-4 flex gap-1.5 justify-center items-center">
+                    <TableCell className="text-center py-1 px-2 flex gap-1 justify-center items-center">
                       <Button
                         type="button"
                         tabIndex={-1}
                         onClick={() => handleDeleteAddedProduct(product.temp_id ?? '')}
                         variant={'ghost'}
-                        className="hover:bg-destructive hover:text-destructive-foreground text-red-500 w-8 h-8 p-0 rounded-full">
-                        <Trash strokeWidth="1.5" className="w-5 h-5" />
+                        className="hover:bg-destructive hover:text-destructive-foreground text-destructive w-7 h-7 p-0 rounded-md transition-colors"
+                        title="Eliminar fila">
+                        <Trash strokeWidth="1.5" className="w-4 h-4" />
                       </Button>
                       <Button
                         type="button"
                         tabIndex={-1}
                         onClick={() => dispatch(duplicateProduct(product.temp_id ?? ''))}
                         variant={'ghost'}
-                        className="hover:bg-blue-500 hover:text-white text-bluebg-blue-500 w-8 h-8 p-0 rounded-full">
-                        <Copy strokeWidth="1.5" className="w-5 h-5" />
+                        className="hover:bg-accent hover:text-foreground text-muted-foreground w-7 h-7 p-0 rounded-md transition-colors"
+                        title="Duplicar">
+                        <Copy strokeWidth="1.5" className="w-4 h-4" />
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -480,13 +500,13 @@ const ProductTable = ({
       </div>
 
       {/* Columna Derecha: Totales y Botones (Fijo/Sticky 20% ancho, 100% alto) */}
-      <div className="lg:col-span-1 bg-card border border-slate-200 dark:border-slate-800 p-5 rounded-lg flex flex-col justify-between lg:h-full overflow-y-auto before:absolute before:inset-x-0 before:top-0 before:h-[3px] before:bg-sale-accent-strong before:rounded-t-md relative shadow-md">
+      <div className="lg:col-span-1 bg-card border border-border p-3.5 sm:p-4 rounded-lg flex flex-col justify-between lg:h-full overflow-y-auto before:absolute before:inset-x-0 before:top-0 before:h-[2px] before:bg-sale-accent-strong before:rounded-t-md relative shadow-xs">
         <div>
-          <h3 className="text-xs font-black uppercase tracking-wider text-muted-foreground border-b pb-2 mb-4">
+          <h3 className="text-xs font-black uppercase tracking-wider text-muted-foreground border-b pb-1.5 mb-2.5">
             Resumen de Venta
           </h3>
 
-          <div className="[&_*]:border-none [&_tr]:hover:bg-inherit">
+          <div className="[&_*]:border-none [&_tr]:hover:bg-inherit [&_td]:py-1 [&_td]:px-1.5">
             <Table>
               <TableBody>
                 <TableRow>

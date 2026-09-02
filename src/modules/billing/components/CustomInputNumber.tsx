@@ -1,6 +1,5 @@
 import React, { InputHTMLAttributes, useEffect, useState } from 'react';
-// import { useAppDispatch } from '@/store/hooks';
-// import { decrementProductQty, incrementProductQty } from '../slices/billingSlice';
+import { Minus, Plus } from 'lucide-react';
 
 interface CustomInputNumberProps extends InputHTMLAttributes<HTMLInputElement> {
   min?: number;
@@ -94,32 +93,17 @@ const CustomInputNumber: React.FC<CustomInputNumberProps> = ({
   };
 
   return (
-    <div className="relative flex justify-center items-center m-auto max-w-[9rem]">
+    <div className="inline-flex items-stretch h-7.5 w-24 rounded-md border border-input bg-background shadow-xs overflow-hidden focus-within:border-sale-accent focus-within:ring-1 focus-within:ring-sale-accent transition-all">
       <button
         type="button"
+        tabIndex={-1}
         onClick={handleDecrement}
         disabled={value <= min}
-        className={`${
-          value <= min
-            ? 'hover:bg-background opacity-40 cursor-not-allowed'
-            : 'hover:bg-secondary hover:border-primary'
-        } bg-background w-1/3 flex items-center justify-center border border-input rounded-s-sm p-[0.9rem] focus:outline-none`}
-        aria-label="Decrement value">
-        <svg
-          className="w-2 h-2 text-primary"
-          aria-hidden="true"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 18 2">
-          <path
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            d="M1 1h16"
-          />
-        </svg>
+        className="w-7 flex items-center justify-center border-r border-input bg-muted/30 hover:bg-muted text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0 select-none"
+        aria-label="Disminuir cantidad">
+        <Minus className="w-3 h-3 text-foreground" />
       </button>
+
       <input
         ref={setInputRef}
         type="text"
@@ -129,30 +113,19 @@ const CustomInputNumber: React.FC<CustomInputNumberProps> = ({
         onKeyDown={handleKeyDown}
         onFocus={(e) => e.target.select()}
         aria-describedby="helper-text-explanation"
-        className="border-x-0 p-2 bg-background border-input text-center border text-primary text-sm flex-1 block min-w-[8ch] max-w-full focus:ring-secondary focus:ring-2 focus:outline-none"
+        className="w-full bg-transparent text-center text-xs sm:text-sm font-bold text-foreground focus:outline-none px-0.5 min-w-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
         placeholder={String(min)}
         required
         {...props}
       />
+
       <button
         type="button"
+        tabIndex={-1}
         onClick={handleIncrement}
-        className="bg-background hover:bg-secondary border border-input p-[0.9rem] hover:border-primary w-1/3 flex items-center justify-center rounded-e-sm focus:outline-none"
-        aria-label="Increment value">
-        <svg
-          className="w-2 h-2 text-primary"
-          aria-hidden="true"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 18 18">
-          <path
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            d="M9 1v16M1 9h16"
-          />
-        </svg>
+        className="w-7 flex items-center justify-center border-l border-input bg-muted/30 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0 select-none"
+        aria-label="Aumentar cantidad">
+        <Plus className="w-3 h-3 text-foreground" />
       </button>
     </div>
   );

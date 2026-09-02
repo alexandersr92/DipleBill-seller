@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/hooks/use-toast';
-import { fetchCurrentStore } from '@/modules/stores/slices/storeThunks';
+import { fetchCurrentStore, fetchStores } from '@/modules/stores/slices/storeThunks';
 import {
   Select,
   SelectContent,
@@ -35,6 +35,37 @@ export const PinLockOverlay = () => {
 
   const codeRef = useRef<HTMLInputElement>(null);
   const pinRef = useRef<HTMLInputElement>(null);
+
+  // Auto-cargar tiendas si por alguna razón no están cargadas aún en Redux
+  useEffect(() => {
+    if (stores.length === 0) {
+      dispatch(fetchStores())
+        .unwrap()
+        .then((storesResult) => {
+          const savedStoreId = localStorage.getItem('currentStoreId');
+          let currentStoreId = savedStoreId;
+          if (!currentStoreId && storesResult && storesResult.length > 0) {
+            if (storesResult.length === 1) {
+              const firstStoreId = storesResult[0].id;
+              localStorage.setItem('currentStoreId', firstStoreId);
+              currentStoreId = firstStoreId;
+            }
+          }
+          if (currentStoreId) {
+            dispatch(fetchCurrentStore(currentStoreId));
+          }
+        })
+        .catch(() => {});
+    } else if (!store && stores.length > 0) {
+      const savedStoreId = localStorage.getItem('currentStoreId');
+      if (savedStoreId && stores.some((s) => s.id === savedStoreId)) {
+        dispatch(fetchCurrentStore(savedStoreId));
+      } else if (stores.length === 1) {
+        localStorage.setItem('currentStoreId', stores[0].id);
+        dispatch(fetchCurrentStore(stores[0].id));
+      }
+    }
+  }, [stores, store, dispatch]);
 
   // Fetch login mode setting on mount
   useEffect(() => {
@@ -195,26 +226,35 @@ export const PinLockOverlay = () => {
 
         {!store ? (
           <div className="w-full max-w-[240px] flex flex-col gap-4 mt-6">
-            <div className="grid gap-1.5 w-full">
-              <Label className="text-left text-xs font-semibold text-muted-foreground">
-                Seleccionar Sucursal
-              </Label>
-              <Select value="" onValueChange={handleStoreChange}>
-                <SelectTrigger className="h-9 w-full bg-transparent border-border text-foreground focus:ring-0 focus:ring-offset-0">
-                  <SelectValue placeholder="Seleccionar Sucursal" />
-                </SelectTrigger>
-                <SelectContent>
-                  {stores.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <p className="text-xs text-muted-foreground text-center mt-2">
-              Seleccione una sucursal para poder ingresar sus credenciales de vendedor.
-            </p>
+            {stores.length === 0 ? (
+              <div className="flex items-center justify-center gap-2 py-4 text-xs text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin text-sale-accent" />
+                <span>Cargando sucursales...</span>
+              </div>
+            ) : (
+              <>
+                <div className="grid gap-1.5 w-full">
+                  <Label className="text-left text-xs font-semibold text-muted-foreground">
+                    Seleccionar Sucursal
+                  </Label>
+                  <Select value="" onValueChange={handleStoreChange}>
+                    <SelectTrigger className="h-9 w-full bg-transparent border-border text-foreground focus:ring-0 focus:ring-offset-0">
+                      <SelectValue placeholder="Seleccionar Sucursal" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {stores.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <p className="text-xs text-muted-foreground text-center mt-2">
+                  Seleccione una sucursal para poder ingresar sus credenciales de vendedor.
+                </p>
+              </>
+            )}
           </div>
         ) : (
           <>
