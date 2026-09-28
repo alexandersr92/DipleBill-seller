@@ -1232,9 +1232,9 @@ const Billing = () => {
                     tabIndex={-1}
                     ref={buttonRef}
                     disabled={isSubmittingSale}
-                    className="w-full bg-sale-accent text-sale-accent-foreground hover:bg-sale-accent/90 gap-2 h-11 text-base font-black shadow-md border border-slate-350/10 dark:border-slate-800">
-                    {isEditing ? 'Guardar' : 'Realizar venta'}
-                    <kbd className="hidden sm:inline-flex items-center rounded border border-sale-accent-foreground/30 bg-sale-accent-foreground/10 px-1.5 py-0.5 text-[10px] font-medium leading-none">
+                    className="w-full min-w-0 flex-wrap whitespace-normal bg-sale-accent text-sale-accent-foreground hover:bg-sale-accent/90 gap-x-2 gap-y-1 h-auto min-h-11 px-2 text-base font-black shadow-md border border-border">
+                    <span className="min-w-0">{isEditing ? 'Guardar' : 'Realizar venta'}</span>
+                    <kbd className="hidden [@media(hover:hover)_and_(pointer:fine)]:inline-flex shrink-0 items-center whitespace-nowrap rounded border border-sale-accent-foreground/30 bg-sale-accent-foreground/10 px-1.5 py-0.5 text-[10px] font-medium leading-none">
                       ⇧ Enter
                     </kbd>
                   </Button>
@@ -1252,7 +1252,7 @@ const Billing = () => {
               type="button"
               tabIndex={-1}
               disabled={isSubmittingSale}
-              className="w-full h-10 text-sm font-bold bg-amber-400 hover:bg-amber-500 text-amber-950 border-0">
+              className="w-full min-w-0 h-auto min-h-11 whitespace-normal px-2 text-sm font-bold bg-amber-400 hover:bg-amber-500 text-amber-950 border-0">
               Realizar proforma
             </Button>
 
@@ -1261,7 +1261,7 @@ const Billing = () => {
               type="button"
               tabIndex={-1}
               variant={'outline'}
-              className="w-full hover:bg-secondary hover:text-primary hover:border h-10 text-sm font-bold border-2">
+              className="w-full min-w-0 hover:bg-secondary hover:text-primary hover:border h-auto min-h-11 whitespace-normal px-2 text-sm font-bold border-2">
               Cancelar factura
             </Button>
           </div>

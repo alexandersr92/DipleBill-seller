@@ -39,6 +39,8 @@
     "@reduxjs/toolkit": "2.2.7",
     "@sentry/react": "^10.66.0",
     "@tanstack/react-table": "8.20.5",
+    "@zxing/browser": "0.1.5",
+    "@zxing/library": "0.21.3",
     "autoprefixer": "10.4.20",
     "axios": "^1.19.0",
     "class-variance-authority": "^0.7.0",
