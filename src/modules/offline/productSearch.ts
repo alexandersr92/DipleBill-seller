@@ -49,3 +49,14 @@ export const findByBarcodeOffline = async (
   const bySku = await db.products.where('[store_id+sku_lower]').equals([storeId, code]).first();
   return bySku ? toInvoiceProduct(bySku) : null;
 };
+
+// La cámara entrega un código exacto: no aplicar el límite de la búsqueda por texto.
+export const searchByBarcodeOffline = async (
+  storeId: string,
+  barcode: string
+): Promise<IInvoiceProduct[]> => {
+  const code = barcode.trim().toLowerCase();
+  if (!code) return [];
+  const matches = await db.products.where('[store_id+barcode_lower]').equals([storeId, code]).toArray();
+  return matches.map(toInvoiceProduct);
+};

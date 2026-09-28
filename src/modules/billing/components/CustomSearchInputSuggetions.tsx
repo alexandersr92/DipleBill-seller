@@ -5,11 +5,12 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { IInvoiceProduct } from '@diplebill/core';
 import { addProductsToBilling } from '../slices/billingSlice';
 import { getBillingProductsApi } from '../services/billingApi';
-import { searchProductsOffline } from '@/modules/offline/productSearch';
+import { searchByBarcodeOffline, searchProductsOffline } from '@/modules/offline/productSearch';
 import { store } from '@/store/store';
 import axios from 'axios';
-import { debounce } from 'lodash';
 import { useToast } from '@/components/hooks/use-toast';
+import { isIPad } from '@/helpers/isIPad';
+import CameraBarcodeScanner from './CameraBarcodeScanner';
 
 interface ISearchInputProps {
   tabIndex?: number;
@@ -37,6 +38,9 @@ export default function CustomSearchInputSuggetions({
   const [results, setResults] = useState<IInvoiceProduct[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [searchByBarcode, setSearchByBarcode] = useState(false);
+  const [showCamera] = useState(() => isIPad());
+  const [scanSequence, setScanSequence] = useState(0);
 
   const addProductToInvoice = (product: IInvoiceProduct) => {
     const cleanPrice = product.price ? parseFloat(product.price.toString()) : 0;
@@ -60,11 +64,13 @@ export default function CustomSearchInputSuggetions({
 
   const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
+    setSearchByBarcode(false);
     setSearchTerm(value);
     setActiveIndex(-1);
   };
 
   const handleClearSearch = () => {
+    setSearchByBarcode(false);
     setSearchTerm('');
     setResults([]);
     setActiveIndex(-1);
@@ -89,8 +95,8 @@ export default function CustomSearchInputSuggetions({
       const exactMatch = results.find(
         (product) =>
           product.name.toLowerCase() === normalizedSearch ||
-          product.sku.toLowerCase() === normalizedSearch ||
-          product.barcode.toLowerCase() === normalizedSearch
+          product.sku?.toLowerCase() === normalizedSearch ||
+          product.barcode?.toLowerCase() === normalizedSearch
       );
 
       const product =
@@ -135,83 +141,70 @@ export default function CustomSearchInputSuggetions({
     addProductToInvoice(product);
   };
 
-  const debouncedFetch = useRef(
-    debounce(async (value: string) => {
-      setIsLoading(true);
-
-      if (value.length < 2) {
-        setResults([]);
-        setIsLoading(false);
-        return;
-      }
-
-      // Leer conectividad en tiempo de llamada: el closure del debounce no ve props frescas.
-      const isOnline = store.getState().offlineSlice.isOnline;
-
-      if (!isOnline && storeId) {
-        try {
-          const localResults = await searchProductsOffline(storeId, value);
-          setResults(localResults);
-        } finally {
-          setIsLoading(false);
-        }
-        return;
-      }
-
-      try {
-        const [nameResponse, skuResponse] = await Promise.all([
-          getBillingProductsApi({
-            search: value,
-            storeId: storeId || '',
-            search_by: 'name'
-          }),
-          getBillingProductsApi({
-            search: value,
-            storeId: storeId || '',
-            search_by: 'sku'
-          })
-        ]);
-
-        const nameResults = Array.isArray(nameResponse?.data) ? nameResponse.data : [];
-        const skuResults = Array.isArray(skuResponse?.data) ? skuResponse.data : [];
-        const combinedResults = [...nameResults, ...skuResults];
-        const uniqueResults = Array.from(
-          new Map(combinedResults.map((item) => [item.id || item.product_id, item])).values()
-        );
-
-        setResults(uniqueResults as IInvoiceProduct[]);
-        setIsLoading(false);
-      } catch (error: unknown) {
-        if (!axios.isCancel(error)) {
-          if (import.meta.env.DEV) console.error('Error fetching products:', error);
-          // La red cayó a mitad de búsqueda: responder desde el catálogo cacheado.
-          if (axios.isAxiosError(error) && !error.response && storeId) {
-            const localResults = await searchProductsOffline(storeId, value);
-            setResults(localResults);
-          }
-        }
-        setIsLoading(false);
-      } finally {
-        setIsLoading(false);
-      }
-    }, 300)
-  ).current;
-
   useEffect(() => {
     const value = searchTerm.trim();
-
-    if (value.length >= 2) {
-      setIsLoading(true);
+    if (value.length < (searchByBarcode ? 1 : 2)) {
+      setResults([]);
+      setIsLoading(false);
+      return;
     }
 
-    debouncedFetch(value);
-  }, [searchTerm, storeId]);
+    let cancelled = false;
+    setResults([]);
+    setIsLoading(true);
 
-  useEffect(() => {
-    return () => {
-      debouncedFetch.cancel();
+    const updateResults = (items: IInvoiceProduct[]) => {
+      if (cancelled) return;
+      const matches = searchByBarcode
+        ? items.filter((item) => item.barcode?.toLowerCase() === value.toLowerCase())
+        : items;
+      setResults(matches);
     };
-  }, []);
+
+    const fetchProducts = async () => {
+      const searchOffline = searchByBarcode ? searchByBarcodeOffline : searchProductsOffline;
+      try {
+        if (!store.getState().offlineSlice.isOnline && storeId) {
+          updateResults(await searchOffline(storeId, value));
+          return;
+        }
+        try {
+          const fields = searchByBarcode ? ['barcode'] : ['name', 'sku'];
+          const responses = await Promise.all(
+            fields.map((search_by) =>
+              getBillingProductsApi({ search: value, storeId: storeId || '', search_by })
+            )
+          );
+          const items: IInvoiceProduct[] = responses.flatMap((response) =>
+            Array.isArray(response?.data) ? response.data : []
+          );
+          updateResults(
+            Array.from(new Map(items.map((item) => [item.id || item.product_id, item])).values())
+          );
+        } catch (error) {
+          if (axios.isAxiosError(error) && !error.response && storeId) {
+            updateResults(await searchOffline(storeId, value));
+          } else {
+            throw error;
+          }
+        }
+      } catch (error) {
+        if (!cancelled) {
+          if (import.meta.env.DEV) console.error('Error fetching products:', error);
+          setResults([]);
+          toast({ title: 'No se pudo buscar el producto. Inténtalo de nuevo.', variant: 'error' });
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    };
+
+    const timer = window.setTimeout(() => void fetchProducts(), searchByBarcode ? 0 : 300);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [searchTerm, storeId, searchByBarcode, scanSequence, toast]);
 
   useEffect(() => {
     if (activeIndex < 0 || !resultsListRef.current) return;
@@ -225,7 +218,7 @@ export default function CustomSearchInputSuggetions({
     });
   }, [activeIndex]);
 
-  const shouldShowResults = searchTerm.trim().length >= 2;
+  const shouldShowResults = searchTerm.trim().length >= (searchByBarcode ? 1 : 2);
   const noResults = !isLoading && shouldShowResults && results.length === 0;
   const hasVisibleResults = results.length > 0 && !isLoading;
 
@@ -250,7 +243,7 @@ export default function CustomSearchInputSuggetions({
             aria-controls="search-results"
             aria-expanded={results.length > 0}
             data-enter-behavior="native"
-            className="h-9 sm:h-9.5 border-0 bg-transparent px-2 text-xs sm:text-sm text-foreground font-medium placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0"
+            className="min-w-0 h-9 sm:h-9.5 border-0 bg-transparent px-2 text-xs sm:text-sm text-foreground font-medium placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0"
           />
 
           <div className="flex items-center gap-1.5 pr-2.5 shrink-0">
@@ -269,9 +262,22 @@ export default function CustomSearchInputSuggetions({
               </button>
             )}
 
-            <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.2 text-[10px] font-mono font-bold text-muted-foreground bg-muted/80 border border-border rounded shadow-xs select-none">
-              F1
-            </kbd>
+            {showCamera ? (
+              <CameraBarcodeScanner
+                onDetected={(barcode) => {
+                  setSearchByBarcode(true);
+                  setSearchTerm(barcode);
+                  setActiveIndex(-1);
+                  setResults([]);
+                  setIsLoading(true);
+                  setScanSequence((value) => value + 1);
+                }}
+              />
+            ) : (
+              <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.2 text-[10px] font-mono font-bold text-muted-foreground bg-muted/80 border border-border rounded shadow-xs select-none">
+                F1
+              </kbd>
+            )}
           </div>
         </div>
 
@@ -288,11 +294,10 @@ export default function CustomSearchInputSuggetions({
 
             {noResults && (
               <div className="py-6 px-4 text-center">
-                <p className="font-semibold text-sm text-foreground">
-                  No se encontraron productos
-                </p>
+                <p className="font-semibold text-sm text-foreground">No se encontraron productos</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  No hay coincidencias para <strong className="text-foreground">&quot;{searchTerm}&quot;</strong>
+                  No hay coincidencias para{' '}
+                  <strong className="text-foreground">&quot;{searchTerm}&quot;</strong>
                 </p>
               </div>
             )}
@@ -362,9 +367,7 @@ export default function CustomSearchInputSuggetions({
                                 ? 'bg-destructive/10 text-destructive border-destructive/20'
                                 : 'bg-primary/10 text-primary border-primary/20'
                             }`}>
-                            {product.quantity === 0
-                              ? 'Agotado (0)'
-                              : `Stock: ${product.quantity}`}
+                            {product.quantity === 0 ? 'Agotado (0)' : `Stock: ${product.quantity}`}
                           </span>
                         </div>
                       </li>
@@ -374,7 +377,9 @@ export default function CustomSearchInputSuggetions({
 
                 <div className="px-3 py-1.5 border-t bg-muted/30 flex items-center justify-between text-[11px] text-muted-foreground">
                   <span className="flex items-center gap-1">
-                    <kbd className="px-1 py-0.5 bg-background border rounded font-mono text-[10px]">↑↓</kbd>
+                    <kbd className="px-1 py-0.5 bg-background border rounded font-mono text-[10px]">
+                      ↑↓
+                    </kbd>
                     Navegar
                   </span>
                   <span className="flex items-center gap-1">
@@ -384,7 +389,9 @@ export default function CustomSearchInputSuggetions({
                     Agregar a venta
                   </span>
                   <span className="flex items-center gap-1">
-                    <kbd className="px-1 py-0.5 bg-background border rounded font-mono text-[10px]">Esc</kbd>
+                    <kbd className="px-1 py-0.5 bg-background border rounded font-mono text-[10px]">
+                      Esc
+                    </kbd>
                     Cerrar
                   </span>
                 </div>
@@ -396,4 +403,3 @@ export default function CustomSearchInputSuggetions({
     </div>
   );
 }
-
