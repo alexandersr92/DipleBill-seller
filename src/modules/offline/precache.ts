@@ -1,3 +1,4 @@
+import { isSellable, type ProductUsage } from './productUsage';
 import { getBillingProductsApi, getStoreLogoAsBase64 } from '@/modules/billing/services/billingApi';
 import { getClientsApi } from '@/modules/clients/services/clientsApi';
 import { ISingleClient } from '@diplebill/core';
@@ -10,6 +11,7 @@ import { setLastSyncAt } from './slices/offlineSlice';
 interface IRawInventoryProduct {
   id: string;
   product_id: string;
+  product_usage?: ProductUsage;
   inventory_id: string;
   inventory_name: string;
   name: string;
@@ -31,15 +33,14 @@ const toCachedProduct = (raw: IRawInventoryProduct, storeId: string): ICachedPro
 // GET /v1/inventories/stores/{storeId} sin search devuelve el catálogo completo.
 export const precacheCatalog = async (storeId: string) => {
   // No pisar el stock decrementado localmente mientras haya ventas sin sincronizar.
-  const unsynced = await db.offline_invoices
-    .where('status')
-    .anyOf('pending', 'syncing')
-    .count();
+  const unsynced = await db.offline_invoices.where('status').anyOf('pending', 'syncing').count();
   if (unsynced > 0) return;
 
   const response = await getBillingProductsApi({ search: '', storeId });
   const rawProducts: IRawInventoryProduct[] = response?.data ?? [];
-  const cached = rawProducts.filter((p) => p.id).map((p) => toCachedProduct(p, storeId));
+  const cached = rawProducts
+    .filter((p) => p.id && isSellable(p))
+    .map((p) => toCachedProduct(p, storeId));
 
   await db.transaction('rw', db.products, async () => {
     await db.products.where('store_id').equals(storeId).delete();

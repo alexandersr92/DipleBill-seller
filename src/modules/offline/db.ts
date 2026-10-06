@@ -1,3 +1,4 @@
+import type { ProductUsage } from './productUsage';
 import Dexie, { Table } from 'dexie';
 import { ISingleClient } from '@diplebill/core';
 
@@ -6,6 +7,7 @@ import { ISingleClient } from '@diplebill/core';
 export interface ICachedProduct {
   id: string;
   product_id: string;
+  product_usage?: ProductUsage;
   inventory_id: string;
   inventory_name: string;
   name: string;
@@ -61,6 +63,12 @@ class OfflineDB extends Dexie {
       offline_invoices: 'local_id, status, created_at, [status+created_at], store_id',
       metadata: 'key'
     });
+    this.version(2)
+      .stores({})
+      .upgrade(async (transaction) => {
+        // Invalidate only the old catalogue. Preserve receipts, authentication and cash snapshots.
+        await transaction.table('products').clear();
+      });
   }
 }
 
@@ -95,19 +103,23 @@ export const metadataKeys = {
  */
 export const clearOfflineData = async (): Promise<void> => {
   try {
-    const pending = await db.offline_invoices
-      .where('status')
-      .anyOf('pending', 'syncing')
-      .count();
+    const pending = await db.offline_invoices.where('status').anyOf('pending', 'syncing').count();
 
-    await db.transaction('rw', db.products, db.clients, db.metadata, db.offline_invoices, async () => {
-      await db.products.clear();
-      await db.clients.clear();
-      await db.metadata.clear();
-      if (pending === 0) {
-        await db.offline_invoices.clear();
+    await db.transaction(
+      'rw',
+      db.products,
+      db.clients,
+      db.metadata,
+      db.offline_invoices,
+      async () => {
+        await db.products.clear();
+        await db.clients.clear();
+        await db.metadata.clear();
+        if (pending === 0) {
+          await db.offline_invoices.clear();
+        }
       }
-    });
+    );
   } catch (e) {
     // No bloquear el cierre de sesión si Dexie falla.
     if (import.meta.env.DEV) console.error('clearOfflineData error', e);

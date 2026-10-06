@@ -17,6 +17,12 @@ export const billingSlice = createSlice({
   initialState,
   reducers: {
     addProductsToBilling: (state, action: PayloadAction<IInvoiceProduct>) => {
+      if (
+        (action.payload as IInvoiceProduct & { product_usage?: string }).product_usage === 'supply'
+      ) {
+        state.error = 'Este producto es un insumo y no se puede vender.';
+        return;
+      }
       state.isLoading = true;
       state.error = null;
       state.status = 'pending';
@@ -33,9 +39,15 @@ export const billingSlice = createSlice({
         const rawTotal = action.payload.total ?? 0;
         const rawDiscount = action.payload.discount ?? 0;
 
-        const cleanPrice = isNaN(parseFloat(rawPrice.toString())) ? 0 : parseFloat(rawPrice.toString());
-        const cleanTotal = isNaN(parseFloat(rawTotal.toString())) ? 0 : parseFloat(rawTotal.toString());
-        const cleanDiscount = isNaN(parseFloat(rawDiscount.toString())) ? 0 : parseFloat(rawDiscount.toString());
+        const cleanPrice = isNaN(parseFloat(rawPrice.toString()))
+          ? 0
+          : parseFloat(rawPrice.toString());
+        const cleanTotal = isNaN(parseFloat(rawTotal.toString()))
+          ? 0
+          : parseFloat(rawTotal.toString());
+        const cleanDiscount = isNaN(parseFloat(rawDiscount.toString()))
+          ? 0
+          : parseFloat(rawDiscount.toString());
 
         state.productsSelected.push({
           ...action.payload,

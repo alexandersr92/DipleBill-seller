@@ -1,3 +1,4 @@
+import { isSellable } from './productUsage';
 import { db, metadataKeys, IOfflineInvoice } from './db';
 
 interface IOfflineCounter {
@@ -55,6 +56,18 @@ export const queueOfflineInvoice = async ({
   const products = (payload.products as IPayloadProduct[] | undefined) ?? [];
 
   await db.transaction('rw', db.offline_invoices, db.products, async () => {
+    for (const item of products) {
+      const cached = await db.products
+        .where('store_id')
+        .equals(storeId)
+        .filter((p) => p.product_id === item.product_id && p.inventory_id === item.inventory_id)
+        .first();
+      if (!cached || !isSellable(cached)) {
+        throw new Error(
+          'El producto no está habilitado para venta. Actualiza el catálogo con conexión.'
+        );
+      }
+    }
     const record: IOfflineInvoice = {
       local_id: localId,
       offline_number: offlineNumber,
@@ -88,7 +101,7 @@ const adjustLocalStock = async (
 
     if (cached) {
       await db.products.update(cached.id, {
-        quantity: cached.quantity + direction * item.quantity
+        quantity: Number((cached.quantity + direction * item.quantity).toFixed(6))
       });
     }
   }
