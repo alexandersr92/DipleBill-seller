@@ -162,7 +162,10 @@ export default function SearchSelect({
           aria-expanded={open}
           data-enter-behavior="native"
           onKeyDown={handleTriggerKeyDown}
-          className={cn('w-full justify-between font-normal h-9 text-xs sm:text-sm px-3', className)}>
+          className={cn(
+            'w-full justify-between font-normal h-9 text-xs sm:text-sm px-3',
+            className
+          )}>
           {selectedItem || placeholder}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>

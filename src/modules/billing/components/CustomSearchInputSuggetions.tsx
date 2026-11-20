@@ -11,6 +11,7 @@ import axios from 'axios';
 import { useToast } from '@/components/hooks/use-toast';
 import { isIPad } from '@/helpers/isIPad';
 import CameraBarcodeScanner from './CameraBarcodeScanner';
+import { formatQuantity } from '../helpers';
 
 interface ISearchInputProps {
   tabIndex?: number;
@@ -363,11 +364,13 @@ export default function CustomSearchInputSuggetions({
 
                           <span
                             className={`text-[11px] px-2 py-0.5 rounded-full font-semibold border ${
-                              product.quantity === 0
+                              Number(product.quantity ?? 0) <= 0
                                 ? 'bg-destructive/10 text-destructive border-destructive/20'
                                 : 'bg-primary/10 text-primary border-primary/20'
                             }`}>
-                            {product.quantity === 0 ? 'Agotado (0)' : `Stock: ${product.quantity}`}
+                            {Number(product.quantity ?? 0) <= 0
+                              ? 'Agotado (0)'
+                              : `Stock: ${formatQuantity(product.quantity)}`}
                           </span>
                         </div>
                       </li>

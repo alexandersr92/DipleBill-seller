@@ -19,20 +19,20 @@ export function MustChangePasswordOverlay() {
   const [showPassword, setShowPassword] = useState({
     current: false,
     new: false,
-    confirm: false,
+    confirm: false
   });
 
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors }
   } = useForm({
     resolver: yupResolver(changePasswordSchema),
     defaultValues: {
       current_password: '',
       password: '',
-      password_confirmation: '',
-    },
+      password_confirmation: ''
+    }
   });
 
   const onSubmit = async (data: any) => {
@@ -41,13 +41,13 @@ export function MustChangePasswordOverlay() {
       await updateAccountPassword({
         current_password: data.current_password,
         password: data.password,
-        password_confirmation: data.password_confirmation,
+        password_confirmation: data.password_confirmation
       });
 
       toast({
         title: 'Contraseña actualizada',
         description: 'Tu contraseña se ha cambiado con éxito.',
-        variant: 'success',
+        variant: 'success'
       });
 
       // Actualizar el estado de Redux para desactivar el overlay bloqueante
@@ -55,7 +55,7 @@ export function MustChangePasswordOverlay() {
       dispatch(
         setUser({
           ...currentUserState,
-          mustChangePassword: false,
+          mustChangePassword: false
         })
       );
     } catch (error: any) {
@@ -63,7 +63,7 @@ export function MustChangePasswordOverlay() {
       toast({
         title: 'Error de cambio de contraseña',
         description: errorMsg,
-        variant: 'error',
+        variant: 'error'
       });
     } finally {
       setIsLoading(false);
@@ -89,7 +89,8 @@ export function MustChangePasswordOverlay() {
             Cambio Obligatorio
           </h2>
           <p className="text-slate-400 text-xs font-medium text-center leading-relaxed max-w-sm">
-            Por motivos de seguridad, tu administrador requiere que actualices la contraseña asignada por defecto antes de continuar.
+            Por motivos de seguridad, tu administrador requiere que actualices la contraseña
+            asignada por defecto antes de continuar.
           </p>
         </div>
 
@@ -107,13 +108,16 @@ export function MustChangePasswordOverlay() {
               <button
                 type="button"
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
-                onClick={() => setShowPassword({ ...showPassword, current: !showPassword.current })}
-              >
+                onClick={() =>
+                  setShowPassword({ ...showPassword, current: !showPassword.current })
+                }>
                 {showPassword.current ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
             {errors.current_password && (
-              <p className="text-red-500 text-[11px] font-bold mt-0.5">{errors.current_password.message}</p>
+              <p className="text-red-500 text-[11px] font-bold mt-0.5">
+                {errors.current_password.message}
+              </p>
             )}
           </div>
 
@@ -130,8 +134,7 @@ export function MustChangePasswordOverlay() {
               <button
                 type="button"
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
-                onClick={() => setShowPassword({ ...showPassword, new: !showPassword.new })}
-              >
+                onClick={() => setShowPassword({ ...showPassword, new: !showPassword.new })}>
                 {showPassword.new ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
@@ -153,34 +156,31 @@ export function MustChangePasswordOverlay() {
               <button
                 type="button"
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
-                onClick={() => setShowPassword({ ...showPassword, confirm: !showPassword.confirm })}
-              >
+                onClick={() =>
+                  setShowPassword({ ...showPassword, confirm: !showPassword.confirm })
+                }>
                 {showPassword.confirm ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
             {errors.password_confirmation && (
-              <p className="text-red-500 text-[11px] font-bold mt-0.5">{errors.password_confirmation.message}</p>
+              <p className="text-red-500 text-[11px] font-bold mt-0.5">
+                {errors.password_confirmation.message}
+              </p>
             )}
           </div>
 
           <Button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-bold rounded-xl py-5 flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/10 mt-6"
-          >
-            {isLoading ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : (
-              <KeyRound size={16} />
-            )}
+            className="w-full bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-bold rounded-xl py-5 flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/10 mt-6">
+            {isLoading ? <Loader2 size={16} className="animate-spin" /> : <KeyRound size={16} />}
             <span>ACTUALIZAR CONTRASEÑA</span>
           </Button>
 
           <button
             type="button"
             onClick={handleLogout}
-            className="w-full bg-transparent hover:bg-slate-800/40 text-slate-400 hover:text-white rounded-xl py-2.5 flex items-center justify-center gap-2 border border-slate-800 hover:border-slate-700 mt-2 transition-colors"
-          >
+            className="w-full bg-transparent hover:bg-slate-800/40 text-slate-400 hover:text-white rounded-xl py-2.5 flex items-center justify-center gap-2 border border-slate-800 hover:border-slate-700 mt-2 transition-colors">
             <LogOut size={16} />
             <span className="text-xs font-bold uppercase tracking-wider">Cerrar Sesión</span>
           </button>

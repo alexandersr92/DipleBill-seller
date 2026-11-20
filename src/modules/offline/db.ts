@@ -1,3 +1,4 @@
+import type { ProductUsage } from './productUsage';
 import Dexie, { Table } from 'dexie';
 import { ISingleClient } from '@diplebill/core';
 
@@ -6,6 +7,7 @@ import { ISingleClient } from '@diplebill/core';
 export interface ICachedProduct {
   id: string;
   product_id: string;
+  product_usage?: ProductUsage;
   inventory_id: string;
   inventory_name: string;
   name: string;
@@ -42,6 +44,22 @@ export interface IOfflineInvoice {
   print_snapshot: Record<string, unknown>; // ISingleInvoice local para reimprimir
 }
 
+export interface IOfflineDraft {
+  id: string; // crypto.randomUUID()
+  draft_number: string;
+  store_id: string;
+  client_id: string | null;
+  client_name: string;
+  invoice_note: string;
+  total_items: number;
+  total: number;
+  discount: number;
+  grand_total: number;
+  created_at: string;
+  updated_at: string;
+  products: any[];
+}
+
 export interface IMetadataEntry {
   key: string;
   value: unknown;
@@ -52,6 +70,7 @@ class OfflineDB extends Dexie {
   clients!: Table<ICachedClient, string>;
   offline_invoices!: Table<IOfflineInvoice, string>;
   metadata!: Table<IMetadataEntry, string>;
+  drafts!: Table<IOfflineDraft, string>;
 
   constructor() {
     super('diplebill-offline');
@@ -60,6 +79,15 @@ class OfflineDB extends Dexie {
       clients: 'id, name_lower',
       offline_invoices: 'local_id, status, created_at, [status+created_at], store_id',
       metadata: 'key'
+    });
+    this.version(2)
+      .stores({})
+      .upgrade(async (transaction) => {
+        // Invalidate only the old catalogue. Preserve receipts, authentication and cash snapshots.
+        await transaction.table('products').clear();
+      });
+    this.version(3).stores({
+      drafts: 'id, store_id, created_at'
     });
   }
 }
@@ -81,7 +109,11 @@ export const metadataKeys = {
   printSettings: (storeId: string) => `print_settings_${storeId}`,
   logo: (storeId: string) => `logo_${storeId}`,
   lastSync: (storeId: string) => `last_sync_${storeId}`,
-  offlineCounter: (storeId: string) => `offline_counter_${storeId}`
+  offlineCounter: (storeId: string) => `offline_counter_${storeId}`,
+  allowFreeInvoiceItems: (orgId: string) => `allow_free_invoice_items_${orgId}`,
+  sellerSessionMode: (orgId: string) => `seller_session_mode_${orgId}`,
+  allowProformas: (orgId: string) => 'allow_proformas_' + orgId,
+  allowInvoiceDrafts: (orgId: string) => 'allow_invoice_drafts_' + orgId
 };
 
 /**
@@ -95,19 +127,25 @@ export const metadataKeys = {
  */
 export const clearOfflineData = async (): Promise<void> => {
   try {
-    const pending = await db.offline_invoices
-      .where('status')
-      .anyOf('pending', 'syncing')
-      .count();
+    const pending = await db.offline_invoices.where('status').anyOf('pending', 'syncing').count();
 
-    await db.transaction('rw', db.products, db.clients, db.metadata, db.offline_invoices, async () => {
-      await db.products.clear();
-      await db.clients.clear();
-      await db.metadata.clear();
-      if (pending === 0) {
-        await db.offline_invoices.clear();
+    await db.transaction(
+      'rw',
+      db.products,
+      db.clients,
+      db.metadata,
+      db.offline_invoices,
+      db.drafts,
+      async () => {
+        await db.products.clear();
+        await db.clients.clear();
+        await db.metadata.clear();
+        await db.drafts.clear();
+        if (pending === 0) {
+          await db.offline_invoices.clear();
+        }
       }
-    });
+    );
   } catch (e) {
     // No bloquear el cierre de sesión si Dexie falla.
     if (import.meta.env.DEV) console.error('clearOfflineData error', e);

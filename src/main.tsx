@@ -17,13 +17,11 @@ function ErrorFallback() {
       <div className="max-w-md">
         <h1 className="mb-2 text-xl font-bold text-white">Algo salió mal</h1>
         <p className="mb-6 text-sm leading-relaxed text-slate-400">
-          Ocurrió un error inesperado. Recarga la app; si el problema continúa,
-          contáctanos.
+          Ocurrió un error inesperado. Recarga la app; si el problema continúa, contáctanos.
         </p>
         <button
           onClick={() => window.location.reload()}
-          className="rounded-xl bg-indigo-600 px-6 py-3 text-sm font-bold uppercase tracking-wider text-white transition-colors hover:bg-indigo-500"
-        >
+          className="rounded-xl bg-indigo-600 px-6 py-3 text-sm font-bold uppercase tracking-wider text-white transition-colors hover:bg-indigo-500">
           Recargar
         </button>
       </div>

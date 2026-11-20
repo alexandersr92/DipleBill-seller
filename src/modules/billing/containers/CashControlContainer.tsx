@@ -26,9 +26,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { currencyFormatter, escapeHtml } from '../helpers';
-import { getExpenseCategoriesApi, createExpenseCategoryApi } from '../services/expenseCategoryService';
+import {
+  getExpenseCategoriesApi,
+  createExpenseCategoryApi
+} from '../services/expenseCategoryService';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList
+} from '@/components/ui/command';
 import { Checkbox } from '@/components/ui/checkbox';
 import { CaretSortIcon } from '@radix-ui/react-icons';
 
@@ -117,13 +127,15 @@ export default function CashControlContainer() {
     if (storeId) {
       dispatch(fetchCashSettingsAndSession(storeId));
     }
-    
+
     // Fetch categories
-    getExpenseCategoriesApi().then((res) => {
-      setExpenseCategories(Array.isArray(res) ? res : (res?.data || []));
-    }).catch(err => {
-      console.error('Error fetching categories:', err);
-    });
+    getExpenseCategoriesApi()
+      .then((res) => {
+        setExpenseCategories(Array.isArray(res) ? res : res?.data || []);
+      })
+      .catch((err) => {
+        console.error('Error fetching categories:', err);
+      });
   }, [storeId, dispatch]);
 
   const handleOpenTxModal = () => {
@@ -305,7 +317,10 @@ export default function CashControlContainer() {
 
     const expectedCashNio = tot?.expected_cash_nio ?? tot?.expected_cash ?? 0;
     const expectedCashUsd = tot?.expected_cash_usd ?? 0;
-    const rate = session.usd_exchange_rate || parseFloat(localStorage.getItem('usd_exchange_rate') || '36.5') || 36.5;
+    const rate =
+      session.usd_exchange_rate ||
+      parseFloat(localStorage.getItem('usd_exchange_rate') || '36.5') ||
+      36.5;
 
     const diffNio = reportedCash - expectedCashNio;
     const diffNioText =
@@ -323,8 +338,8 @@ export default function CashControlContainer() {
           ? `SOBRANTE (+$ ${diffUsd.toFixed(2)})`
           : `FALTANTE (-$ ${Math.abs(diffUsd).toFixed(2)})`;
 
-    const totalExpectedNio = expectedCashNio + (expectedCashUsd * rate);
-    const totalReportedNio = reportedCash + (reportedUsd * rate);
+    const totalExpectedNio = expectedCashNio + expectedCashUsd * rate;
+    const totalReportedNio = reportedCash + reportedUsd * rate;
     const totalDiffNio = totalReportedNio - totalExpectedNio;
     const totalDiffText =
       totalDiffNio === 0
@@ -488,8 +503,8 @@ export default function CashControlContainer() {
             </p>
             <p className="mt-0.5 font-medium text-amber-700/90 dark:text-amber-200/80">
               El arqueo del servidor todavía no incluye estas ventas. Conéctate a internet y espera
-              la sincronización (o resuélvelas en la cola de ventas offline) antes de cerrar el turno,
-              o el efectivo esperado quedará descuadrado.
+              la sincronización (o resuélvelas en la cola de ventas offline) antes de cerrar el
+              turno, o el efectivo esperado quedará descuadrado.
             </p>
           </div>
         </div>
@@ -540,11 +555,16 @@ export default function CashControlContainer() {
                   <span className="text-3xl font-black text-white tracking-tight">
                     {countType === 'BLIND'
                       ? 'C$ *******'
-                      : currencyFormatter({ currency: 'NIO', value: totals?.expected_cash_nio ?? totals?.expected_cash ?? 0 })}
+                      : currencyFormatter({
+                          currency: 'NIO',
+                          value: totals?.expected_cash_nio ?? totals?.expected_cash ?? 0
+                        })}
                   </span>
                   {totals?.expected_cash_usd !== undefined && totals.expected_cash_usd > 0 && (
                     <span className="text-xl font-bold text-slate-350">
-                      / {countType === 'BLIND' ? '$ ***' : `$${totals.expected_cash_usd.toFixed(2)}`} USD
+                      /{' '}
+                      {countType === 'BLIND' ? '$ ***' : `$${totals.expected_cash_usd.toFixed(2)}`}{' '}
+                      USD
                     </span>
                   )}
                 </div>
@@ -569,7 +589,10 @@ export default function CashControlContainer() {
                   <p className="text-sm font-black text-slate-800 dark:text-slate-100 mt-0.5">
                     {countType === 'BLIND'
                       ? 'C$ ***'
-                      : currencyFormatter({ currency: 'NIO', value: activeSession.opening_balance })}
+                      : currencyFormatter({
+                          currency: 'NIO',
+                          value: activeSession.opening_balance
+                        })}
                   </p>
                 </div>
 
@@ -581,12 +604,17 @@ export default function CashControlContainer() {
                   <p className="text-sm font-black text-slate-800 dark:text-slate-100 mt-0.5">
                     {countType === 'BLIND'
                       ? 'C$ ***'
-                      : currencyFormatter({ currency: 'NIO', value: totals?.invoice_cash_nio ?? totals?.invoice_cash ?? 0 })}
-                    {countType !== 'BLIND' && totals?.invoice_cash_usd !== undefined && totals.invoice_cash_usd > 0 && (
-                      <span className="text-[11px] font-bold text-slate-500 ml-1">
-                        / ${totals.invoice_cash_usd.toFixed(2)}
-                      </span>
-                    )}
+                      : currencyFormatter({
+                          currency: 'NIO',
+                          value: totals?.invoice_cash_nio ?? totals?.invoice_cash ?? 0
+                        })}
+                    {countType !== 'BLIND' &&
+                      totals?.invoice_cash_usd !== undefined &&
+                      totals.invoice_cash_usd > 0 && (
+                        <span className="text-[11px] font-bold text-slate-500 ml-1">
+                          / ${totals.invoice_cash_usd.toFixed(2)}
+                        </span>
+                      )}
                   </p>
                 </div>
 
@@ -598,12 +626,17 @@ export default function CashControlContainer() {
                   <p className="text-sm font-black text-slate-800 dark:text-slate-100 mt-0.5">
                     {countType === 'BLIND'
                       ? 'C$ ***'
-                      : currencyFormatter({ currency: 'NIO', value: totals?.credit_cash_nio ?? totals?.credit_cash ?? 0 })}
-                    {countType !== 'BLIND' && totals?.credit_cash_usd !== undefined && totals.credit_cash_usd > 0 && (
-                      <span className="text-[11px] font-bold text-slate-500 ml-1">
-                        / ${totals.credit_cash_usd.toFixed(2)}
-                      </span>
-                    )}
+                      : currencyFormatter({
+                          currency: 'NIO',
+                          value: totals?.credit_cash_nio ?? totals?.credit_cash ?? 0
+                        })}
+                    {countType !== 'BLIND' &&
+                      totals?.credit_cash_usd !== undefined &&
+                      totals.credit_cash_usd > 0 && (
+                        <span className="text-[11px] font-bold text-slate-500 ml-1">
+                          / ${totals.credit_cash_usd.toFixed(2)}
+                        </span>
+                      )}
                   </p>
                 </div>
 
@@ -615,12 +648,17 @@ export default function CashControlContainer() {
                   <p className="text-sm font-black text-green-600 mt-1">
                     {countType === 'BLIND'
                       ? 'C$ ***'
-                      : currencyFormatter({ currency: 'NIO', value: totals?.manual_in_nio ?? totals?.manual_in ?? 0 })}
-                    {countType !== 'BLIND' && totals?.manual_in_usd !== undefined && totals.manual_in_usd > 0 && (
-                      <span className="text-[11px] font-bold text-slate-500 ml-1">
-                        / ${totals.manual_in_usd.toFixed(2)}
-                      </span>
-                    )}
+                      : currencyFormatter({
+                          currency: 'NIO',
+                          value: totals?.manual_in_nio ?? totals?.manual_in ?? 0
+                        })}
+                    {countType !== 'BLIND' &&
+                      totals?.manual_in_usd !== undefined &&
+                      totals.manual_in_usd > 0 && (
+                        <span className="text-[11px] font-bold text-slate-500 ml-1">
+                          / ${totals.manual_in_usd.toFixed(2)}
+                        </span>
+                      )}
                   </p>
                 </div>
 
@@ -632,12 +670,17 @@ export default function CashControlContainer() {
                   <p className="text-sm font-black text-red-500 mt-1">
                     {countType === 'BLIND'
                       ? 'C$ ***'
-                      : currencyFormatter({ currency: 'NIO', value: totals?.manual_out_nio ?? totals?.manual_out ?? 0 })}
-                    {countType !== 'BLIND' && totals?.manual_out_usd !== undefined && totals.manual_out_usd > 0 && (
-                      <span className="text-[11px] font-bold text-slate-500 ml-1">
-                        / ${totals.manual_out_usd.toFixed(2)}
-                      </span>
-                    )}
+                      : currencyFormatter({
+                          currency: 'NIO',
+                          value: totals?.manual_out_nio ?? totals?.manual_out ?? 0
+                        })}
+                    {countType !== 'BLIND' &&
+                      totals?.manual_out_usd !== undefined &&
+                      totals.manual_out_usd > 0 && (
+                        <span className="text-[11px] font-bold text-slate-500 ml-1">
+                          / ${totals.manual_out_usd.toFixed(2)}
+                        </span>
+                      )}
                   </p>
                 </div>
               </div>
@@ -678,14 +721,18 @@ export default function CashControlContainer() {
                               )}
                             </td>
                             <td className="p-2.5 font-extrabold text-slate-850 dark:text-white">
-                              {currencyFormatter({ currency: tx.currency || 'NIO', value: tx.amount })}
+                              {currencyFormatter({
+                                currency: tx.currency || 'NIO',
+                                value: tx.amount
+                              })}
                             </td>
                             <td
                               className="p-2.5 text-slate-600 dark:text-slate-400 max-w-[200px] truncate"
                               title={tx.description || ''}>
                               {tx.expense_category_id ? (
                                 <span className="font-bold text-xs uppercase bg-slate-200 dark:bg-slate-800 px-1 rounded mr-1">
-                                  {expenseCategories.find((c) => c.id === tx.expense_category_id)?.name || 'Categoría'}
+                                  {expenseCategories.find((c) => c.id === tx.expense_category_id)
+                                    ?.name || 'Categoría'}
                                 </span>
                               ) : null}
                               {tx.description || '-'}
@@ -857,15 +904,16 @@ export default function CashControlContainer() {
                         className={cn(
                           'w-full justify-between h-8 text-xs border-slate-700 bg-slate-950 text-white',
                           !txCategoryId && 'text-slate-400'
-                        )}
-                      >
+                        )}>
                         {txCategoryId
                           ? expenseCategories.find((c) => c.id === txCategoryId)?.name
                           : 'Seleccionar categoría...'}
                         <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                    <PopoverContent
+                      className="w-[var(--radix-popover-trigger-width)] p-0"
+                      align="start">
                       <Command>
                         <CommandInput
                           placeholder="Buscar o crear..."
@@ -881,17 +929,20 @@ export default function CashControlContainer() {
                               onClick={async () => {
                                 if (categorySearchTerm) {
                                   try {
-                                    const newCategory = await createExpenseCategoryApi(categorySearchTerm);
+                                    const newCategory =
+                                      await createExpenseCategoryApi(categorySearchTerm);
                                     setExpenseCategories([...expenseCategories, newCategory]);
                                     setTxCategoryId(newCategory.id);
                                     setCategorySearchTerm('');
                                     toast({ title: 'Categoría creada', variant: 'success' });
                                   } catch {
-                                    toast({ title: 'Error al crear la categoría', variant: 'destructive' });
+                                    toast({
+                                      title: 'Error al crear la categoría',
+                                      variant: 'destructive'
+                                    });
                                   }
                                 }
-                              }}
-                            >
+                              }}>
                               + Crear &quot;{categorySearchTerm}&quot;
                             </Button>
                           </CommandEmpty>
@@ -900,8 +951,7 @@ export default function CashControlContainer() {
                               <CommandItem
                                 key={category.id}
                                 onSelect={() => setTxCategoryId(category.id)}
-                                className="text-xs"
-                              >
+                                className="text-xs">
                                 <div className="flex items-center">
                                   <Checkbox
                                     checked={txCategoryId === category.id}
@@ -996,13 +1046,15 @@ export default function CashControlContainer() {
                   />
                 </div>
               </div>
-              
+
               <div className="flex flex-col gap-1.5">
                 <div className="flex justify-between items-center">
                   <Label htmlFor="actualUsd" className="text-xs font-bold text-slate-350">
                     Dólares Físicos en Gaveta (USD)
                   </Label>
-                  <span className="text-[10px] text-slate-500">TC: {exchangeRate > 0 ? exchangeRate : 'No configurada'}</span>
+                  <span className="text-[10px] text-slate-500">
+                    TC: {exchangeRate > 0 ? exchangeRate : 'No configurada'}
+                  </span>
                 </div>
                 <div className="relative">
                   <span className="absolute left-2.5 top-1.5 text-xs font-black text-slate-500">

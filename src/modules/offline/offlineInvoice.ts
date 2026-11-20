@@ -1,4 +1,5 @@
-import { db, metadataKeys, IOfflineInvoice } from './db';
+import { isSellable } from './productUsage';
+import { db, metadataKeys, getMetadata, IOfflineInvoice } from './db';
 
 interface IOfflineCounter {
   date: string; // YYMMDD
@@ -38,8 +39,10 @@ interface IQueueOfflineInvoiceArgs {
 }
 
 interface IPayloadProduct {
-  product_id: string;
-  inventory_id: string;
+  item_type?: string;
+  description?: string | null;
+  product_id?: string | null;
+  inventory_id?: string | null;
   quantity: number;
 }
 
@@ -54,7 +57,33 @@ export const queueOfflineInvoice = async ({
 }: IQueueOfflineInvoiceArgs): Promise<void> => {
   const products = (payload.products as IPayloadProduct[] | undefined) ?? [];
 
+  const hasFree = products.some((p) => p.item_type === 'free' || !p.product_id);
+  if (hasFree) {
+    const orgId = (payload.organization_id as string) || '';
+    const allowed = await getMetadata<boolean>(metadataKeys.allowFreeInvoiceItems(orgId));
+    if (!allowed) {
+      throw new Error(
+        'La organización no tiene habilitada la facturación de conceptos libres.'
+      );
+    }
+  }
+
   await db.transaction('rw', db.offline_invoices, db.products, async () => {
+    for (const item of products) {
+      if (item.item_type === 'free' || !item.product_id) {
+        continue;
+      }
+      const cached = await db.products
+        .where('store_id')
+        .equals(storeId)
+        .filter((p) => p.product_id === item.product_id && p.inventory_id === item.inventory_id)
+        .first();
+      if (!cached || !isSellable(cached)) {
+        throw new Error(
+          'El producto no está habilitado para venta. Actualiza el catálogo con conexión.'
+        );
+      }
+    }
     const record: IOfflineInvoice = {
       local_id: localId,
       offline_number: offlineNumber,
@@ -80,6 +109,9 @@ const adjustLocalStock = async (
   direction: 1 | -1
 ) => {
   for (const item of products) {
+    if (item.item_type === 'free' || !item.product_id) {
+      continue;
+    }
     const cached = await db.products
       .where('store_id')
       .equals(storeId)
@@ -88,7 +120,7 @@ const adjustLocalStock = async (
 
     if (cached) {
       await db.products.update(cached.id, {
-        quantity: cached.quantity + direction * item.quantity
+        quantity: Number((cached.quantity + direction * item.quantity).toFixed(6))
       });
     }
   }

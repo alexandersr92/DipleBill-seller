@@ -1,9 +1,14 @@
 import html2pdf from 'html2pdf.js';
 
-import { currencyFormatter, currencyFormatterWithoutSym, calculateTotalDiscount, CurrencyFormat } from '@diplebill/core';
-export { currencyFormatter, currencyFormatterWithoutSym, calculateTotalDiscount };
+import {
+  currencyFormatter,
+  currencyFormatterWithoutSym,
+  calculateTotalDiscount,
+  CurrencyFormat
+} from '@diplebill/core';
+import { formatQuantity } from '@/helpers/formatQuantity';
+export { currencyFormatter, currencyFormatterWithoutSym, calculateTotalDiscount, formatQuantity };
 export type { CurrencyFormat };
-
 
 export type IInvoiceStatus = 'paid' | 'cancelled' | 'pending' | 'canceled' | 'unknown';
 
@@ -138,16 +143,12 @@ export const handleKeyDown = ({ event, formRef, buttonRef }: HandleProps) => {
   focusElement(nextElement);
 };
 
-
-
 export function generateInvoiceNumber(currentNumber: number) {
   const prefix = 'INV-';
   const nextNumber = currentNumber + 1;
   const paddedNumber = nextNumber.toString().padStart(6, '0');
   return `${prefix}${paddedNumber}`;
 }
-
-
 
 const formatDateAndHours = () => {
   const now = new Date();
@@ -181,7 +182,9 @@ const buildInvoiceHtml = (data: InvoiceData) => {
   const isProforma = normalizedInvoiceType === 'proforma' || data.paymentMethodRaw === 'PROFORMA';
   const saleLabel = isProforma
     ? 'PROFORMA / COTIZACIÓN'
-    : (normalizedInvoiceType === 'cash' ? 'Venta Contado' : 'Venta Credito');
+    : normalizedInvoiceType === 'cash'
+      ? 'Venta Contado'
+      : 'Venta Credito';
   const typography = {
     baseSize: '14px',
     smallSize: '14px',
@@ -772,7 +775,9 @@ export const downloadInvoiceAsPDF = async ({ data }: { data: InvoiceData }) => {
   // small layout settle
   await new Promise((r) => setTimeout(r, 50));
 
-  const isProforma = String(data.invoiceType ?? '').toLowerCase() === 'proforma' || data.paymentMethodRaw === 'PROFORMA';
+  const isProforma =
+    String(data.invoiceType ?? '').toLowerCase() === 'proforma' ||
+    data.paymentMethodRaw === 'PROFORMA';
   const filename = isProforma ? `PROFORMA-${data.invoiceNumber}.pdf` : `${data.invoiceNumber}.pdf`;
 
   await html2pdf()

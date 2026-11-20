@@ -1,4 +1,5 @@
-import { Store, User, ChevronsUpDown, PaintRoller, Sun, Moon, Laptop2, LogOut } from 'lucide-react';
+import { Store, User, ChevronsUpDown, PaintRoller, Sun, Moon, Laptop2, LogOut, Sparkles } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchCurrentStore } from '@/modules/stores/slices/storeThunks';
 import { sellerLogout } from '@/modules/auth/slices/userSlice';
@@ -29,6 +30,7 @@ import { OfflineStatusBadge } from '@/modules/offline/components/OfflineStatusBa
 
 export function TopBar() {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const { setTheme } = useTheme();
   const { store, stores } = useAppSelector((state) => state.storeSlice);
   const user = useAppSelector((state) => state.userSlice);
@@ -148,6 +150,13 @@ export function TopBar() {
                 </DropdownMenuPortal>
               </DropdownMenuSub>
             </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => navigate('/novedades')}
+              className="cursor-pointer">
+              <Sparkles className="mr-2 h-4 w-4 text-primary" />
+              <span>Novedades</span>
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={handleSellerLogout}

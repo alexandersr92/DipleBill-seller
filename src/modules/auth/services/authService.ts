@@ -151,7 +151,9 @@ async function sendPasswordResetCode(email: string): Promise<any> {
     return response.data;
   } catch (error: any) {
     if (axios.isAxiosError(error)) {
-      throw new Error(error.response?.data?.message || 'Error al solicitar el código de recuperación.');
+      throw new Error(
+        error.response?.data?.message || 'Error al solicitar el código de recuperación.'
+      );
     }
     throw new Error('Ha ocurrido un error inesperado');
   }
@@ -209,7 +211,9 @@ async function claimMagicLinkService(token: string, deviceName?: string): Promis
       if (error.response?.status === 422 || error.response?.status === 403) {
         return error.response.data;
       } else {
-        throw new Error(error.response?.data?.message || 'Error al validar el enlace de activación');
+        throw new Error(
+          error.response?.data?.message || 'Error al validar el enlace de activación'
+        );
       }
     } else {
       throw new Error('Ha ocurrido un error inesperado al activar la terminal');

@@ -37,6 +37,10 @@ const routes: route = {
   CashControl: {
     name: 'Control de Caja',
     path: '/caja'
+  },
+  Releases: {
+    name: 'Novedades',
+    path: '/novedades'
   }
 };
 

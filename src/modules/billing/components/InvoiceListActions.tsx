@@ -10,9 +10,13 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { Trash } from 'lucide-react';
 import { cancelInvoice } from '../services/billingThunks';
 import { cancelInvoiceById } from '../slices/billingSlice';
+import { deleteDraft } from '../services/draftService';
+import { store as reduxStore } from '@/store/store';
 import { useToast } from '@/components/hooks/use-toast';
 import { invoiceActions } from '../helpers/print';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import axiosInstance from '@/helpers/axiosInstance';
+import { getMetadata, metadataKeys } from '@/modules/offline/db';
 import { ISingleInvoice } from '@diplebill/core';
 import { getInvoiceById } from '../services/billingApi';
 import OwnerPasswordConfirmDialog from '@/modules/auth/components/OwnerPasswordConfirmDialog';
@@ -30,14 +34,51 @@ const InvoiceListActions = ({ id, invoiceStatus }: InvoiceListActionsProps) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const printInfo = useAppSelector((state) => state.storeSlice.store);
+  const orgId = useAppSelector((state) => state.userSlice.orgId);
+  const isOnline = useAppSelector((state) => state.offlineSlice.isOnline);
   const [invoice, setInvoice] = useState<ISingleInvoice>();
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [allowProformas, setAllowProformas] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!orgId) return;
+    let isMounted = true;
+    axiosInstance
+      .get('/v1/settings?key=allow_proformas')
+      .then((res) => {
+        if (!isMounted) return;
+        const records = res.data?.data || res.data || [];
+        setAllowProformas(
+          records.length > 0 &&
+            (records[0].value === 'true' || records[0].value === true)
+        );
+      })
+      .catch(async () => {
+        const cached = await getMetadata<boolean>(metadataKeys.allowProformas(orgId));
+        if (isMounted) setAllowProformas(cached === true);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [orgId, isOnline]);
   const handleDelete = async () => {
     if (!id) return;
 
     try {
+      if (invoiceStatus === 'draft') {
+        const isOnline = reduxStore.getState().offlineSlice.isOnline;
+        await deleteDraft(id, isOnline);
+        dispatch(cancelInvoiceById(id));
+
+        toast({
+          title: 'Borrador eliminado exitosamente',
+          variant: 'success'
+        });
+        return;
+      }
+
       await dispatch(cancelInvoice(id)).unwrap();
       dispatch(cancelInvoiceById(id));
 
@@ -48,7 +89,10 @@ const InvoiceListActions = ({ id, invoiceStatus }: InvoiceListActionsProps) => {
     } catch (error) {
       console.error('Failed to cancel invoice:', error);
       toast({
-        title: 'Error al cancelar la factura',
+        title:
+          invoiceStatus === 'draft'
+            ? 'Error al eliminar el borrador'
+            : 'Error al cancelar la factura',
         variant: 'error'
       });
     }
@@ -162,12 +206,16 @@ const InvoiceListActions = ({ id, invoiceStatus }: InvoiceListActionsProps) => {
             </svg>
             {isDownloadingPDF ? 'Generando...' : 'Descargar PDF'}
           </DropdownMenuItem>
-          {invoiceStatus === 'proforma' && (
-            <DropdownMenuItem
-              onSelect={() => navigate(`/venta?proforma_id=${id}`)}
-            >
+          {invoiceStatus === 'proforma' && allowProformas && (
+            <DropdownMenuItem onSelect={() => navigate(`/venta?proforma_id=${id}`)}>
               <ShoppingCart className="w-4 h-4 text-emerald-500" strokeWidth={1.5} />
               Facturar en POS
+            </DropdownMenuItem>
+          )}
+          {invoiceStatus === 'draft' && (
+            <DropdownMenuItem onSelect={() => navigate(`/venta?draft_id=${id}`)}>
+              <ShoppingCart className="w-4 h-4 text-amber-500" strokeWidth={1.5} />
+              Continuar en POS
             </DropdownMenuItem>
           )}
           <DropdownMenuItem
@@ -177,7 +225,7 @@ const InvoiceListActions = ({ id, invoiceStatus }: InvoiceListActionsProps) => {
             }}
             disabled={isDownloadingPDF}>
             <Trash className="w-4 h-4 text-red-500" strokeWidth={1.5} />
-            Anular Factura
+            {invoiceStatus === 'draft' ? 'Eliminar Borrador' : 'Anular Factura'}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -186,8 +234,12 @@ const InvoiceListActions = ({ id, invoiceStatus }: InvoiceListActionsProps) => {
         open={isConfirmOpen}
         onOpenChange={setIsConfirmOpen}
         onConfirm={handleDelete}
-        title="Anular Factura"
-        description="Se requiere la contraseña del propietario para anular esta factura."
+        title={invoiceStatus === 'draft' ? 'Eliminar Borrador' : 'Anular Factura'}
+        description={
+          invoiceStatus === 'draft'
+            ? 'Se requiere confirmación para eliminar este borrador.'
+            : 'Se requiere la contraseña del propietario para anular esta factura.'
+        }
       />
     </>
   );
