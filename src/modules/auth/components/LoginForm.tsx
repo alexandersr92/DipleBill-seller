@@ -6,7 +6,12 @@ import { Input } from '../../../components/ui/input';
 import { Button } from '../../../components/ui/button';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { loginSchema } from '../helpers/loginSchema';
-import { login, sendPasswordResetCode, resetPasswordWithCode, loginWithGoogle } from '../services/authService';
+import {
+  login,
+  sendPasswordResetCode,
+  resetPasswordWithCode,
+  loginWithGoogle
+} from '../services/authService';
 import { useAppDispatch } from '../../../store/hooks';
 import { setUser } from '../slices/userSlice';
 import { IUserState } from '../slices/user.types';
@@ -30,8 +35,10 @@ export default function LoginForm() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Estados de vista para el flujo de autenticación y restablecimiento
-  const [view, setView] = useState<'login' | 'forgot_password' | 'enter_code' | 'reset_password'>('login');
-  
+  const [view, setView] = useState<'login' | 'forgot_password' | 'enter_code' | 'reset_password'>(
+    'login'
+  );
+
   // Variables auxiliares para el flujo de restablecimiento
   const [resetEmail, setResetEmail] = useState<string>('');
   const [verificationCode, setVerificationCode] = useState<string>('');
@@ -71,7 +78,8 @@ export default function LoginForm() {
           sellerName: storedSellerName,
           sellerCode: storedSellerCode,
           isSellerAuthenticated: hasSeller,
-          mustChangePassword: res.attributes?.must_change_password || res.must_change_password || false,
+          mustChangePassword:
+            res.attributes?.must_change_password || res.must_change_password || false,
           avatar: res.attributes?.avatar || res.avatar || '',
           googleId: res.attributes?.google_id || res.google_id || '',
           name: res.attributes?.name || res.name || ''
@@ -94,7 +102,8 @@ export default function LoginForm() {
             await dispatch(fetchCurrentStore(currentStoreId));
           }
         } catch (storeError) {
-          if (import.meta.env.DEV) console.error('Error cargando sucursales tras login:', storeError);
+          if (import.meta.env.DEV)
+            console.error('Error cargando sucursales tras login:', storeError);
         }
 
         navigate('/');
@@ -187,7 +196,7 @@ export default function LoginForm() {
         description: 'Tu contraseña se cambió con éxito. Ya puedes iniciar sesión.',
         variant: 'success'
       });
-      
+
       // Reiniciar estados y volver al login
       setView('login');
       setResetEmail('');
@@ -207,7 +216,8 @@ export default function LoginForm() {
     if (!googleClientId) {
       toast({
         title: 'Falta Google Client ID',
-        description: 'Debes definir la variable VITE_GOOGLE_CLIENT_ID en tu archivo .env del frontend.',
+        description:
+          'Debes definir la variable VITE_GOOGLE_CLIENT_ID en tu archivo .env del frontend.',
         variant: 'error'
       });
       return;
@@ -233,7 +243,7 @@ export default function LoginForm() {
           setIsLoading(true);
           try {
             const res = await loginWithGoogle(response.credential);
-            
+
             const storedSellerId = localStorage.getItem('seller_id') || '';
             const storedSellerName = localStorage.getItem('seller_name') || '';
             const storedSellerCode = localStorage.getItem('seller_code') || '';
@@ -248,7 +258,8 @@ export default function LoginForm() {
               sellerName: storedSellerName,
               sellerCode: storedSellerCode,
               isSellerAuthenticated: hasSeller,
-              mustChangePassword: res.attributes?.must_change_password || res.must_change_password || false,
+              mustChangePassword:
+                res.attributes?.must_change_password || res.must_change_password || false,
               avatar: res.attributes?.avatar || res.avatar || '',
               googleId: res.attributes?.google_id || res.google_id || '',
               name: res.attributes?.name || res.name || ''
@@ -272,7 +283,8 @@ export default function LoginForm() {
                 await dispatch(fetchCurrentStore(currentStoreId));
               }
             } catch (storeError) {
-              if (import.meta.env.DEV) console.error('Error cargando sucursales tras google login:', storeError);
+              if (import.meta.env.DEV)
+                console.error('Error cargando sucursales tras google login:', storeError);
             }
 
             navigate('/');
@@ -288,7 +300,7 @@ export default function LoginForm() {
               variant: 'error'
             });
           } finally {
-             setIsLoading(false);
+            setIsLoading(false);
           }
         }
       });
@@ -297,7 +309,8 @@ export default function LoginForm() {
     } catch {
       toast({
         title: 'Error de Google SDK',
-        description: 'No se pudo cargar el cliente de autenticación. Verifica que el SDK de Google esté cargado.',
+        description:
+          'No se pudo cargar el cliente de autenticación. Verifica que el SDK de Google esté cargado.',
         variant: 'error'
       });
     }
@@ -306,7 +319,6 @@ export default function LoginForm() {
   // RENDER SECCIONAL SEGÚN LA VISTA ACTIVA
   return (
     <div className={cn('grid gap-6 w-full max-w-sm mx-auto')}>
-      
       {/* VISTA 1: INICIO DE SESIÓN */}
       {view === 'login' && (
         <>
@@ -325,7 +337,11 @@ export default function LoginForm() {
                   {...registerLogin('email')}
                 />
                 <div className="form-error-slot min-h-[16px]">
-                  {errorsLogin.email && <p className="text-red-500 text-[11px] font-bold mt-0.5">{errorsLogin.email.message}</p>}
+                  {errorsLogin.email && (
+                    <p className="text-red-500 text-[11px] font-bold mt-0.5">
+                      {errorsLogin.email.message}
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex justify-between items-center mt-2">
@@ -333,8 +349,7 @@ export default function LoginForm() {
                   <button
                     type="button"
                     onClick={() => setView('forgot_password')}
-                    className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold"
-                  >
+                    className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold">
                     ¿Olvidaste tu contraseña?
                   </button>
                 </div>
@@ -353,31 +368,45 @@ export default function LoginForm() {
                   <button
                     type="button"
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
-                    onClick={() => setShowPassword({ ...showPassword, login: !showPassword.login })}
-                  >
+                    onClick={() =>
+                      setShowPassword({ ...showPassword, login: !showPassword.login })
+                    }>
                     {showPassword.login ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
                 <div className="form-error-slot min-h-[16px]">
-                  {errorsLogin.password && <p className="text-red-500 text-[11px] font-bold mt-0.5">{errorsLogin.password.message}</p>}
+                  {errorsLogin.password && (
+                    <p className="text-red-500 text-[11px] font-bold mt-0.5">
+                      {errorsLogin.password.message}
+                    </p>
+                  )}
                 </div>
               </div>
 
               <div className="flex flex-col gap-4 mt-2">
-                <Button type="submit" disabled={isLoading} className="bg-indigo-600 hover:bg-indigo-500 font-bold rounded-xl py-5">
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className="bg-indigo-600 hover:bg-indigo-500 font-bold rounded-xl py-5">
                   {isLoading && <Loader2 size={16} className="mr-2 animate-spin" />}
                   ACCESAR
                 </Button>
 
                 <span className="text-center text-xs text-slate-400">
                   ¿No tienes una cuenta?{' '}
-                  <Link to="/register" className="underline text-indigo-400 hover:text-indigo-300 font-semibold">
+                  <Link
+                    to="/register"
+                    className="underline text-indigo-400 hover:text-indigo-300 font-semibold">
                     Regístrate
                   </Link>
                 </span>
               </div>
 
-              {errorMessage && <span className="text-red-500 text-center text-xs font-bold mt-2">{errorMessage}</span>}
+              {errorMessage && (
+                <span className="text-red-500 text-center text-xs font-bold mt-2">
+                  {errorMessage}
+                </span>
+              )}
             </div>
           </form>
 
@@ -396,8 +425,7 @@ export default function LoginForm() {
             variant="outline"
             disabled={isLoading}
             onClick={handleGoogleLogin}
-            className="border-slate-800 hover:bg-slate-900 rounded-xl py-5 flex items-center justify-center gap-2"
-          >
+            className="border-slate-800 hover:bg-slate-900 rounded-xl py-5 flex items-center justify-center gap-2">
             <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24">
               <path
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -434,19 +462,27 @@ export default function LoginForm() {
               value={forgotEmail}
               onChange={(e) => setForgotEmail(e.target.value)}
             />
-            {forgotError && <p className="text-red-500 text-[11px] font-bold mt-0.5">{forgotError}</p>}
+            {forgotError && (
+              <p className="text-red-500 text-[11px] font-bold mt-0.5">{forgotError}</p>
+            )}
           </div>
 
-          <Button type="submit" disabled={isLoading} className="w-full bg-indigo-600 hover:bg-indigo-500 font-bold rounded-xl py-5">
-            {isLoading ? <Loader2 size={16} className="mr-2 animate-spin" /> : <Mail size={16} className="mr-2" />}
+          <Button
+            type="submit"
+            disabled={isLoading}
+            className="w-full bg-indigo-600 hover:bg-indigo-500 font-bold rounded-xl py-5">
+            {isLoading ? (
+              <Loader2 size={16} className="mr-2 animate-spin" />
+            ) : (
+              <Mail size={16} className="mr-2" />
+            )}
             ENVIAR CÓDIGO DE VERIFICACIÓN
           </Button>
 
           <button
             type="button"
             onClick={() => setView('login')}
-            className="w-full flex items-center justify-center gap-2 text-xs text-slate-400 hover:text-white mt-4 font-semibold transition-colors"
-          >
+            className="w-full flex items-center justify-center gap-2 text-xs text-slate-400 hover:text-white mt-4 font-semibold transition-colors">
             <ArrowLeft size={14} /> Volver al Inicio de Sesión
           </button>
         </form>
@@ -461,7 +497,9 @@ export default function LoginForm() {
             </p>
           </div>
           <div className="flex flex-col space-y-1.5">
-            <Label htmlFor="code_val" className="text-center">Código de verificación</Label>
+            <Label htmlFor="code_val" className="text-center">
+              Código de verificación
+            </Label>
             <Input
               id="code_val"
               placeholder="123456"
@@ -471,10 +509,14 @@ export default function LoginForm() {
               value={codeVal}
               onChange={(e) => setCodeVal(e.target.value.replace(/\D/g, ''))}
             />
-            {codeError && <p className="text-red-500 text-[11px] font-bold text-center mt-0.5">{codeError}</p>}
+            {codeError && (
+              <p className="text-red-500 text-[11px] font-bold text-center mt-0.5">{codeError}</p>
+            )}
           </div>
 
-          <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-500 font-bold rounded-xl py-5">
+          <Button
+            type="submit"
+            className="w-full bg-indigo-600 hover:bg-indigo-500 font-bold rounded-xl py-5">
             <CheckCircle2 size={16} className="mr-2" />
             VERIFICAR CÓDIGO
           </Button>
@@ -482,8 +524,7 @@ export default function LoginForm() {
           <button
             type="button"
             onClick={() => setView('forgot_password')}
-            className="w-full flex items-center justify-center gap-2 text-xs text-slate-400 hover:text-white mt-4 font-semibold transition-colors"
-          >
+            className="w-full flex items-center justify-center gap-2 text-xs text-slate-400 hover:text-white mt-4 font-semibold transition-colors">
             <ArrowLeft size={14} /> Volver a ingresar correo
           </button>
         </form>
@@ -506,8 +547,7 @@ export default function LoginForm() {
               <button
                 type="button"
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
-                onClick={() => setShowPassword({ ...showPassword, new: !showPassword.new })}
-              >
+                onClick={() => setShowPassword({ ...showPassword, new: !showPassword.new })}>
                 {showPassword.new ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
@@ -527,29 +567,37 @@ export default function LoginForm() {
               <button
                 type="button"
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
-                onClick={() => setShowPassword({ ...showPassword, confirm: !showPassword.confirm })}
-              >
+                onClick={() =>
+                  setShowPassword({ ...showPassword, confirm: !showPassword.confirm })
+                }>
                 {showPassword.confirm ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
-            {resetErrorMsg && <p className="text-red-500 text-[11px] font-bold mt-0.5">{resetErrorMsg}</p>}
+            {resetErrorMsg && (
+              <p className="text-red-500 text-[11px] font-bold mt-0.5">{resetErrorMsg}</p>
+            )}
           </div>
 
-          <Button type="submit" disabled={isLoading} className="w-full bg-indigo-600 hover:bg-indigo-500 font-bold rounded-xl py-5 mt-6">
-            {isLoading ? <Loader2 size={16} className="mr-2 animate-spin" /> : <KeyRound size={16} className="mr-2" />}
+          <Button
+            type="submit"
+            disabled={isLoading}
+            className="w-full bg-indigo-600 hover:bg-indigo-500 font-bold rounded-xl py-5 mt-6">
+            {isLoading ? (
+              <Loader2 size={16} className="mr-2 animate-spin" />
+            ) : (
+              <KeyRound size={16} className="mr-2" />
+            )}
             ACTUALIZAR CONTRASEÑA
           </Button>
 
           <button
             type="button"
             onClick={() => setView('login')}
-            className="w-full flex items-center justify-center gap-2 text-xs text-slate-400 hover:text-white mt-4 font-semibold transition-colors"
-          >
+            className="w-full flex items-center justify-center gap-2 text-xs text-slate-400 hover:text-white mt-4 font-semibold transition-colors">
             <ArrowLeft size={14} /> Cancelar y Volver
           </button>
         </form>
       )}
-
     </div>
   );
 }

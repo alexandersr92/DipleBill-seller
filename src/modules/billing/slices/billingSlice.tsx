@@ -27,6 +27,43 @@ export const billingSlice = createSlice({
       state.error = null;
       state.status = 'pending';
 
+      if (action.payload.item_type === 'free') {
+        const rawPrice = action.payload.price ?? 0;
+        const rawQuantity = action.payload.quantity ?? 1;
+        const rawDiscount = action.payload.discount ?? 0;
+        const rawTax = action.payload.tax ?? 0;
+        const rawCost = action.payload.cost ?? 0;
+        const cleanPrice = isNaN(parseFloat(rawPrice.toString())) ? 0 : parseFloat(rawPrice.toString());
+        const cleanQty = isNaN(parseFloat(rawQuantity.toString())) ? 1 : parseFloat(rawQuantity.toString());
+        const cleanDiscount = isNaN(parseFloat(rawDiscount.toString())) ? 0 : parseFloat(rawDiscount.toString());
+        const cleanTax = isNaN(parseFloat(rawTax.toString())) ? 0 : parseFloat(rawTax.toString());
+        const cleanCost = isNaN(parseFloat(rawCost.toString())) ? 0 : parseFloat(rawCost.toString());
+        const total = +(cleanPrice * cleanQty).toFixed(2);
+        const grandTotal = +(total - cleanDiscount + cleanTax).toFixed(2);
+
+        state.productsSelected.push({
+          ...action.payload,
+          id: action.payload.id || generateUid(),
+          name: action.payload.description || action.payload.name || 'Concepto libre',
+          description: action.payload.description || action.payload.name || 'Concepto libre',
+          item_type: 'free',
+          product_id: null,
+          inventory_id: null,
+          price: cleanPrice,
+          cost: cleanCost,
+          quantity: cleanQty,
+          total,
+          tax: cleanTax,
+          discount: cleanDiscount,
+          grand_total: grandTotal,
+          temp_id: action.payload.temp_id || generateUid()
+        });
+
+        state.isLoading = false;
+        state.status = 'fulfilled';
+        return;
+      }
+
       const existProduct = state.productsSelected.find(
         (product) => product.id === action.payload.id
       );
@@ -132,6 +169,38 @@ export const billingSlice = createSlice({
       });
     },
 
+    updateFreeInvoiceItem: (
+      state,
+      action: PayloadAction<{
+        temp_id: string;
+        description: string;
+        quantity: number;
+        cost: number;
+        price: number;
+        discount?: number;
+        tax?: number;
+      }>
+    ) => {
+      const { temp_id, description, quantity, cost, price, discount = 0, tax = 0 } = action.payload;
+      const index = state.productsSelected.findIndex((p) => p.temp_id === temp_id);
+      if (index !== -1) {
+        const total = +(price * quantity).toFixed(2);
+        const grandTotal = +(total - discount + tax).toFixed(2);
+        state.productsSelected[index] = {
+          ...state.productsSelected[index],
+          name: description,
+          description,
+          quantity,
+          cost,
+          price,
+          discount,
+          tax,
+          total,
+          grand_total: grandTotal
+        };
+      }
+    },
+
     updateInvoice: (state, action: PayloadAction<Partial<IInvoice>>) => {
       Object.assign(state.invoice, action.payload);
     },
@@ -209,14 +278,17 @@ export const billingSlice = createSlice({
           detail.grand_total?.toString() || detail.total?.toString() || '0'
         );
 
+        const isFree = detail.item_type === 'free' || (!detail.product_id && !detail.sku);
         return {
-          id: detail.product_id,
-          product_id: detail.product_id,
+          id: detail.product_id || detail.id,
+          product_id: isFree ? null : detail.product_id,
+          item_type: isFree ? 'free' : 'product',
+          description: isFree ? (detail.description || detail.product_name) : null,
           sku: detail.sku,
           barcode: detail.barcode || '',
-          name: detail.product_name,
+          name: detail.product_name || detail.description || 'Producto',
           image: '',
-          cost: 0,
+          cost: parseFloat(detail.cost?.toString() || '0'),
           price: price,
           quantity: quantity,
           min_stock: 0,
@@ -352,6 +424,7 @@ export const {
   resetProductsInvoice,
   loadProductsToBilling,
   updateProductField,
+  updateFreeInvoiceItem,
   updateInvoice,
   clearInvoice,
   cancelInvoiceById,

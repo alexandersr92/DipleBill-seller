@@ -44,6 +44,22 @@ export interface IOfflineInvoice {
   print_snapshot: Record<string, unknown>; // ISingleInvoice local para reimprimir
 }
 
+export interface IOfflineDraft {
+  id: string; // crypto.randomUUID()
+  draft_number: string;
+  store_id: string;
+  client_id: string | null;
+  client_name: string;
+  invoice_note: string;
+  total_items: number;
+  total: number;
+  discount: number;
+  grand_total: number;
+  created_at: string;
+  updated_at: string;
+  products: any[];
+}
+
 export interface IMetadataEntry {
   key: string;
   value: unknown;
@@ -54,6 +70,7 @@ class OfflineDB extends Dexie {
   clients!: Table<ICachedClient, string>;
   offline_invoices!: Table<IOfflineInvoice, string>;
   metadata!: Table<IMetadataEntry, string>;
+  drafts!: Table<IOfflineDraft, string>;
 
   constructor() {
     super('diplebill-offline');
@@ -69,6 +86,9 @@ class OfflineDB extends Dexie {
         // Invalidate only the old catalogue. Preserve receipts, authentication and cash snapshots.
         await transaction.table('products').clear();
       });
+    this.version(3).stores({
+      drafts: 'id, store_id, created_at'
+    });
   }
 }
 
@@ -89,7 +109,11 @@ export const metadataKeys = {
   printSettings: (storeId: string) => `print_settings_${storeId}`,
   logo: (storeId: string) => `logo_${storeId}`,
   lastSync: (storeId: string) => `last_sync_${storeId}`,
-  offlineCounter: (storeId: string) => `offline_counter_${storeId}`
+  offlineCounter: (storeId: string) => `offline_counter_${storeId}`,
+  allowFreeInvoiceItems: (orgId: string) => `allow_free_invoice_items_${orgId}`,
+  sellerSessionMode: (orgId: string) => `seller_session_mode_${orgId}`,
+  allowProformas: (orgId: string) => 'allow_proformas_' + orgId,
+  allowInvoiceDrafts: (orgId: string) => 'allow_invoice_drafts_' + orgId
 };
 
 /**
@@ -111,10 +135,12 @@ export const clearOfflineData = async (): Promise<void> => {
       db.clients,
       db.metadata,
       db.offline_invoices,
+      db.drafts,
       async () => {
         await db.products.clear();
         await db.clients.clear();
         await db.metadata.clear();
+        await db.drafts.clear();
         if (pending === 0) {
           await db.offline_invoices.clear();
         }

@@ -24,7 +24,7 @@
     ]
   },
   "dependencies": {
-    "@diplebill/core": "github:alexandersr92/diplebill-core#6581f8d46e0f751809160cb4cd13e3dfc89f2a5a",
+    "@diplebill/core": "github:alexandersr92/diplebill-core#1f5bee57465c9b2918cd7eec3f49f05c6ca2b10b",
     "@hookform/resolvers": "3.9.0",
     "@radix-ui/react-alert-dialog": "1.1.1",
     "@radix-ui/react-checkbox": "1.1.1",

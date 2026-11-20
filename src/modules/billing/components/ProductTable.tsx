@@ -9,17 +9,22 @@ import {
   TableRow
 } from '@/components/ui/table';
 import { RefObject, useEffect, useRef, useState } from 'react';
-import { calculateTotalDiscount, currencyFormatter } from '../helpers';
-import { Copy, Trash } from 'lucide-react';
+import { calculateTotalDiscount, currencyFormatter, formatQuantity } from '../helpers';
+import { Copy, Trash, PlusCircle, Edit2 } from 'lucide-react';
 import CustomInputNumber from './CustomInputNumber';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { IInvoiceProduct } from '@diplebill/core';
 import { SELL_TYPES } from '../types';
 import CustomSearchInputSuggetions from './CustomSearchInputSuggetions';
+import axiosInstance from '@/helpers/axiosInstance';
+import { metadataKeys, getMetadata, setMetadata } from '@/modules/offline/db';
+import { FreeInvoiceItemModal } from './FreeInvoiceItemModal';
 import {
+  addProductsToBilling,
   deleteSelectedProduct,
   deleteSelectedProducts,
   duplicateProduct,
+  updateFreeInvoiceItem,
   updateInvoice,
   updateProductField
 } from '../slices/billingSlice';
@@ -54,6 +59,76 @@ const ProductTable = ({
 
   const [selectProducts, setSelectProducts] = useState<string[]>([]);
   const [pendingFocusProductId, setPendingFocusProductId] = useState<string | null>(null);
+  const [allowFreeInvoiceItems, setAllowFreeInvoiceItems] = useState(false);
+  const [isFreeModalOpen, setIsFreeModalOpen] = useState(false);
+  const [editingFreeItem, setEditingFreeItem] = useState<IInvoiceProduct | null>(null);
+  const orgId = useAppSelector((state) => state.userSlice.orgId);
+
+  useEffect(() => {
+    // 1. Intentar obtener vía API online
+    axiosInstance
+      .get('/v1/settings?key=allow_free_invoice_items')
+      .then((res) => {
+        const list = res.data?.data || res.data || [];
+        if (list.length > 0) {
+          const val = list[0].value === 'true' || list[0].value === true;
+          setAllowFreeInvoiceItems(val);
+          if (orgId) {
+            setMetadata(metadataKeys.allowFreeInvoiceItems(orgId), val);
+          }
+        }
+      })
+      .catch(async () => {
+        // 2. Si está offline, leer desde metadatos cacheados en Dexie
+        if (orgId) {
+          const cached = await getMetadata<boolean>(metadataKeys.allowFreeInvoiceItems(orgId));
+          setAllowFreeInvoiceItems(Boolean(cached));
+        }
+      });
+  }, [orgId]);
+
+  const handleSaveFreeItem = (item: {
+    description: string;
+    quantity: number;
+    cost: number;
+    price: number;
+    discount: number;
+    tax: number;
+    temp_id?: string;
+  }) => {
+    if (item.temp_id) {
+      dispatch(
+        updateFreeInvoiceItem({
+          temp_id: item.temp_id,
+          description: item.description,
+          quantity: item.quantity,
+          cost: item.cost,
+          price: item.price,
+          discount: item.discount,
+          tax: item.tax,
+        })
+      );
+    } else {
+      dispatch(
+        addProductsToBilling({
+          id: `free-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+          name: item.description,
+          description: item.description,
+          item_type: 'free',
+          product_id: null,
+          inventory_id: null,
+          quantity: item.quantity,
+          cost: item.cost,
+          price: item.price,
+          discount: item.discount,
+          tax: item.tax,
+          total: +(item.quantity * item.price).toFixed(2),
+          grand_total: +(item.quantity * item.price - item.discount + item.tax).toFixed(2),
+        } as unknown as IInvoiceProduct)
+      );
+    }
+    setEditingFreeItem(null);
+  };
 
   const [discount, setDiscount] = useState({
     percentage: 0,
@@ -293,18 +368,36 @@ const ProductTable = ({
         <div className="flex-grow overflow-hidden flex flex-col relative rounded-md shadow-xs p-3 border bg-card min-h-[45vh] lg:min-h-0 before:absolute before:inset-x-0 before:top-0 before:h-[2px] before:bg-sale-accent-strong before:rounded-t-md">
           {/* Search header (Filtro / Eliminar seleccionados) */}
           <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 flex-shrink-0 mb-3">
-            <div className="w-full sm:w-3/5 lg:w-1/2 xl:max-w-lg relative z-20">
-              <CustomSearchInputSuggetions
-                placeholder="Buscar por nombre, código de barras o SKU..."
-                tabIndex={7}
-                inputRef={productSearchRef}
-                onProductAdded={setPendingFocusProductId}
-              />
+            <div className="w-full sm:w-3/5 lg:w-1/2 xl:max-w-lg relative z-20 flex items-center gap-2">
+              <div className="flex-1">
+                <CustomSearchInputSuggetions
+                  placeholder="Buscar por nombre, código de barras o SKU..."
+                  tabIndex={7}
+                  inputRef={productSearchRef}
+                  onProductAdded={setPendingFocusProductId}
+                />
+              </div>
+              {allowFreeInvoiceItems && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setEditingFreeItem(null);
+                    setIsFreeModalOpen(true);
+                  }}
+                  className="flex items-center gap-1.5 border-dashed border-primary/60 text-primary hover:bg-primary/5 h-9 shrink-0 font-medium"
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  <span className="hidden sm:inline">Concepto libre</span>
+                </Button>
+              )}
             </div>
             <div className="flex items-center justify-end gap-2 flex-shrink-0">
               {selectProducts.length > 0 && (
                 <span className="text-xs text-muted-foreground font-medium mr-1">
-                  {selectProducts.length} {selectProducts.length === 1 ? 'seleccionado' : 'seleccionados'}
+                  {selectProducts.length}{' '}
+                  {selectProducts.length === 1 ? 'seleccionado' : 'seleccionados'}
                 </span>
               )}
               <Button
@@ -378,8 +471,15 @@ const ProductTable = ({
                       {product.sku || '--'}
                     </TableCell>
                     <TableCell className="py-1 px-2 text-xs">
-                      <div className="font-semibold text-foreground leading-tight truncate max-w-[220px]">
-                        {product.name}
+                      <div className="flex items-center gap-1.5">
+                        <div className="font-semibold text-foreground leading-tight truncate max-w-[220px]">
+                          {product.name || product.description}
+                        </div>
+                        {product.item_type === 'free' && (
+                          <span className="text-[10px] font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-300 rounded px-1 py-0 shrink-0">
+                            Concepto libre
+                          </span>
+                        )}
                       </div>
                       {product.inventory_name && (
                         <div className="text-[10px] text-muted-foreground font-medium truncate">
@@ -465,6 +565,20 @@ const ProductTable = ({
                       </div>
                     </TableCell>
                     <TableCell className="text-center py-1 px-2 flex gap-1 justify-center items-center">
+                      {product.item_type === 'free' && (
+                        <Button
+                          type="button"
+                          tabIndex={-1}
+                          onClick={() => {
+                            setEditingFreeItem(product);
+                            setIsFreeModalOpen(true);
+                          }}
+                          variant={'ghost'}
+                          className="hover:bg-amber-500 hover:text-white text-amber-600 w-7 h-7 p-0 rounded-md transition-colors"
+                          title="Editar concepto libre">
+                          <Edit2 strokeWidth="1.5" className="w-4 h-4" />
+                        </Button>
+                      )}
                       <Button
                         type="button"
                         tabIndex={-1}
@@ -512,7 +626,7 @@ const ProductTable = ({
                 <TableRow>
                   <TableCell className="text-left font-bold text-xs">Productos Totales </TableCell>
                   <TableCell className="text-right font-black text-sm">
-                    {orderSummary.totalQuantity}
+                    {formatQuantity(orderSummary.totalQuantity)}
                   </TableCell>
                 </TableRow>
                 <TableRow>
@@ -522,8 +636,8 @@ const ProductTable = ({
                       {sellType === SELL_TYPES.CREDITO
                         ? 'Crédito'
                         : sellType === SELL_TYPES.PROFORMA
-                        ? 'Proforma'
-                        : 'Contado'}
+                          ? 'Proforma'
+                          : 'Contado'}
                     </span>
                   </TableCell>
                 </TableRow>
@@ -588,6 +702,16 @@ const ProductTable = ({
         {/* Botones de acción incrustados desde children */}
         {children}
       </div>
+
+      <FreeInvoiceItemModal
+        isOpen={isFreeModalOpen}
+        onClose={() => {
+          setIsFreeModalOpen(false);
+          setEditingFreeItem(null);
+        }}
+        onSave={handleSaveFreeItem}
+        initialItem={editingFreeItem}
+      />
     </div>
   );
 };

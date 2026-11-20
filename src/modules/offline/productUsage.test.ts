@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto';
 import Dexie from 'dexie';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
-import { db, type ICachedProduct } from './db';
+import { db, metadataKeys, setMetadata, type ICachedProduct } from './db';
 import {
   searchProductsOffline,
   searchByBarcodeOffline,
@@ -71,29 +71,79 @@ describe('Catálogo vendible offline', () => {
   it('actualiza v1 invalidando solo productos y preservando facturas pendientes y sesión', async () => {
     await db.delete();
     const old = new Dexie('diplebill-offline');
-    old
-      .version(1)
-      .stores({
-        products: 'id, store_id, [store_id+sku_lower], [store_id+barcode_lower]',
-        clients: 'id, name_lower',
-        offline_invoices: 'local_id, status, created_at, [status+created_at], store_id',
-        metadata: 'key'
-      });
+    old.version(1).stores({
+      products: 'id, store_id, [store_id+sku_lower], [store_id+barcode_lower]',
+      clients: 'id, name_lower',
+      offline_invoices: 'local_id, status, created_at, [status+created_at], store_id',
+      metadata: 'key'
+    });
     await old.open();
     await old.table('products').put(product('legacy'));
-    await old
-      .table('offline_invoices')
-      .put({
-        local_id: 'pending',
-        status: 'pending',
-        store_id: 'store',
-        payload: { products: [] }
-      });
+    await old.table('offline_invoices').put({
+      local_id: 'pending',
+      status: 'pending',
+      store_id: 'store',
+      payload: { products: [] }
+    });
     await old.table('metadata').put({ key: 'cash_snapshot_store', value: { isOpen: true } });
     old.close();
     await db.open();
     expect(await db.products.count()).toBe(0);
     expect((await db.offline_invoices.get('pending'))?.status).toBe('pending');
     expect((await db.metadata.get('cash_snapshot_store'))?.value).toEqual({ isOpen: true });
+  });
+
+  it('rechaza conceptos libres offline si la organización no tiene la opción habilitada', async () => {
+    await expect(
+      queueOfflineInvoice({
+        localId: 'free-1',
+        offlineNumber: 'OFF-1',
+        storeId: 'store',
+        printSnapshot: {},
+        payload: {
+          organization_id: 'org-test',
+          products: [
+            {
+              item_type: 'free',
+              description: 'Servicio offline',
+              quantity: 1,
+              price: 50
+            }
+          ]
+        }
+      })
+    ).rejects.toThrow('no tiene habilitada la facturación de conceptos libres');
+  });
+
+  it('permite conceptos libres offline sin producto en catálogo ni alterar stock', async () => {
+    await setMetadata(metadataKeys.allowFreeInvoiceItems('org-test'), true);
+    await db.products.put(product('prod-1', 'sale'));
+
+    await queueOfflineInvoice({
+      localId: 'free-ok',
+      offlineNumber: 'OFF-2',
+      storeId: 'store',
+      printSnapshot: {},
+      payload: {
+        organization_id: 'org-test',
+        products: [
+          {
+            product_id: 'prod-1',
+            inventory_id: 'inventory',
+            quantity: 0.1
+          },
+          {
+            item_type: 'free',
+            description: 'Servicio Técnico',
+            quantity: 1,
+            price: 100
+          }
+        ]
+      }
+    });
+
+    expect(await db.offline_invoices.count()).toBe(1);
+    // Stock del producto registrado se descuenta
+    expect((await db.products.get('prod-1'))?.quantity).toBe(0.4);
   });
 });

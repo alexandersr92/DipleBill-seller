@@ -9,8 +9,13 @@ import { IMetaRequestParams } from '@diplebill/core';
 import { OnChangeFn, SortingState } from '@tanstack/react-table';
 import InvoicesExport from '../components/InvoicesExport';
 import { format } from 'date-fns';
+import { useDrafts } from '../hooks/useDrafts';
+import { DraftsTable } from '../components/DraftsTable';
+import axiosInstance from '@/helpers/axiosInstance';
+import { getMetadata, setMetadata, metadataKeys } from '@/modules/offline/db';
 
 type FilterScope = 'current_shift' | 'today' | 'all';
+type ViewType = 'invoices' | 'proformas' | 'drafts';
 
 const InvoiceList = () => {
   const [searchValue, setSearchValue] = useState('');
@@ -19,6 +24,54 @@ const InvoiceList = () => {
   const isLoading = useAppSelector((state) => state.billingSlice.isLoading);
   const store = useAppSelector((state) => state.storeSlice.store);
   const { activeSession } = useAppSelector((state) => state.cashSlice);
+  const isOnline = useAppSelector((state) => state.offlineSlice.isOnline);
+  const orgId = useAppSelector((state) => state.userSlice.orgId);
+  const [allowProformas, setAllowProformas] = useState<boolean>(false);
+  const [allowInvoiceDrafts, setAllowInvoiceDrafts] = useState<boolean>(false);
+
+  const { drafts, draftsCount, deleteDraft } = useDrafts(store?.id, allowInvoiceDrafts);
+
+  useEffect(() => {
+    if (!orgId) return;
+
+    const loadSettings = async () => {
+      try {
+        const [proformasRes, draftsRes] = await Promise.allSettled([
+          axiosInstance.get('/v1/settings?key=allow_proformas'),
+          axiosInstance.get('/v1/settings?key=allow_invoice_drafts')
+        ]);
+
+        if (proformasRes.status === 'fulfilled') {
+          const records = proformasRes.value.data?.data || proformasRes.value.data || [];
+          const isAllowed = records.length > 0 && (records[0].value === 'true' || records[0].value === true);
+          setAllowProformas(isAllowed);
+          await setMetadata(metadataKeys.allowProformas(orgId), isAllowed);
+        } else {
+          const cached = await getMetadata<boolean>(metadataKeys.allowProformas(orgId));
+          setAllowProformas(cached === true);
+        }
+
+        if (draftsRes.status === 'fulfilled') {
+          const records = draftsRes.value.data?.data || draftsRes.value.data || [];
+          const isAllowed = records.length > 0 && (records[0].value === 'true' || records[0].value === true);
+          setAllowInvoiceDrafts(isAllowed);
+          await setMetadata(metadataKeys.allowInvoiceDrafts(orgId), isAllowed);
+        } else {
+          const cached = await getMetadata<boolean>(metadataKeys.allowInvoiceDrafts(orgId));
+          setAllowInvoiceDrafts(cached === true);
+        }
+      } catch {
+        const [cachedProformas, cachedDrafts] = await Promise.all([
+          getMetadata<boolean>(metadataKeys.allowProformas(orgId)),
+          getMetadata<boolean>(metadataKeys.allowInvoiceDrafts(orgId))
+        ]);
+        setAllowProformas(cachedProformas === true);
+        setAllowInvoiceDrafts(cachedDrafts === true);
+      }
+    };
+
+    loadSettings();
+  }, [orgId, isOnline]);
 
   const activeSessionId =
     activeSession?.id || localStorage.getItem('active_cash_session_id') || undefined;
@@ -34,7 +87,20 @@ const InvoiceList = () => {
   const [paymentMethod, setPaymentMethod] = useState<string>('');
   const [status, setStatus] = useState<string>('');
   const [showExport, setShowExport] = useState(false);
-  const [viewType, setViewType] = useState<'invoices' | 'proformas'>('invoices');
+  const [viewType, setViewType] = useState<ViewType>('invoices');
+
+  useEffect(() => {
+    if (viewType === 'proformas' && !allowProformas) {
+      setViewType('invoices');
+      setStatus('');
+    }
+  }, [viewType, allowProformas]);
+
+  useEffect(() => {
+    if (viewType === 'drafts' && !allowInvoiceDrafts) {
+      setViewType('invoices');
+    }
+  }, [viewType, allowInvoiceDrafts]);
 
   const todayRange = useMemo(() => {
     const today = new Date();
@@ -190,7 +256,14 @@ const InvoiceList = () => {
 
       isClearingFiltersRef.current = false;
     }, 0);
-  }, [pagination.itemsPerPage, getFilteredData, getSortParams, viewType, activeSessionId, todayRange]);
+  }, [
+    pagination.itemsPerPage,
+    getFilteredData,
+    getSortParams,
+    viewType,
+    activeSessionId,
+    todayRange
+  ]);
 
   const hasActiveFilters = Boolean(
     searchValue ||
@@ -227,8 +300,7 @@ const InvoiceList = () => {
                   filterScope === 'current_shift'
                     ? 'bg-background text-foreground shadow-xs font-bold'
                     : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
+                }`}>
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 Caja Actual
               </button>
@@ -244,8 +316,7 @@ const InvoiceList = () => {
                 filterScope === 'today'
                   ? 'bg-background text-foreground shadow-xs font-bold'
                   : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
+              }`}>
               Hoy ({format(new Date(), 'dd/MM')})
             </button>
 
@@ -258,13 +329,12 @@ const InvoiceList = () => {
                 filterScope === 'all'
                   ? 'bg-background text-foreground shadow-xs font-bold'
                   : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
+              }`}>
               Historial
             </button>
           </div>
 
-          {/* Selector Facturas / Proformas */}
+          {/* Selector Facturas / Proformas / Borradores */}
           <div className="flex bg-muted/80 p-1 rounded-lg text-xs font-semibold">
             <button
               type="button"
@@ -276,103 +346,125 @@ const InvoiceList = () => {
                 viewType === 'invoices'
                   ? 'bg-background text-foreground shadow-xs font-bold'
                   : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
+              }`}>
               Facturas
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                setViewType('proformas');
-                setStatus('proforma');
-              }}
-              className={`px-3 py-1.5 rounded-md transition-all ${
-                viewType === 'proformas'
-                  ? 'bg-background text-foreground shadow-xs font-bold'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Proformas
-            </button>
+            {allowProformas && (
+              <button
+                type="button"
+                onClick={() => {
+                  setViewType('proformas');
+                  setStatus('proforma');
+                }}
+                className={`px-3 py-1.5 rounded-md transition-all ${
+                  viewType === 'proformas'
+                    ? 'bg-background text-foreground shadow-xs font-bold'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}>
+                Proformas
+              </button>
+            )}
+            {allowInvoiceDrafts && (
+              <button
+                type="button"
+                onClick={() => {
+                  setViewType('drafts');
+                }}
+                className={`px-3 py-1.5 rounded-md transition-all ${
+                  viewType === 'drafts'
+                    ? 'bg-background text-foreground shadow-xs font-bold'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}>
+                Borradores {draftsCount > 0 && `(${draftsCount})`}
+              </button>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="py-2 flex items-center justify-between">
-        <Filters
-          searchValue={searchValue}
-          onSearchChange={setSearchValue}
-          dateRange={filterScope === 'all' ? dateRange : undefined}
-          onDateRangeChange={(range) => {
-            setDateRange({
-              start: range.start,
-              end: range.end
-            });
-            setFilterScope('all');
-            setShowExport(true);
-          }}
-          customFilter={
-            viewType === 'proformas'
-              ? [
-                  {
-                    options: [
-                      { value: '--', label: 'Todos' },
-                      { value: 'PROFORMA', label: 'Proforma' }
-                    ],
-                    selectedValue: paymentMethod,
-                    placeholder: 'Seleccionar Método...',
-                    onChange(value) {
-                      setPaymentMethod(value);
-                    }
-                  }
-                ]
-              : [
-                  {
-                    options: [
-                      { value: '--', label: 'Todos' },
-                      { value: 'CASH', label: 'Efectivo' },
-                      { value: 'BACS', label: 'Transferencia' }
-                    ],
-                    selectedValue: paymentMethod,
-                    placeholder: 'Seleccionar Método...',
-                    onChange(value) {
-                      setPaymentMethod(value);
-                    }
-                  },
-                  {
-                    options: [
-                      { value: '--', label: 'Todos' },
-                      { value: 'completed', label: 'Completado' },
-                      { value: 'pending', label: 'Pendiente' },
-                      { value: 'failed', label: 'Fallido' },
-                      { value: 'canceled', label: 'Cancelado' }
-                    ],
-                    selectedValue: status,
-                    placeholder: 'Seleccionar Estado',
-                    onChange(value) {
-                      setStatus(value);
-                    }
-                  }
-                ]
-          }
-          onClearFilters={handleClearFilters}
-          hasActiveFilters={hasActiveFilters}
-        />
-        {showExport && <InvoicesExport data={invoices} />}
-      </div>
+      {viewType === 'drafts' ? (
+        <div className="py-2">
+          <DraftsTable drafts={drafts} onDeleteDraft={deleteDraft} />
+        </div>
+      ) : (
+        <>
+          <div className="py-2 flex items-center justify-between">
+            <Filters
+              searchValue={searchValue}
+              onSearchChange={setSearchValue}
+              dateRange={filterScope === 'all' ? dateRange : undefined}
+              onDateRangeChange={(range) => {
+                setDateRange({
+                  start: range.start,
+                  end: range.end
+                });
+                setFilterScope('all');
+                setShowExport(true);
+              }}
+              customFilter={
+                viewType === 'proformas' && allowProformas
+                  ? [
+                      {
+                        options: [
+                          { value: '--', label: 'Todos' },
+                          { value: 'PROFORMA', label: 'Proforma' }
+                        ],
+                        selectedValue: paymentMethod,
+                        placeholder: 'Seleccionar Método...',
+                        onChange(value) {
+                          setPaymentMethod(value);
+                        }
+                      }
+                    ]
+                  : [
+                      {
+                        options: [
+                          { value: '--', label: 'Todos' },
+                          { value: 'CASH', label: 'Efectivo' },
+                          { value: 'BACS', label: 'Transferencia' }
+                        ],
+                        selectedValue: paymentMethod,
+                        placeholder: 'Seleccionar Método...',
+                        onChange(value) {
+                          setPaymentMethod(value);
+                        }
+                      },
+                      {
+                        options: [
+                          { value: '--', label: 'Todos' },
+                          { value: 'completed', label: 'Completado' },
+                          { value: 'pending', label: 'Pendiente' },
+                          { value: 'failed', label: 'Fallido' },
+                          { value: 'canceled', label: 'Cancelado' }
+                        ],
+                        selectedValue: status,
+                        placeholder: 'Seleccionar Estado',
+                        onChange(value) {
+                          setStatus(value);
+                        }
+                      }
+                    ]
+              }
+              onClearFilters={handleClearFilters}
+              hasActiveFilters={hasActiveFilters}
+            />
+            {showExport && <InvoicesExport data={invoices} />}
+          </div>
 
-      <div className="overflow-x-auto">
-        <DataTable
-          columns={columns}
-          data={invoices}
-          filter={searchValue}
-          pagination={pagination}
-          onPaginationChange={handlePaginationChange}
-          isLoading={isLoading}
-          sorting={sorting}
-          onSortingChange={handleSortingChange}
-        />
-      </div>
+          <div className="overflow-x-auto">
+            <DataTable
+              columns={columns}
+              data={invoices}
+              filter={searchValue}
+              pagination={pagination}
+              onPaginationChange={handlePaginationChange}
+              isLoading={isLoading}
+              sorting={sorting}
+              onSortingChange={handleSortingChange}
+            />
+          </div>
+        </>
+      )}
     </section>
   );
 };

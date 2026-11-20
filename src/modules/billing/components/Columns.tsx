@@ -43,6 +43,11 @@ const INVOICE_STATUS: Record<
   PROFORMA: {
     value: 'proforma',
     label: 'Proforma',
+    variant: 'warning'
+  },
+  DRAFT: {
+    value: 'draft',
+    label: 'Borrador',
     variant: 'draft'
   }
 };
@@ -148,6 +153,9 @@ export const columns: ColumnDef<ISingleInvoice>[] = [
           break;
         case INVOICE_STATUS.PROFORMA.value:
           statusConfig = INVOICE_STATUS.PROFORMA;
+          break;
+        case INVOICE_STATUS.DRAFT.value:
+          statusConfig = INVOICE_STATUS.DRAFT;
           break;
         default:
           statusConfig = INVOICE_STATUS.CANCELED;

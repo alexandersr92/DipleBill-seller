@@ -15,7 +15,7 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table';
-import { currencyFormatter } from '../helpers';
+import { currencyFormatter, formatQuantity } from '../helpers';
 import InvoiceSkeleton from '../components/InvoiceSkeleton';
 import { useToast } from '@/components/hooks/use-toast';
 import { useAppDispatch } from '@/store/hooks';
@@ -109,7 +109,12 @@ const Invoice = () => {
           <section className="rounded-md shadow-sm p-4 border mb-4">
             <div className="w-full text-sm border-0 border-b pb-2">
               <h1 className="text-2xl font-bold">
-                {invoice?.invoice_status === 'proforma' ? 'Proforma' : 'Factura'} #{invoice?.invoice_number}
+                {invoice?.invoice_status === 'proforma'
+                  ? 'Proforma'
+                  : invoice?.invoice_status === 'draft'
+                    ? 'Borrador'
+                    : 'Factura'}{' '}
+                #{invoice?.invoice_number}
               </h1>
             </div>
 
@@ -128,7 +133,11 @@ const Invoice = () => {
 
               <div className="w-full flex flex-wrap">
                 <label className="text-sm mb-1" htmlFor="">
-                  {invoice?.invoice_status === 'proforma' ? 'Fecha de la proforma' : 'Fecha de la factura'}
+                  {invoice?.invoice_status === 'proforma'
+                    ? 'Fecha de la proforma'
+                    : invoice?.invoice_status === 'draft'
+                      ? 'Fecha del borrador'
+                      : 'Fecha de la factura'}
                 </label>
                 <Input
                   readOnly
@@ -149,9 +158,11 @@ const Invoice = () => {
                   value={
                     invoice?.invoice_status === 'proforma'
                       ? 'Proforma'
-                      : invoice?.invoice_type === 'credit'
-                        ? 'Crédito'
-                        : 'Contado'
+                      : invoice?.invoice_status === 'draft'
+                        ? 'Borrador'
+                        : invoice?.invoice_type === 'credit'
+                          ? 'Crédito'
+                          : 'Contado'
                   }
                 />
               </div>
@@ -239,7 +250,9 @@ const Invoice = () => {
 
               <div className="w-full xl:col-span-1 sm:col-span-2 flex gap-2 flex-wrap items-start flex-col">
                 <label className="text-sm mb-1" htmlFor="">
-                  {invoice?.invoice_status === 'proforma' ? 'Detalles de la proforma' : 'Detalles de la factura'}
+                  {invoice?.invoice_status === 'proforma'
+                    ? 'Detalles de la proforma'
+                    : 'Detalles de la factura'}
                 </label>
                 <Textarea
                   readOnly
@@ -267,8 +280,19 @@ const Invoice = () => {
               <TableBody>
                 {invoice?.invoice_details.map((product) => (
                   <TableRow key={product.id}>
-                    <TableCell className="py-3">{product.product_name}</TableCell>
-                    <TableCell className="py-3 text-center">{product.quantity}</TableCell>
+                    <TableCell className="py-3">
+                      <div className="flex items-center gap-2">
+                        <span>{product.description || product.product_name}</span>
+                        {product.item_type === 'free' && (
+                          <span className="text-[10px] font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-300 rounded px-1.5 py-0.5">
+                            Concepto libre
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-3 text-center">
+                      {formatQuantity(product.quantity)}
+                    </TableCell>
                     <TableCell className="text-right py-3">
                       {currencyFormatter({ currency: 'NIO', value: product.price })}
                     </TableCell>
@@ -287,7 +311,9 @@ const Invoice = () => {
                 <TableBody className="">
                   <TableRow>
                     <TableCell className="text-left font-bold w-1/2">Productos Totales </TableCell>
-                    <TableCell className="text-right font-bold">{invoice?.total_items}</TableCell>
+                    <TableCell className="text-right font-bold">
+                      {formatQuantity(invoice?.total_items)}
+                    </TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell className="text-left w-1/2">Subtotal </TableCell>
@@ -326,27 +352,45 @@ const Invoice = () => {
 
           <div className="pt-4 w-full flex justify-end gap-3 items-center">
             {invoice && <ActionButtons invoice={invoice} />}
-            {invoice && invoice.invoice_status !== 'canceled' && (
+            {invoice && invoice.invoice_status === 'draft' && (
               <Button
-                onClick={() => setIsEditConfirmOpen(true)}
+                onClick={() => navigate(`/venta?draft_id=${invoice.id}`)}
                 tabIndex={-1}
-                className="bg-edit-accent hover:bg-edit-accent-strong text-edit-accent-foreground border border-transparent">
-                Editar {invoice.invoice_status === 'proforma' ? 'proforma' : 'factura'}
+                className="bg-amber-500 hover:bg-amber-600 text-white border border-transparent">
+                Continuar en POS
               </Button>
             )}
+            {invoice &&
+              invoice.invoice_status !== 'canceled' &&
+              invoice.invoice_status !== 'draft' && (
+                <Button
+                  onClick={() => setIsEditConfirmOpen(true)}
+                  tabIndex={-1}
+                  className="bg-edit-accent hover:bg-edit-accent-strong text-edit-accent-foreground border border-transparent">
+                  Editar {invoice.invoice_status === 'proforma' ? 'proforma' : 'factura'}
+                </Button>
+              )}
             <Button
               disabled={invoice?.invoice_status === 'canceled'}
               onClick={() => setIsConfirmOpen(true)}
               tabIndex={-1}
               className="bg-theme_blue hover:bg-[#f4f4f5] hover:text-black border border-transparent hover:border-gray-500">
-              Anular {invoice?.invoice_status === 'proforma' ? 'proforma' : 'factura'}
+              {invoice?.invoice_status === 'draft'
+                ? 'Eliminar borrador'
+                : `Anular ${invoice?.invoice_status === 'proforma' ? 'proforma' : 'factura'}`}
             </Button>
             <OwnerPasswordConfirmDialog
               open={isConfirmOpen}
               onOpenChange={setIsConfirmOpen}
               onConfirm={cancelInvoice}
-              title={invoice?.invoice_status === 'proforma' ? 'Anular Proforma' : 'Anular Factura'}
-              description={`Se requiere la contraseña del propietario para anular esta ${invoice?.invoice_status === 'proforma' ? 'proforma' : 'factura'}.`}
+              title={
+                invoice?.invoice_status === 'draft'
+                  ? 'Eliminar Borrador'
+                  : invoice?.invoice_status === 'proforma'
+                    ? 'Anular Proforma'
+                    : 'Anular Factura'
+              }
+              description={`Se requiere la contraseña del propietario para ${invoice?.invoice_status === 'draft' ? 'eliminar este borrador' : `anular esta ${invoice?.invoice_status === 'proforma' ? 'proforma' : 'factura'}`}.`}
             />
             <OwnerPasswordConfirmDialog
               open={isEditConfirmOpen}

@@ -444,7 +444,9 @@ export const ConfirmSaleModal = ({
             'h-2.5 px-6 transition-all duration-350',
             sellType === SELL_TYPES.PROFORMA
               ? 'bg-amber-500'
-              : (isCreditSale ? 'bg-purple-600' : 'bg-blue-600')
+              : isCreditSale
+                ? 'bg-purple-600'
+                : 'bg-blue-600'
           )}
         />
 
@@ -458,7 +460,9 @@ export const ConfirmSaleModal = ({
               <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
                 {sellType === SELL_TYPES.PROFORMA
                   ? 'Confirmar Cotización'
-                  : (step === 1 ? '1. Tipo de Venta' : '2. Detalles de Cobro')}
+                  : step === 1
+                    ? '1. Tipo de Venta'
+                    : '2. Detalles de Cobro'}
               </h2>
             </div>
             {step > 1 && (
@@ -503,7 +507,8 @@ export const ConfirmSaleModal = ({
                 ¿Desea registrar esta Proforma / Cotización?
               </p>
               <p className="text-xs text-slate-750 dark:text-slate-400 max-w-sm mt-1">
-                Esto generará un documento de cotización para el cliente. No se descontará stock del inventario ni se afectará la caja.
+                Esto generará un documento de cotización para el cliente. No se descontará stock del
+                inventario ni se afectará la caja.
               </p>
             </div>
           ) : (
@@ -516,86 +521,87 @@ export const ConfirmSaleModal = ({
                     setStep(2);
                   }}
                   disabled={isSubmitting}
-                className={cn(
-                  'p-5 rounded-xl border-2 flex flex-col items-center justify-center gap-3 transition-all',
-                  'hover:border-blue-500 hover:bg-blue-50/20 active:scale-95 group',
-                  !isCreditSale
-                    ? 'border-blue-600 bg-blue-500/10 ring-2 ring-blue-500'
-                    : 'border-slate-300 dark:border-slate-800 bg-background text-slate-800 dark:text-slate-200'
-                )}>
-                <div
                   className={cn(
-                    'w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all',
+                    'p-5 rounded-xl border-2 flex flex-col items-center justify-center gap-3 transition-all',
+                    'hover:border-blue-500 hover:bg-blue-50/20 active:scale-95 group',
                     !isCreditSale
-                      ? 'bg-blue-600 text-white border-blue-500'
-                      : 'bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-slate-105 border-slate-300 dark:border-slate-700'
+                      ? 'border-blue-600 bg-blue-500/10 ring-2 ring-blue-500'
+                      : 'border-slate-300 dark:border-slate-800 bg-background text-slate-800 dark:text-slate-200'
                   )}>
-                  <DollarSign className="w-6 h-6 stroke-[3px]" />
-                </div>
-                <div className="text-center">
-                  <p className="font-black text-sm text-slate-900 dark:text-white">
-                    Venta a Contado
-                  </p>
-                  <p className="text-[10px] font-bold text-slate-700 dark:text-slate-400 mt-0.5">
-                    Cobro inmediato
-                  </p>
-                </div>
-              </button>
+                  <div
+                    className={cn(
+                      'w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all',
+                      !isCreditSale
+                        ? 'bg-blue-600 text-white border-blue-500'
+                        : 'bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-slate-105 border-slate-300 dark:border-slate-700'
+                    )}>
+                    <DollarSign className="w-6 h-6 stroke-[3px]" />
+                  </div>
+                  <div className="text-center">
+                    <p className="font-black text-sm text-slate-900 dark:text-white">
+                      Venta a Contado
+                    </p>
+                    <p className="text-[10px] font-bold text-slate-700 dark:text-slate-400 mt-0.5">
+                      Cobro inmediato
+                    </p>
+                  </div>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => {
-                  if (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (
+                      !clientName ||
+                      clientName === 'Cliente Genérico' ||
+                      clientName === 'Consumidor Final'
+                    ) {
+                      return;
+                    }
+                    setIsCreditSale(true);
+                    setStep(2);
+                  }}
+                  disabled={
+                    isSubmitting ||
                     !clientName ||
                     clientName === 'Cliente Genérico' ||
                     clientName === 'Consumidor Final'
-                  ) {
-                    return;
                   }
-                  setIsCreditSale(true);
-                  setStep(2);
-                }}
-                disabled={
-                  isSubmitting ||
-                  !clientName ||
-                  clientName === 'Cliente Genérico' ||
-                  clientName === 'Consumidor Final'
-                }
-                className={cn(
-                  'p-5 rounded-xl border-2 flex flex-col items-center justify-center gap-3 transition-all relative',
-                  (!clientName ||
-                    clientName === 'Cliente Genérico' ||
-                    clientName === 'Consumidor Final') &&
-                    'opacity-50 cursor-not-allowed',
-                  'hover:border-purple-500 hover:bg-purple-50/20 active:scale-95 group',
-                  isCreditSale
-                    ? 'border-purple-600 bg-purple-500/10 ring-2 ring-purple-500'
-                    : 'border-slate-300 dark:border-slate-800 bg-background text-slate-800 dark:text-slate-200'
-                )}>
-                <div
                   className={cn(
-                    'w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all',
+                    'p-5 rounded-xl border-2 flex flex-col items-center justify-center gap-3 transition-all relative',
+                    (!clientName ||
+                      clientName === 'Cliente Genérico' ||
+                      clientName === 'Consumidor Final') &&
+                      'opacity-50 cursor-not-allowed',
+                    'hover:border-purple-500 hover:bg-purple-50/20 active:scale-95 group',
                     isCreditSale
-                      ? 'bg-purple-600 text-white border-purple-500'
-                      : 'bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-slate-105 border-slate-300 dark:border-slate-700'
+                      ? 'border-purple-600 bg-purple-500/10 ring-2 ring-purple-500'
+                      : 'border-slate-300 dark:border-slate-800 bg-background text-slate-800 dark:text-slate-200'
                   )}>
-                  <Calendar className="w-6 h-6 stroke-[3px]" />
-                </div>
-                <div className="text-center">
-                  <p className="font-black text-sm text-slate-900 dark:text-white">
-                    Venta a Crédito
-                  </p>
-                  <p className="text-[10px] font-bold text-slate-700 dark:text-slate-400 mt-0.5">
-                    {!clientName ||
-                    clientName === 'Cliente Genérico' ||
-                    clientName === 'Consumidor Final'
-                      ? 'Requiere cliente registrado'
-                      : 'Pago en cuotas diferidas'}
-                  </p>
-                </div>
-              </button>
-            </div>
-          ))}
+                  <div
+                    className={cn(
+                      'w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all',
+                      isCreditSale
+                        ? 'bg-purple-600 text-white border-purple-500'
+                        : 'bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-slate-105 border-slate-300 dark:border-slate-700'
+                    )}>
+                    <Calendar className="w-6 h-6 stroke-[3px]" />
+                  </div>
+                  <div className="text-center">
+                    <p className="font-black text-sm text-slate-900 dark:text-white">
+                      Venta a Crédito
+                    </p>
+                    <p className="text-[10px] font-bold text-slate-700 dark:text-slate-400 mt-0.5">
+                      {!clientName ||
+                      clientName === 'Cliente Genérico' ||
+                      clientName === 'Consumidor Final'
+                        ? 'Requiere cliente registrado'
+                        : 'Pago en cuotas diferidas'}
+                    </p>
+                  </div>
+                </button>
+              </div>
+            )
+          )}
 
           {/* PASO 2: DETALLES DE COBRO (CONTADO - MERGED) */}
           {step === 2 && !isCreditSale && (
@@ -1020,11 +1026,10 @@ export const ConfirmSaleModal = ({
                   'h-9 px-5 text-xs font-bold flex items-center gap-1.5 shadow-md border-2',
                   sellType === SELL_TYPES.PROFORMA
                     ? 'bg-amber-600 hover:bg-amber-700 text-white border-amber-500'
-                    : (isCreditSale
+                    : isCreditSale
                       ? 'bg-purple-650 hover:bg-purple-700 text-white border-purple-500'
-                      : 'bg-blue-650 hover:bg-blue-700 text-white border-blue-500')
-                )}
-              >
+                      : 'bg-blue-650 hover:bg-blue-700 text-white border-blue-500'
+                )}>
                 {isSubmitting ? (
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1032,7 +1037,11 @@ export const ConfirmSaleModal = ({
                   </>
                 ) : (
                   <>
-                    <span>{sellType === SELL_TYPES.PROFORMA ? 'Confirmar Proforma' : 'Confirmar y Cobrar'}</span>
+                    <span>
+                      {sellType === SELL_TYPES.PROFORMA
+                        ? 'Confirmar Proforma'
+                        : 'Confirmar y Cobrar'}
+                    </span>
                     <kbd className="hidden sm:inline-block px-1 ml-1.5 rounded bg-white/20 text-[9px] font-semibold">
                       Ctrl + Enter
                     </kbd>
@@ -1052,8 +1061,7 @@ export const ConfirmSaleModal = ({
                       clientName === 'Cliente Genérico' ||
                       clientName === 'Consumidor Final'))
                 }
-                className="h-9 px-5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white border-2 border-blue-500"
-              >
+                className="h-9 px-5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white border-2 border-blue-500">
                 Siguiente
               </Button>
             )}

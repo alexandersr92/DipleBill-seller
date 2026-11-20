@@ -1,5 +1,5 @@
 import { isSellable } from './productUsage';
-import { db, metadataKeys, IOfflineInvoice } from './db';
+import { db, metadataKeys, getMetadata, IOfflineInvoice } from './db';
 
 interface IOfflineCounter {
   date: string; // YYMMDD
@@ -39,8 +39,10 @@ interface IQueueOfflineInvoiceArgs {
 }
 
 interface IPayloadProduct {
-  product_id: string;
-  inventory_id: string;
+  item_type?: string;
+  description?: string | null;
+  product_id?: string | null;
+  inventory_id?: string | null;
   quantity: number;
 }
 
@@ -55,8 +57,22 @@ export const queueOfflineInvoice = async ({
 }: IQueueOfflineInvoiceArgs): Promise<void> => {
   const products = (payload.products as IPayloadProduct[] | undefined) ?? [];
 
+  const hasFree = products.some((p) => p.item_type === 'free' || !p.product_id);
+  if (hasFree) {
+    const orgId = (payload.organization_id as string) || '';
+    const allowed = await getMetadata<boolean>(metadataKeys.allowFreeInvoiceItems(orgId));
+    if (!allowed) {
+      throw new Error(
+        'La organización no tiene habilitada la facturación de conceptos libres.'
+      );
+    }
+  }
+
   await db.transaction('rw', db.offline_invoices, db.products, async () => {
     for (const item of products) {
+      if (item.item_type === 'free' || !item.product_id) {
+        continue;
+      }
       const cached = await db.products
         .where('store_id')
         .equals(storeId)
@@ -93,6 +109,9 @@ const adjustLocalStock = async (
   direction: 1 | -1
 ) => {
   for (const item of products) {
+    if (item.item_type === 'free' || !item.product_id) {
+      continue;
+    }
     const cached = await db.products
       .where('store_id')
       .equals(storeId)

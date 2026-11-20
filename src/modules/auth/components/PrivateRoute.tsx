@@ -40,7 +40,9 @@ export default function PrivateRoute({ children }: IPrivateRouteProps) {
     // La auto-apertura SIMPLIFIED requiere red: offline no se abre caja (regla de negocio).
     if (isSellerAuthenticated && storeId && !isCashLoading && isOnline) {
       if (controlMode === 'SIMPLIFIED' && !isOpen) {
-        dispatch(openCashSession({ storeId, openingBalance: 0, cashRegisterName: 'Caja Simplificada' }));
+        dispatch(
+          openCashSession({ storeId, openingBalance: 0, cashRegisterName: 'Caja Simplificada' })
+        );
       }
     }
   }, [isSellerAuthenticated, storeId, controlMode, isOpen, isCashLoading, isOnline, dispatch]);

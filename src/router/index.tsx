@@ -10,6 +10,7 @@ import InvoiceList from '@/modules/billing/containers/invoiceList';
 import Invoice from '@/modules/billing/containers/invoice';
 import CreditPayments from '@/modules/billing/containers/CreditPayments';
 import CashControlContainer from '@/modules/billing/containers/CashControlContainer';
+import ReleasesPage from '@/modules/releases/containers/ReleasesPage';
 
 export const Router = () => {
   return (
@@ -79,6 +80,17 @@ export const Router = () => {
           <PrivateRoute>
             <Layout>
               <CashControlContainer />
+            </Layout>
+          </PrivateRoute>
+        }
+      />
+
+      <Route
+        path={routes.Releases.path}
+        element={
+          <PrivateRoute>
+            <Layout>
+              <ReleasesPage />
             </Layout>
           </PrivateRoute>
         }

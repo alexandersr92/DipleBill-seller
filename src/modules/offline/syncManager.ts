@@ -89,7 +89,8 @@ const runSyncInternal = async (): Promise<ISyncSummary> => {
         // como error permanente que ya no se reintenta solo. Se revierte a
         // 'pending' y se aborta la pasada (las demás fallarían igual).
         const isNetworkError = axios.isAxiosError(error) && !error.response;
-        const isServerBusy = status === 408 || status === 429 || (status !== undefined && status >= 500);
+        const isServerBusy =
+          status === 408 || status === 429 || (status !== undefined && status >= 500);
         const isAuthOrLicense = status === 401 || status === 402 || status === 403;
 
         if (isNetworkError || isServerBusy) {
@@ -111,8 +112,8 @@ const runSyncInternal = async (): Promise<ISyncSummary> => {
         // Error de validación real (400/422/…): específico de esta factura.
         // Marcarla 'error' y continuar con las siguientes.
         const message = axios.isAxiosError(error)
-          ? (error.response?.data as { message?: string } | undefined)?.message ??
-            `Error HTTP ${status ?? 'desconocido'}`
+          ? ((error.response?.data as { message?: string } | undefined)?.message ??
+            `Error HTTP ${status ?? 'desconocido'}`)
           : 'Error inesperado al sincronizar';
 
         await db.offline_invoices.update(item.local_id, {

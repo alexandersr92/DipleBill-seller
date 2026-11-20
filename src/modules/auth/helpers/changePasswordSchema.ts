@@ -7,5 +7,5 @@ export const changePasswordSchema = object().shape({
     .min(6, 'La contraseña debe tener al menos 6 caracteres'),
   password_confirmation: string()
     .required('Debes confirmar la nueva contraseña')
-    .oneOf([ref('password')], 'Las contraseñas no coinciden'),
+    .oneOf([ref('password')], 'Las contraseñas no coinciden')
 });

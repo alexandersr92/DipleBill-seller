@@ -10,8 +10,7 @@ const NotFound = () => {
       </p>
       <Link
         to="/"
-        className="mt-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
-      >
+        className="mt-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
         Ir al inicio
       </Link>
     </div>

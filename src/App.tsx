@@ -16,7 +16,7 @@ function App() {
       const customEvent = e as CustomEvent;
       setLicenseExpired({
         isExpired: true,
-        message: customEvent.detail?.message,
+        message: customEvent.detail?.message
       });
     };
 
