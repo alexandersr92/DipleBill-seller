@@ -86,8 +86,7 @@ export function LicenseExpiredOverlay({ message, onDismiss }: Props) {
           {hasOpenCash && (
             <button
               onClick={handleCloseCash}
-              className="w-full bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white rounded-xl py-3.5 flex items-center justify-center gap-2 shadow-lg transition-colors"
-            >
+              className="w-full bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white rounded-xl py-3.5 flex items-center justify-center gap-2 shadow-lg transition-colors">
               <Coins size={18} />
               <span className="text-sm font-bold uppercase tracking-wider">
                 Cerrar caja para cuadrar la gaveta
@@ -97,8 +96,7 @@ export function LicenseExpiredOverlay({ message, onDismiss }: Props) {
 
           <button
             onClick={handleLogout}
-            className="w-full bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 active:bg-slate-600 rounded-xl py-3.5 flex items-center justify-center gap-2 shadow-lg transition-colors"
-          >
+            className="w-full bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 active:bg-slate-600 rounded-xl py-3.5 flex items-center justify-center gap-2 shadow-lg transition-colors">
             <LogOut size={18} />
             <span className="text-sm font-bold uppercase tracking-wider">Cerrar Sesión</span>
           </button>

@@ -18,8 +18,7 @@ export function PwaUpdatePrompt() {
       <span className="font-medium">Hay una nueva versión disponible.</span>
       <button
         onClick={() => updateServiceWorker(true)}
-        className="shrink-0 rounded-md bg-white/20 px-3 py-1 text-xs font-bold uppercase tracking-wider transition-colors hover:bg-white/30"
-      >
+        className="shrink-0 rounded-md bg-white/20 px-3 py-1 text-xs font-bold uppercase tracking-wider transition-colors hover:bg-white/30">
         Actualizar
       </button>
     </div>

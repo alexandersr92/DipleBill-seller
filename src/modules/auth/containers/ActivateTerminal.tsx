@@ -52,9 +52,7 @@ export default function ActivateTerminal() {
 
         if (!res || !res.token) {
           setStatus('error');
-          setErrorMessage(
-            res?.message || 'El enlace es inválido, ya fue utilizado o ha expirado.'
-          );
+          setErrorMessage(res?.message || 'El enlace es inválido, ya fue utilizado o ha expirado.');
           return;
         }
 
@@ -108,9 +106,7 @@ export default function ActivateTerminal() {
         }, 1500);
       } catch (err: any) {
         setStatus('error');
-        setErrorMessage(
-          err.message || 'Ocurrió un error al intentar vincular la terminal.'
-        );
+        setErrorMessage(err.message || 'Ocurrió un error al intentar vincular la terminal.');
       }
     }
 
@@ -190,8 +186,7 @@ export default function ActivateTerminal() {
 
               <Button
                 onClick={() => navigate('/login')}
-                className="w-full flex items-center justify-center gap-2"
-              >
+                className="w-full flex items-center justify-center gap-2">
                 Ir a Inicio de Sesión
                 <ArrowRight className="h-4 w-4" />
               </Button>

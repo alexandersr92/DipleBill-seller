@@ -155,9 +155,9 @@ export const fetchCashSettingsAndSession = createAsyncThunk(
       // Sin red: si había una caja abierta cacheada, operar con ella.
       // El cash_session_id del payload de ventas sigue saliendo de localStorage.
       if (axios.isAxiosError(err) && !err.response) {
-        const snapshot = await getMetadata<ICashSnapshot>(
-          metadataKeys.cashSnapshot(storeId)
-        ).catch(() => undefined);
+        const snapshot = await getMetadata<ICashSnapshot>(metadataKeys.cashSnapshot(storeId)).catch(
+          () => undefined
+        );
 
         if (snapshot?.isOpen && snapshot.session) {
           return {
@@ -207,7 +207,14 @@ export const openCashSession = createAsyncThunk(
 export const closeCashSession = createAsyncThunk(
   'cash/closeSession',
   async (
-    payload: { cashSessionId: string; actualCash: number; actualUsd?: number; usdExchangeRate?: number; notes?: string; storeId: string },
+    payload: {
+      cashSessionId: string;
+      actualCash: number;
+      actualUsd?: number;
+      usdExchangeRate?: number;
+      notes?: string;
+      storeId: string;
+    },
     { dispatch, rejectWithValue }
   ) => {
     try {

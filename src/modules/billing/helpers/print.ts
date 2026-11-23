@@ -24,7 +24,10 @@ export const invoiceActions = async ({ settings, invoice, action }: IInvoiceActi
   const normalizedInvoiceType = String(invoice.invoice_type ?? '')
     .trim()
     .toLowerCase();
-  const isProforma = normalizedInvoiceType === 'proforma' || invoice.method === 'PROFORMA' || invoice.invoice_status === 'proforma';
+  const isProforma =
+    normalizedInvoiceType === 'proforma' ||
+    invoice.method === 'PROFORMA' ||
+    invoice.invoice_status === 'proforma';
   const isCreditSale = normalizedInvoiceType === 'credit' || normalizedInvoiceType === 'credito';
   let paymentMethod = '';
   if (isProforma) {
@@ -65,7 +68,7 @@ export const invoiceActions = async ({ settings, invoice, action }: IInvoiceActi
   const products = invoice.invoice_details.map((product) => {
     return {
       sku: product.sku ?? '--',
-      description: product.product_name,
+      description: product.description || product.product_name || 'Concepto',
       quantity: product.quantity ?? 0,
       unitPrice: product.price ?? 0,
       total: product.total

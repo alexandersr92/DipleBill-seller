@@ -18,7 +18,10 @@ export const getBillingProductsApi = async ({
     query = '/v1/products';
   }
 
-  const params: { search: string; search_by?: string } = { search };
+  const params: { search: string; search_by?: string; purpose: string } = {
+    search,
+    purpose: 'sale'
+  };
   if (search_by) {
     params.search_by = search_by;
   }
@@ -43,6 +46,7 @@ export const getBillingProductsSearchApi = async ({
 }) => {
   const response = await axiosInstance.get(`/v1/inventories/${inventoryId}/products`, {
     params: {
+      purpose: 'sale',
       search_by,
       search,
       page,

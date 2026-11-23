@@ -1,3 +1,4 @@
+import { isSellable } from './productUsage';
 import { IInvoiceProduct } from '@diplebill/core';
 import { db, ICachedProduct } from './db';
 
@@ -17,16 +18,18 @@ export const searchProductsOffline = async (
 
   const products = await db.products.where('store_id').equals(storeId).toArray();
 
-  const matches = products.filter(
-    (p) =>
-      p.name_lower.includes(query) || p.sku_lower.includes(query) || p.barcode_lower.includes(query)
-  );
+  const matches = products
+    .filter(isSellable)
+    .filter(
+      (p) =>
+        p.name_lower.includes(query) ||
+        p.sku_lower.includes(query) ||
+        p.barcode_lower.includes(query)
+    );
 
   matches.sort((a, b) => {
-    const aStarts =
-      a.name_lower.startsWith(query) || a.sku_lower.startsWith(query) ? 0 : 1;
-    const bStarts =
-      b.name_lower.startsWith(query) || b.sku_lower.startsWith(query) ? 0 : 1;
+    const aStarts = a.name_lower.startsWith(query) || a.sku_lower.startsWith(query) ? 0 : 1;
+    const bStarts = b.name_lower.startsWith(query) || b.sku_lower.startsWith(query) ? 0 : 1;
     if (aStarts !== bStarts) return aStarts - bStarts;
     return a.name_lower.localeCompare(b.name_lower);
   });
@@ -43,11 +46,11 @@ export const findByBarcodeOffline = async (
 
   const match = await db.products.where('[store_id+barcode_lower]').equals([storeId, code]).first();
 
-  if (match) return toInvoiceProduct(match);
+  if (match && isSellable(match)) return toInvoiceProduct(match);
 
   // Algunas lectoras entregan el SKU: intentar match exacto por SKU.
   const bySku = await db.products.where('[store_id+sku_lower]').equals([storeId, code]).first();
-  return bySku ? toInvoiceProduct(bySku) : null;
+  return bySku && isSellable(bySku) ? toInvoiceProduct(bySku) : null;
 };
 
 // La cámara entrega un código exacto: no aplicar el límite de la búsqueda por texto.
@@ -57,6 +60,9 @@ export const searchByBarcodeOffline = async (
 ): Promise<IInvoiceProduct[]> => {
   const code = barcode.trim().toLowerCase();
   if (!code) return [];
-  const matches = await db.products.where('[store_id+barcode_lower]').equals([storeId, code]).toArray();
-  return matches.map(toInvoiceProduct);
+  const matches = await db.products
+    .where('[store_id+barcode_lower]')
+    .equals([storeId, code])
+    .toArray();
+  return matches.filter(isSellable).map(toInvoiceProduct);
 };

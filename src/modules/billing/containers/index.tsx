@@ -7,7 +7,19 @@ import { CheckClientModal } from '../components/CheckClientModal';
 import { checkSimilarity, isGenericClientName } from '@diplebill/core';
 import { useEffect, useRef, useState } from 'react';
 import { Input } from '@/components/ui/input';
-import { Store, User, ChevronsUpDown, PaintRoller, Sun, Moon, Laptop2, LogOut } from 'lucide-react';
+import {
+  Store,
+  User,
+  ChevronsUpDown,
+  PaintRoller,
+  Sun,
+  Moon,
+  Laptop2,
+  LogOut,
+  Bookmark,
+  FileText,
+  Sparkles
+} from 'lucide-react';
 import { fetchCurrentStore } from '@/modules/stores/slices/storeThunks';
 import { performLogout } from '@/modules/auth/services/authService';
 import { useTheme } from '@/components/theme-provider';
@@ -67,7 +79,7 @@ import {
   AlertDialogAction,
   AlertDialogDescription
 } from '@/components/ui/alert-dialog';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import SearchSelect from '../../../components/ui/SearchSelect';
 import { ActionButtons } from '../components/ActionButtons';
 import { store as reduxStore } from '@/store/store';
@@ -75,6 +87,12 @@ import { findByBarcodeOffline } from '@/modules/offline/productSearch';
 import { nextOfflineNumber, queueOfflineInvoice } from '@/modules/offline/offlineInvoice';
 import { OfflineStatusBadge } from '@/modules/offline/components/OfflineStatusBadge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useDrafts } from '../hooks/useDrafts';
+import { IInvoiceDraft } from '../types/draft';
+import { DraftsModal } from '../components/DraftsModal';
+import { SaveDraftModal } from '../components/SaveDraftModal';
+import axiosInstance from '@/helpers/axiosInstance';
+import { getMetadata, setMetadata, metadataKeys } from '@/modules/offline/db';
 
 type FormValues = InferType<typeof billingSchema>;
 
@@ -92,11 +110,14 @@ const buildInvoiceDetailsFromSelectedProducts = (
     ...invoice,
     invoice_details: selectedProducts.map((product) => ({
       id: product.temp_id ?? '',
-      product_id: product.product_id,
+      item_type: product.item_type || 'product',
+      description: product.description || (product.item_type === 'free' ? product.name : null),
+      product_id: product.item_type === 'free' ? null : product.product_id,
       product_name: product.name,
-      inventory_id: product.inventory_id ?? '',
+      inventory_id: product.item_type === 'free' ? null : (product.inventory_id ?? ''),
       quantity: product.quantity,
       price: product.price as never,
+      cost: product.cost ?? 0,
       total: product.total,
       sku: product.sku ?? ''
     }))
@@ -173,14 +194,95 @@ const Billing = () => {
   } | null>(null);
 
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const proformaId = searchParams.get('proforma_id');
+  const draftIdParam = searchParams.get('draft_id');
+  const draftActionParam = searchParams.get('action');
+
+  const [allowProformas, setAllowProformas] = useState<boolean>(false);
+  const [allowInvoiceDrafts, setAllowInvoiceDrafts] = useState<boolean>(false);
+  const [isSettingsLoaded, setIsSettingsLoaded] = useState<boolean>(false);
+
+  const [isDraftsModalOpen, setIsDraftsModalOpen] = useState(false);
+  const [isSaveDraftModalOpen, setIsSaveDraftModalOpen] = useState(false);
+  const [activeDraft, setActiveDraft] = useState<IInvoiceDraft | null>(null);
+  const activeDraftRef = useRef<IInvoiceDraft | null>(null);
+
+  const { drafts, draftsCount, saveDraft, deleteDraft, getDraftById } = useDrafts(
+    storeId || undefined,
+    allowInvoiceDrafts
+  );
+
   const [isPriceDialogOpen, setIsPriceDialogOpen] = useState(false);
-  const [priceDiscrepancies, setPriceDiscrepancies] = useState<{
-    detail: any;
-    currentPrice: number;
-    product: any;
-  }[]>([]);
+  const [priceDiscrepancies, setPriceDiscrepancies] = useState<
+    {
+      detail: any;
+      currentPrice: number;
+      product: any;
+    }[]
+  >([]);
   const [pendingInvoice, setPendingInvoice] = useState<ISingleInvoice | null>(null);
+
+  const isOnline = useAppSelector((state) => state.offlineSlice.isOnline);
+  const [sellerSessionMode, setSellerSessionMode] = useState<'AFTER_EACH_SALE' | 'PERSISTENT'>('AFTER_EACH_SALE');
+
+  useEffect(() => {
+    const orgId = currentUser?.orgId;
+    if (!orgId) return;
+
+    const loadSetting = async () => {
+      try {
+        const [sessionRes, proformasRes, draftsRes] = await Promise.allSettled([
+          axiosInstance.get('/v1/settings?key=seller_session_mode'),
+          axiosInstance.get('/v1/settings?key=allow_proformas'),
+          axiosInstance.get('/v1/settings?key=allow_invoice_drafts')
+        ]);
+
+        if (sessionRes.status === 'fulfilled') {
+          const records = sessionRes.value.data?.data || sessionRes.value.data || [];
+          const mode = records.length > 0 && records[0].value === 'PERSISTENT' ? 'PERSISTENT' : 'AFTER_EACH_SALE';
+          setSellerSessionMode(mode);
+          await setMetadata(metadataKeys.sellerSessionMode(orgId), mode);
+        } else {
+          const cached = await getMetadata<string>(metadataKeys.sellerSessionMode(orgId));
+          setSellerSessionMode(cached === 'PERSISTENT' ? 'PERSISTENT' : 'AFTER_EACH_SALE');
+        }
+
+        if (proformasRes.status === 'fulfilled') {
+          const records = proformasRes.value.data?.data || proformasRes.value.data || [];
+          const isAllowed = records.length > 0 && (records[0].value === 'true' || records[0].value === true);
+          setAllowProformas(isAllowed);
+          await setMetadata(metadataKeys.allowProformas(orgId), isAllowed);
+        } else {
+          const cached = await getMetadata<boolean>(metadataKeys.allowProformas(orgId));
+          setAllowProformas(cached === true);
+        }
+
+        if (draftsRes.status === 'fulfilled') {
+          const records = draftsRes.value.data?.data || draftsRes.value.data || [];
+          const isAllowed = records.length > 0 && (records[0].value === 'true' || records[0].value === true);
+          setAllowInvoiceDrafts(isAllowed);
+          await setMetadata(metadataKeys.allowInvoiceDrafts(orgId), isAllowed);
+        } else {
+          const cached = await getMetadata<boolean>(metadataKeys.allowInvoiceDrafts(orgId));
+          setAllowInvoiceDrafts(cached === true);
+        }
+      } catch {
+        const [cachedSession, cachedProformas, cachedDrafts] = await Promise.all([
+          getMetadata<string>(metadataKeys.sellerSessionMode(orgId)),
+          getMetadata<boolean>(metadataKeys.allowProformas(orgId)),
+          getMetadata<boolean>(metadataKeys.allowInvoiceDrafts(orgId))
+        ]);
+        setSellerSessionMode(cachedSession === 'PERSISTENT' ? 'PERSISTENT' : 'AFTER_EACH_SALE');
+        setAllowProformas(cachedProformas === true);
+        setAllowInvoiceDrafts(cachedDrafts === true);
+      } finally {
+        setIsSettingsLoaded(true);
+      }
+    };
+
+    loadSetting();
+  }, [currentUser?.orgId, isOnline]);
 
   useEffect(() => {
     if (!isClientSelected) {
@@ -189,7 +291,19 @@ const Billing = () => {
   }, [isClientSelected]);
 
   useEffect(() => {
-    if (!proformaId || !storeId) return;
+    if (!proformaId || !storeId || !isSettingsLoaded) return;
+
+    if (!allowProformas) {
+      toast({
+        title: 'Acción no permitida',
+        description: 'Las proformas no están habilitadas para esta organización.',
+        variant: 'error'
+      });
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete('proforma_id');
+      setSearchParams(nextParams);
+      return;
+    }
 
     const fetchAndCheckProforma = async () => {
       try {
@@ -208,7 +322,9 @@ const Billing = () => {
                 search_by: detail.sku ? 'sku' : 'name'
               });
               const matches = Array.isArray(resp?.data) ? resp.data : [];
-              const match = matches.find((m: any) => m.sku === detail.sku || m.id === detail.product_id);
+              const match = matches.find(
+                (m: any) => m.sku === detail.sku || m.id === detail.product_id
+              );
               if (match) {
                 const currentPrice = parseFloat(match.price);
                 const detailPrice = parseFloat(detail.price);
@@ -218,7 +334,9 @@ const Billing = () => {
                 if (availableQty <= 0) {
                   stockWarnings.push(`${detail.product_name} (Sin Stock en inventario)`);
                 } else if (requestedQty > availableQty) {
-                  stockWarnings.push(`${detail.product_name} (Solicitado: ${requestedQty}, Disponible: ${availableQty})`);
+                  stockWarnings.push(
+                    `${detail.product_name} (Solicitado: ${requestedQty}, Disponible: ${availableQty})`
+                  );
                 }
 
                 if (currentPrice !== detailPrice) {
@@ -275,42 +393,44 @@ const Billing = () => {
     invoiceData: ISingleInvoice,
     detailsWithMatches: { detail: any; match: any; priceToUse: number }[]
   ) => {
-    const mappedProducts: IInvoiceProduct[] = detailsWithMatches.map(({ detail, match, priceToUse }) => {
-      const qty = parseFloat(detail.quantity);
-      const total = qty * priceToUse;
-      const disc = parseFloat(detail.discount || 0);
-      const grandTotal = total - disc;
+    const mappedProducts: IInvoiceProduct[] = detailsWithMatches.map(
+      ({ detail, match, priceToUse }) => {
+        const qty = parseFloat(detail.quantity);
+        const total = qty * priceToUse;
+        const disc = parseFloat(detail.discount || 0);
+        const grandTotal = total - disc;
 
-      return {
-        id: detail.product_id,
-        product_id: detail.product_id,
-        sku: detail.sku,
-        barcode: detail.barcode || '',
-        name: detail.product_name,
-        price: priceToUse,
-        quantity: qty,
-        discount: disc,
-        total: total,
-        tax: parseFloat(detail.tax || 0),
-        grand_total: grandTotal,
-        inventory_id: detail.inventory_id,
-        inventory_name: match?.inventory_name || '',
-        image: match?.image || '',
-        cost: match?.cost || 0,
-        min_stock: match?.min_stock || 0,
-        unit_of_measure: match?.unit_of_measure || '',
-        categories: match?.categories || [],
-        tags: match?.tags || [],
-        inventory: match?.inventory || []
-      };
-    });
+        return {
+          id: detail.product_id,
+          product_id: detail.product_id,
+          sku: detail.sku,
+          barcode: detail.barcode || '',
+          name: detail.product_name,
+          price: priceToUse,
+          quantity: qty,
+          discount: disc,
+          total: total,
+          tax: parseFloat(detail.tax || 0),
+          grand_total: grandTotal,
+          inventory_id: detail.inventory_id,
+          inventory_name: match?.inventory_name || '',
+          image: match?.image || '',
+          cost: match?.cost || 0,
+          min_stock: match?.min_stock || 0,
+          unit_of_measure: match?.unit_of_measure || '',
+          categories: match?.categories || [],
+          tags: match?.tags || [],
+          inventory: match?.inventory || []
+        };
+      }
+    );
 
     dispatch(loadProductsToBilling(mappedProducts));
     setValue('client_id', invoiceData.client_id, { shouldValidate: true });
     setValue('client_name', invoiceData.client_name, { shouldValidate: true });
     setValue('invoice_note', invoiceData.invoice_note || '', { shouldValidate: true });
     setIsClientSelected(!!invoiceData.client_id);
-    
+
     toast({
       title: 'Proforma cargada',
       description: `Se cargaron los productos de la proforma #${invoiceData.invoice_number} en el carrito.`,
@@ -323,7 +443,8 @@ const Billing = () => {
 
     const checkedDetails = pendingInvoice.invoice_details.map((detail: any) => {
       const discrepancy = priceDiscrepancies.find((d) => d.detail.id === detail.id);
-      const priceToUse = discrepancy && updatePrices ? discrepancy.currentPrice : parseFloat(detail.price);
+      const priceToUse =
+        discrepancy && updatePrices ? discrepancy.currentPrice : parseFloat(detail.price);
       return {
         detail,
         match: discrepancy?.product || null,
@@ -336,6 +457,146 @@ const Billing = () => {
     setPendingInvoice(null);
     setPriceDiscrepancies([]);
   };
+
+  const handleLoadDraft = (draft: IInvoiceDraft) => {
+    dispatch(loadProductsToBilling(draft.products));
+    setValue('client_id', draft.client_id, { shouldValidate: true });
+    setValue('client_name', draft.client_name, { shouldValidate: true });
+    setValue('invoice_note', draft.invoice_note || '', { shouldValidate: true });
+    setValue('isCredit', draft.isCredit, { shouldValidate: true });
+    if (draft.payment_method) {
+      setValue('payment_method', draft.payment_method, { shouldValidate: true });
+    }
+    if (draft.invoice_expiration) {
+      setValue('invoice_expiration', draft.invoice_expiration, { shouldValidate: true });
+    }
+    setIsClientSelected(!!draft.client_id);
+    setSellType(draft.sell_type || (draft.isCredit ? SELL_TYPES.CREDITO : SELL_TYPES.CONTADO));
+    setActiveDraft(draft);
+    activeDraftRef.current = draft;
+
+    toast({
+      title: 'Borrador cargado',
+      description: `Se cargó el borrador "${draft.reference_name || draft.client_name}" (${draft.products.length} productos).`,
+      variant: 'success'
+    });
+  };
+
+  const handleInvoiceDraft = (draft: IInvoiceDraft) => {
+    handleLoadDraft(draft);
+    const dateExp = draft.invoice_expiration ? new Date(draft.invoice_expiration) : new Date();
+    setPendingFormValues({
+      client_id: draft.client_id,
+      client_name: draft.client_name,
+      invoice_note: draft.invoice_note || '',
+      isCredit: draft.isCredit,
+      payment_method: draft.payment_method || PAYMENT_METHODS.EFECTIVO,
+      invoice_date: new Date().toString(),
+      invoice_expiration: dateExp.toString()
+    } as any);
+    setConfirmSaleOpen(true);
+  };
+
+  const handleSaveDraft = (referenceName?: string) => {
+    if (productsSelected.length === 0) {
+      toast({
+        title: 'No hay productos en la venta',
+        description: 'Debes agregar al menos un producto para guardar como borrador.',
+        variant: 'error'
+      });
+      return;
+    }
+
+    const total = productsSelected.reduce((acc, p) => acc + (p.total || 0), 0);
+    const discount = productsSelected.reduce((acc, p) => acc + (p.discount || 0), 0);
+    const grand_total = productsSelected.reduce((acc, p) => acc + (p.grand_total || 0), 0);
+    const total_items = productsSelected.reduce((acc, p) => acc + (p.quantity || 0), 0);
+
+    const values = getValues();
+    const finalRefName =
+      referenceName || activeDraft?.reference_name || values.client_name || undefined;
+
+    const saved = saveDraft({
+      id: activeDraft?.id,
+      store_id: storeId || '',
+      seller_id: currentUser.sellerId,
+      seller_name: currentUser.sellerName,
+      client_id: values.client_id || null,
+      client_name: values.client_name || 'EVENTUAL',
+      invoice_note: values.invoice_note || '',
+      sell_type: sellType,
+      isCredit: sellType === SELL_TYPES.CREDITO,
+      payment_method: values.payment_method || PAYMENT_METHODS.EFECTIVO,
+      invoice_expiration: values.invoice_expiration || '',
+      products: productsSelected,
+      total,
+      discount,
+      tax: 0,
+      grand_total,
+      total_items,
+      reference_name: finalRefName
+    });
+
+    toast({
+      title: activeDraft ? 'Borrador actualizado' : 'Borrador guardado',
+      description: `El borrador "${saved.reference_name || saved.client_name}" se guardó exitosamente.`,
+      variant: 'success'
+    });
+
+    setActiveDraft(null);
+    activeDraftRef.current = null;
+    clearForm();
+    setIsSaveDraftModalOpen(false);
+  };
+
+  useEffect(() => {
+    if (!draftIdParam || !isSettingsLoaded) return;
+
+    if (!allowInvoiceDrafts) {
+      toast({
+        title: 'Acción no permitida',
+        description: 'Los borradores no están habilitados para esta organización.',
+        variant: 'error'
+      });
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete('draft_id');
+      nextParams.delete('action');
+      setSearchParams(nextParams);
+      return;
+    }
+
+    const draft = getDraftById(draftIdParam);
+    if (draft) {
+      handleLoadDraft(draft);
+
+      if (draftActionParam === 'checkout') {
+        const dateExp = draft.invoice_expiration ? new Date(draft.invoice_expiration) : new Date();
+        setTimeout(() => {
+          setPendingFormValues({
+            client_id: draft.client_id,
+            client_name: draft.client_name,
+            invoice_note: draft.invoice_note || '',
+            isCredit: draft.isCredit,
+            payment_method: draft.payment_method || PAYMENT_METHODS.EFECTIVO,
+            invoice_date: new Date().toString(),
+            invoice_expiration: dateExp.toString()
+          } as any);
+          setConfirmSaleOpen(true);
+        }, 150);
+      }
+    } else {
+      toast({
+        title: 'Borrador no encontrado',
+        description: 'El borrador solicitado ya no existe o fue eliminado.',
+        variant: 'error'
+      });
+    }
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete('draft_id');
+    nextParams.delete('action');
+    setSearchParams(nextParams);
+  }, [draftIdParam, draftActionParam]);
 
   const focusElement = (element?: HTMLElement | null) => {
     if (!element) return;
@@ -372,7 +633,12 @@ const Billing = () => {
     if (isEditing) {
       dispatch(cancelEditingInvoice());
     }
-    handlePostSaleLogout();
+    if (reduxStore.getState().offlineSlice.isOnline) {
+      localStorage.removeItem('seller_id');
+      localStorage.removeItem('seller_name');
+      localStorage.removeItem('seller_code');
+      dispatch(sellerLogout());
+    }
   };
 
   useEffect(() => {
@@ -403,6 +669,13 @@ const Billing = () => {
   const invoiceNoteField = register('invoice_note');
 
   useEffect(() => {
+    if (!allowProformas && sellType === 'proforma') {
+      setSellType('contado');
+      setValue('isCredit', false, { shouldValidate: true });
+    }
+  }, [allowProformas, sellType, setValue]);
+
+  useEffect(() => {
     if (isEditing && invoiceCreated) {
       setValue('client_id', invoiceCreated.client_id, { shouldValidate: true });
       setValue('client_name', invoiceCreated.client_name, { shouldValidate: true });
@@ -424,6 +697,27 @@ const Billing = () => {
       }
     }
   }, [isEditing, editingInvoiceId, setValue]);
+
+  // Si no estamos editando pero hay datos de una venta en curso en Redux (ej. al navegar a Novedades y volver)
+  useEffect(() => {
+    if (!isEditing && invoiceCreated) {
+      if (invoiceCreated.client_id) {
+        setValue('client_id', invoiceCreated.client_id, { shouldValidate: true });
+        setValue('client_name', invoiceCreated.client_name, { shouldValidate: true });
+        setIsClientSelected(true);
+      }
+      if (invoiceCreated.invoice_note) {
+        setValue('invoice_note', invoiceCreated.invoice_note, { shouldValidate: true });
+      }
+      if (invoiceCreated.isCredit) {
+        setValue('isCredit', true, { shouldValidate: true });
+        setSellType(SELL_TYPES.CREDITO);
+      }
+      if (invoiceCreated.payment_method) {
+        setValue('payment_method', invoiceCreated.payment_method, { shouldValidate: true });
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const subscription = watch((values) => {
@@ -454,13 +748,19 @@ const Billing = () => {
     // La venta se completó (o se limpió el carrito): la próxima venta acuña una
     // referencia nueva.
     saleReferenceRef.current = null;
+    setActiveDraft(null);
+    activeDraftRef.current = null;
   };
 
-  const handlePostSaleLogout = () => {
+  const handlePostSaleDecision = () => {
     // Offline no se puede re-validar el PIN contra el servidor: mantener la
     // sesión de vendedor activa para no bloquear la caja tras la primera venta.
     if (!reduxStore.getState().offlineSlice.isOnline) return;
 
+    // Si la configuración es PERSISTENT, se conserva la sesión iniciada
+    if (sellerSessionMode === 'PERSISTENT') return;
+
+    // AFTER_EACH_SALE (predeterminado): cerrar sesión del vendedor
     localStorage.removeItem('seller_id');
     localStorage.removeItem('seller_name');
     localStorage.removeItem('seller_code');
@@ -538,6 +838,12 @@ const Billing = () => {
       variant: 'success'
     });
 
+    if (activeDraftRef.current) {
+      deleteDraft(activeDraftRef.current.id);
+      activeDraftRef.current = null;
+      setActiveDraft(null);
+    }
+
     clearForm();
     setIsOpenDialogAfterInvoice(true);
     setInvoiceRecentCreated({ ...printSnapshot, __offline: true } as any);
@@ -554,7 +860,7 @@ const Billing = () => {
       });
       return;
     }
-    if (invoiceCreated.products.length === 0) {
+    if (productsSelected.length === 0 && invoiceCreated.products.length === 0) {
       toast({
         title: 'Debes seleccionar almenos un producto para realizar la venta!',
         variant: 'error'
@@ -591,7 +897,8 @@ const Billing = () => {
       ? `Factura editada que reemplaza a la factura N° ${editingInvoiceNumber}. ${values.invoice_note || ''}`.trim()
       : values.invoice_note || '';
 
-    const finalIsCredit = isCreditSale !== undefined ? isCreditSale : (sellType === SELL_TYPES.CREDITO);
+    const finalIsCredit =
+      isCreditSale !== undefined ? isCreditSale : sellType === SELL_TYPES.CREDITO;
 
     const invoice: any = {
       ...invoiceCreated,
@@ -609,7 +916,8 @@ const Billing = () => {
       isCredit: finalIsCredit,
       is_proforma: sellType === SELL_TYPES.PROFORMA,
       invoice_status: sellType === SELL_TYPES.PROFORMA ? 'proforma' : undefined,
-      payment_method: sellType === SELL_TYPES.PROFORMA ? 'PROFORMA' : (finalIsCredit ? 'CREDIT' : paymentMethod),
+      payment_method:
+        sellType === SELL_TYPES.PROFORMA ? 'PROFORMA' : finalIsCredit ? 'CREDIT' : paymentMethod,
       payment_metadata: sellType === SELL_TYPES.PROFORMA ? {} : paymentMetadata,
       payment_date: format(dateExp, 'yyyy-MM-dd'),
       seller_id: currentUser.sellerId,
@@ -617,7 +925,11 @@ const Billing = () => {
       invoice_note: finalNote,
       products: productsSelected.map((product) => ({
         ...product,
-        inventory_id: product.inventory_id ?? ''
+        item_type: product.item_type || 'product',
+        description: product.item_type === 'free' ? (product.description || product.name) : null,
+        product_id: product.item_type === 'free' ? null : product.product_id,
+        inventory_id: product.item_type === 'free' ? null : (product.inventory_id ?? ''),
+        cost: product.cost ?? 0
       }))
     };
 
@@ -659,6 +971,12 @@ const Billing = () => {
           title: 'Venta realizada exitosamente!',
           variant: 'success'
         });
+      }
+
+      if (activeDraftRef.current) {
+        deleteDraft(activeDraftRef.current.id);
+        activeDraftRef.current = null;
+        setActiveDraft(null);
       }
 
       clearForm();
@@ -851,17 +1169,23 @@ const Billing = () => {
           if (sellType === 'contado') {
             if (isClientSelected) {
               nextType = 'credito';
-            } else {
+            } else if (allowProformas) {
               nextType = 'proforma';
+            } else {
+              nextType = 'contado';
             }
           } else if (sellType === 'credito') {
-            nextType = 'proforma';
+            if (allowProformas) {
+              nextType = 'proforma';
+            } else {
+              nextType = 'contado';
+            }
           } else {
             nextType = 'contado';
           }
           setSellType(nextType);
           setValue('isCredit', nextType === 'credito', { shouldValidate: true });
-          
+
           let displayLabel = 'Contado';
           if (nextType === 'credito') displayLabel = 'Crédito';
           if (nextType === 'proforma') displayLabel = 'Proforma';
@@ -895,7 +1219,7 @@ const Billing = () => {
     return () => {
       window.removeEventListener('keydown', handleGlobalShortcuts);
     };
-  }, [sellType, isClientSelected, setValue, confirmSaleOpen, checkClientModalOpen]);
+  }, [sellType, isClientSelected, setValue, confirmSaleOpen, checkClientModalOpen, allowProformas]);
 
   // Lector de Código de Barras Global
   useEffect(() => {
@@ -1056,6 +1380,22 @@ const Billing = () => {
 
         {/* Lado Derecho: Usuario / Dropdown */}
         <div className="flex items-center gap-2">
+          {allowInvoiceDrafts && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsDraftsModalOpen(true)}
+              className="h-9 px-2.5 text-xs font-semibold gap-1.5 border-border hover:bg-muted shadow-xs">
+              <FileText className="w-3.5 h-3.5 text-amber-500" />
+              <span className="hidden sm:inline">Borradores</span>
+              {draftsCount > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full bg-amber-500 text-amber-950 text-[10px] font-bold leading-none">
+                  {draftsCount}
+                </span>
+              )}
+            </Button>
+          )}
           <OfflineStatusBadge />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -1117,6 +1457,13 @@ const Billing = () => {
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuItem
+                onClick={() => navigate('/novedades')}
+                className="cursor-pointer">
+                <Sparkles className="mr-2 h-4 w-4 text-primary" />
+                <span>Novedades</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
                 onClick={handleSellerLogout}
                 className="cursor-pointer text-amber-500 focus:text-amber-500">
                 <LogOut className="mr-2 h-4 w-4" />
@@ -1147,14 +1494,25 @@ const Billing = () => {
           headerContent={
             <section className="flex-shrink-0 relative rounded-md shadow-xs px-3.5 py-2.5 border mb-0 before:absolute before:inset-x-0 before:top-0 before:h-[2px] before:bg-sale-accent-strong before:rounded-t-md bg-card">
               <div className="flex justify-between items-center pb-2 border-b border-border/60">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <h1 className="text-sm sm:text-base font-bold text-foreground">
-                    {isEditing ? `Editando Factura #${editingInvoiceNumber}` : 'Nueva Factura'}
+                    {isEditing
+                      ? `Editando Factura #${editingInvoiceNumber}`
+                      : activeDraft
+                        ? `Borrador: ${activeDraft.reference_name || activeDraft.client_name || 'En curso'}`
+                        : 'Nueva Factura'}
                   </h1>
+                  {activeDraft && !isEditing && (
+                    <span className="text-[10px] bg-amber-500 text-amber-950 font-bold px-2 py-0.5 rounded-full">
+                      Borrador activo
+                    </span>
+                  )}
                   <span className="text-[11px] text-muted-foreground hidden sm:inline">
                     {isEditing
                       ? '• Modifique los datos y guarde para anular la anterior'
-                      : '• Datos de la transacción'}
+                      : activeDraft
+                        ? '• Venta pausada cargada en pantalla'
+                        : '• Datos de la transacción'}
                   </span>
                 </div>
                 {isEditing && (
@@ -1179,7 +1537,9 @@ const Billing = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-2">
                 <div className="w-full">
-                  <Label htmlFor="client_id" className="text-xs font-semibold text-muted-foreground mb-1 block">
+                  <Label
+                    htmlFor="client_id"
+                    className="text-xs font-semibold text-muted-foreground mb-1 block">
                     Agregar Cliente *
                   </Label>
 
@@ -1209,7 +1569,9 @@ const Billing = () => {
                 </div>
 
                 <div className="w-full">
-                  <Label htmlFor="seller" className="text-xs font-semibold text-muted-foreground mb-1 block">
+                  <Label
+                    htmlFor="seller"
+                    className="text-xs font-semibold text-muted-foreground mb-1 block">
                     Vendedor
                   </Label>
                   <Input
@@ -1263,18 +1625,43 @@ const Billing = () => {
               </Tooltip>
             </TooltipProvider>
 
-            <Button
-              onClick={() => {
-                setSellType(SELL_TYPES.PROFORMA);
-                setValue('isCredit', false, { shouldValidate: true });
-                buttonRef.current?.click();
-              }}
-              type="button"
-              tabIndex={-1}
-              disabled={isSubmittingSale}
-              className="w-full min-w-0 h-auto min-h-11 whitespace-normal px-2 text-sm font-bold bg-amber-400 hover:bg-amber-500 text-amber-950 border-0">
-              Realizar proforma
-            </Button>
+            {allowProformas && (
+              <Button
+                onClick={() => {
+                  setSellType(SELL_TYPES.PROFORMA);
+                  setValue('isCredit', false, { shouldValidate: true });
+                  buttonRef.current?.click();
+                }}
+                type="button"
+                tabIndex={-1}
+                disabled={isSubmittingSale}
+                className="w-full min-w-0 h-auto min-h-11 whitespace-normal px-2 text-sm font-bold bg-amber-400 hover:bg-amber-500 text-amber-950 border-0">
+                Realizar proforma
+              </Button>
+            )}
+
+            {allowInvoiceDrafts && (
+              <Button
+                onClick={() => {
+                  if (productsSelected.length === 0) {
+                    toast({
+                      title: 'No hay productos en el carrito',
+                      description: 'Agrega al menos un producto antes de guardar como borrador.',
+                      variant: 'error'
+                    });
+                    return;
+                  }
+                  setIsSaveDraftModalOpen(true);
+                }}
+                type="button"
+                tabIndex={-1}
+                disabled={isSubmittingSale || isEditing}
+                variant="outline"
+                className="w-full min-w-0 h-auto min-h-11 whitespace-normal px-2 text-sm font-bold border-amber-500/50 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30">
+                <Bookmark className="w-4 h-4 mr-1.5 text-amber-500" />
+                {activeDraft ? 'Actualizar borrador' : 'Guardar borrador'}
+              </Button>
+            )}
 
             <Button
               onClick={handleCancelInvoice}
@@ -1319,12 +1706,48 @@ const Billing = () => {
         onConfirmNew={handleConfirmNew}
       />
 
+      {allowInvoiceDrafts && (
+        <DraftsModal
+          open={isDraftsModalOpen}
+          onOpenChange={setIsDraftsModalOpen}
+          drafts={drafts}
+          activeDraftId={activeDraft?.id}
+          onContinueDraft={handleLoadDraft}
+          onInvoiceDraft={handleInvoiceDraft}
+          onDeleteDraft={(id) => {
+            deleteDraft(id);
+            if (activeDraft?.id === id) {
+              setActiveDraft(null);
+              activeDraftRef.current = null;
+            }
+            toast({
+              title: 'Borrador eliminado',
+              variant: 'default'
+            });
+          }}
+        />
+      )}
+
+      {allowInvoiceDrafts && (
+        <SaveDraftModal
+          open={isSaveDraftModalOpen}
+          onCancel={() => setIsSaveDraftModalOpen(false)}
+          onSave={handleSaveDraft}
+          clientName={getValues('client_name') || 'EVENTUAL'}
+          totalItems={productsSelected.reduce((acc, p) => acc + (p.quantity || 0), 0)}
+          grandTotal={productsSelected.reduce((acc, p) => acc + (p.grand_total || 0), 0)}
+          initialReference={activeDraft?.reference_name || ''}
+          isExistingDraft={!!activeDraft}
+        />
+      )}
+
       <AlertDialog open={isPriceDialogOpen} onOpenChange={setIsPriceDialogOpen}>
         <AlertDialogContent className="max-w-lg">
           <AlertDialogHeader>
             <AlertDialogTitle>Cambios de precio detectados</AlertDialogTitle>
             <AlertDialogDescription>
-              Se encontraron diferencias entre los precios de la cotización y las tarifas actuales del inventario. ¿Cómo deseas proceder?
+              Se encontraron diferencias entre los precios de la cotización y las tarifas actuales
+              del inventario. ¿Cómo deseas proceder?
             </AlertDialogDescription>
           </AlertDialogHeader>
 
@@ -1341,8 +1764,12 @@ const Billing = () => {
                 {priceDiscrepancies.map((disc, idx) => (
                   <tr key={idx} className="border-b last:border-0">
                     <td className="py-2">{disc.detail.product_name}</td>
-                    <td className="py-2 text-right text-muted-foreground">C$ {parseFloat(disc.detail.price).toFixed(2)}</td>
-                    <td className="py-2 text-right font-medium text-emerald-600">C$ {disc.currentPrice.toFixed(2)}</td>
+                    <td className="py-2 text-right text-muted-foreground">
+                      C$ {parseFloat(disc.detail.price).toFixed(2)}
+                    </td>
+                    <td className="py-2 text-right font-medium text-emerald-600">
+                      C$ {disc.currentPrice.toFixed(2)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -1353,7 +1780,9 @@ const Billing = () => {
             <AlertDialogCancel onClick={() => handleResolvePrices(false)}>
               Respetar Cotización
             </AlertDialogCancel>
-            <AlertDialogAction onClick={() => handleResolvePrices(true)} className="bg-theme_blue hover:bg-theme_blue/90">
+            <AlertDialogAction
+              onClick={() => handleResolvePrices(true)}
+              className="bg-theme_blue hover:bg-theme_blue/90">
               Actualizar Precios
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -1366,7 +1795,7 @@ const Billing = () => {
           setIsOpenDialogAfterInvoice(open);
 
           if (!open) {
-            handlePostSaleLogout();
+            handlePostSaleDecision();
           }
         }}>
         <AlertDialogContent

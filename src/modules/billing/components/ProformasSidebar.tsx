@@ -86,9 +86,7 @@ const ProformasSidebar = ({ onLoadProforma }: ProformasSidebarProps) => {
                 onClick={() => onLoadProforma(p.id)}
                 className="w-full h-auto py-2 px-2.5 flex flex-col items-start gap-0.5 text-left rounded-md hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:text-amber-800 dark:hover:text-amber-300 group transition-colors border border-transparent hover:border-amber-200 dark:hover:border-amber-800">
                 <div className="flex items-center justify-between w-full">
-                  <span className="text-[11px] font-bold leading-none">
-                    #{p.invoice_number}
-                  </span>
+                  <span className="text-[11px] font-bold leading-none">#{p.invoice_number}</span>
                   <ShoppingCart className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-amber-600" />
                 </div>
                 <span className="text-[10px] text-muted-foreground truncate max-w-full leading-none">

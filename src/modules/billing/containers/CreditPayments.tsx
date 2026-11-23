@@ -535,8 +535,8 @@ export default function CreditPayments() {
     <div className="flex-1 flex flex-col gap-4 p-2 max-w-5xl mx-auto w-full select-none">
       {!isOnline && (
         <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs font-medium text-amber-700 dark:text-amber-300">
-          Sin conexión: la cobranza de crédito requiere internet. Los abonos no se
-          pueden registrar offline; intenta cuando vuelva la red.
+          Sin conexión: la cobranza de crédito requiere internet. Los abonos no se pueden registrar
+          offline; intenta cuando vuelva la red.
         </div>
       )}
       <div className="flex flex-wrap gap-2 justify-between items-center border-b pb-3 border-slate-200 dark:border-slate-800">
